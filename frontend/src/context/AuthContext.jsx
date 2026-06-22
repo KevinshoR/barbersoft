@@ -19,10 +19,16 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const login = (token, barbershopData) => {
-    localStorage.setItem('token', token)
-    setBarbershop(barbershopData)
-  }
+const login = (token, barbershopData) => {
+  localStorage.setItem('token', token)
+  setBarbershop(barbershopData)
+}
+
+const refreshBarbershop = () => {
+  api.get('/auth/me')
+    .then(res => setBarbershop(res.data.barbershop))
+    .catch(console.error)
+}
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -30,10 +36,12 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ barbershop, login, logout, loading }}>
+    <AuthContext.Provider value={{ barbershop, login, logout, loading, refreshBarbershop  }}>
       {children}
     </AuthContext.Provider>
+    
   )
+  
 }
 
 export function useAuth() {

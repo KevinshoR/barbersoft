@@ -39,12 +39,11 @@ const SubscriptionController = {
           payer: { email: barbershop.email },
           external_reference: reference,
           back_urls: {
-            success: `${process.env.FRONTEND_URL}/subscription?payment=success`,
-            failure: `${process.env.FRONTEND_URL}/subscription?payment=failure`,
-            pending: `${process.env.FRONTEND_URL}/subscription?payment=pending`,
-          },
-          auto_return:        'approved',
-          notification_url:   `${process.env.BACKEND_URL}/api/subscription/webhook`,
+  success: `${process.env.FRONTEND_URL}/subscription?payment=success`,
+  failure: `${process.env.FRONTEND_URL}/subscription?payment=failure`,
+  pending: `${process.env.FRONTEND_URL}/subscription?payment=pending`,
+},
+notification_url: `${process.env.BACKEND_URL}/api/subscription/webhook`,
           payment_methods: {
             excluded_payment_types: [
               { id:'ticket' },
@@ -97,12 +96,13 @@ const SubscriptionController = {
       newEndDate.setDate(newEndDate.getDate() + daysToAdd)
 
       await pool.query(
-        `UPDATE barbershops
-         SET subscription_status = 'active',
-             subscription_ends_at = $1
-         WHERE id = $2`,
-        [newEndDate, barbershop_id]
-      )
+  `UPDATE barbershops
+   SET subscription_status = 'active',
+       subscription_ends_at = $1,
+       current_plan = $2
+   WHERE id = $3`,
+  [newEndDate, plan, barbershop_id]
+)
 
       await pool.query(
         `UPDATE payment_attempts SET status = 'approved' WHERE reference = $1`,

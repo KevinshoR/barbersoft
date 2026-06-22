@@ -21,6 +21,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
+    if (error.response?.status === 402) {
+      window.location.href = '/subscription?blocked=true'
+    }
     return Promise.reject(error)
   }
 )

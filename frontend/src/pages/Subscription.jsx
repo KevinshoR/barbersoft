@@ -12,7 +12,7 @@ function Toast({ message, type, onClose }) {
     ? { bg:'rgba(76,175,125,0.12)', border:'rgba(76,175,125,0.4)', color:'#4CAF7D', icon:'✓' }
     : { bg:'rgba(224,82,82,0.12)',  border:'rgba(224,82,82,0.4)',  color:'#E05252', icon:'✕' }
   return (
-    <div className="animate-fade-up" style={{ position:'fixed', top:24, right:24, zIndex:999, background:c.bg, border:'1px solid '+c.border, color:c.color, borderRadius:10, padding:'14px 20px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:10, minWidth:260, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' }}>
+    <div className="animate-fade-up" style={{ position:'fixed', top:80, right:24, zIndex:998, background:c.bg, border:'1px solid '+c.border, color:c.color, borderRadius:10, padding:'14px 20px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:10, minWidth:260, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' }}>
       <span>{c.icon}</span>{message}
       <button onClick={onClose} style={{ marginLeft:'auto', background:'none', border:'none', color:'inherit', cursor:'pointer', fontSize:16, opacity:0.6 }}>×</button>
     </div>
@@ -66,7 +66,7 @@ const PLANS = [
 ]
 
 export default function Subscription() {
-  const { barbershop }    = useAuth()
+const { barbershop, refreshBarbershop } = useAuth()
   const { pathname }      = useLocation()
   const [searchParams]    = useSearchParams()
   const [toast, setToast] = useState(null)
@@ -76,11 +76,14 @@ export default function Subscription() {
 
   // Detectar retorno de Mercado Pago
   useEffect(() => {
-    const payment = searchParams.get('payment')
-    if (payment === 'success') showToast('¡Pago exitoso! Tu suscripción fue activada.', 'success')
-    if (payment === 'failure') showToast('El pago no se completó. Intentá de nuevo.', 'error')
-    if (payment === 'pending') showToast('Pago pendiente. Te avisaremos cuando se confirme.', 'error')
-  }, [])
+  refreshBarbershop()
+  const payment = searchParams.get('payment')
+  const blocked = searchParams.get('blocked')
+  if (payment === 'success') showToast('¡Pago exitoso! Tu suscripción fue activada.', 'success')
+  if (payment === 'failure') showToast('El pago no se completó. Intentá de nuevo.', 'error')
+  if (payment === 'pending') showToast('Pago pendiente. Te avisaremos cuando se confirme.', 'error')
+  if (blocked === 'true')    showToast('Tu suscripción venció. Elegí un plan para continuar.', 'error')
+}, [])
 
   const handleSubscribe = async (planId) => {
     setLoading(planId)
@@ -102,7 +105,7 @@ export default function Subscription() {
     active:  { label:'ACTIVA',            color:'#4CAF7D',        bg:'rgba(76,175,125,0.12)',  border:'rgba(76,175,125,0.3)'  },
     blocked: { label:'BLOQUEADA',         color:'#E05252',        bg:'rgba(224,82,82,0.12)',   border:'rgba(224,82,82,0.3)'   },
   }
-  const sc = statusConfig[status]
+  const sc = statusConfig[status] || statusConfig['trial']
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
@@ -141,7 +144,9 @@ export default function Subscription() {
               </p>
             </div>
           )}
-
+{!barbershop && (
+  <p style={{ color:'var(--cream-dim)', fontSize:13 }}>Cargando información...</p>
+)}
           {status === 'active' && (
             <div>
               <p style={{ color:'var(--cream)', fontSize:15, fontWeight:500, marginBottom:6 }}>

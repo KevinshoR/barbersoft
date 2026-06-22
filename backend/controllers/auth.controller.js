@@ -250,6 +250,12 @@ async updateProfile(req, res) {
       console.error(err)
       res.status(500).json({ error: 'Error obteniendo perfil' })
     }
+    const result = await pool.query(
+  `SELECT id, name, email, phone, address, slug,
+          subscription_status, trial_ends_at, subscription_ends_at, current_plan
+   FROM barbershops WHERE id = $1`,
+  [id]
+)
   }
   
 
