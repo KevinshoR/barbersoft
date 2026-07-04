@@ -2,6 +2,23 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { getDepartments, getMunicipalities } from '../data/colombia'
+import { isPasswordValid } from '../utils/passwordValidation'
+import PasswordStrength from '../components/PasswordStrength'
+import { requiredError, lengthError, emailError, phoneError, combine } from '../utils/validators'
+
+const registerSchema = {
+  name: combine(v => requiredError(v, 'El nombre'), v => lengthError(v, { min: 2, max: 100, label: 'El nombre' })),
+  phone: v => phoneError(v),
+  department: v => requiredError(v, 'El departamento'),
+  municipality: (v, form) => {
+    if (!isRequired(v)) return 'Seleccioná el municipio'
+    if (form.department && !getMunicipalities(form.department).includes(v)) return 'Seleccioná un municipio válido de la lista'
+    return null
+  },
+}
+
+function isRequired(v) { return v !== undefined && v !== null && String(v).trim() !== '' }
 
 export default function Login() {
   const location   = useLocation()
@@ -9,23 +26,60 @@ export default function Login() {
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', address:'' })
+  const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', department:'', municipality:'' })
+  const [touched, setTouched] = useState({})
 
   const { login } = useAuth()
   const navigate  = useNavigate()
 
+  const emailErr = emailError(form.email, { required: true })
+  const registerErrors = isRegister
+    ? Object.keys(registerSchema).reduce((acc, field) => {
+        const err = registerSchema[field](form[field], form)
+        if (err) acc[field] = err
+        return acc
+      }, {})
+    : {}
+
+  const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setForm(prev => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'department' ? { municipality: '' } : {})
+    }))
     setError('')
+    markTouched(name)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    setTouched(t => ({ ...t, name: true, email: true, phone: true, department: true, municipality: true, password: true }))
+
+    if (emailErr) return
+
+    if (isRegister) {
+      if (Object.values(registerErrors).some(Boolean)) return
+      if (!isPasswordValid(form.password, form.email)) {
+        setError('La contraseña no cumple los requisitos de seguridad')
+        return
+      }
+    }
+
+    setLoading(true)
     try {
       const endpoint = isRegister ? '/auth/register' : '/auth/login'
-      const res = await api.post(endpoint, form)
+      const payload = {
+        ...form,
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        municipality: form.municipality.trim(),
+      }
+      const res = await api.post(endpoint, payload)
       login(res.data.token, res.data.barbershop)
       navigate('/dashboard')
     } catch (err) {
@@ -34,6 +88,10 @@ export default function Login() {
       setLoading(false)
     }
   }
+
+  const isSubmitDisabled = loading
+    || !!emailErr
+    || (isRegister && (Object.values(registerErrors).some(Boolean) || !isPasswordValid(form.password, form.email)))
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, position:'relative', overflow:'hidden' }}>
@@ -65,16 +123,41 @@ export default function Login() {
               <>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>NOMBRE DE LA BARBERÍA</label>
-                  <input name="name" value={form.name} onChange={handleChange} placeholder="Ej: Barbería El Paisa" required style={{ width:'100%', padding:'12px 16px' }} />
+                  <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Ej: Barbería El Paisa" required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.name && registerErrors.name ? '#E05252' : 'var(--dark-4)') }} />
+                  {touched.name && registerErrors.name && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.name}</p>}
+                </div>
+                <div>
+                  <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
+                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="3001234567" style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.phone && registerErrors.phone ? '#E05252' : 'var(--dark-4)') }} />
+                  {touched.phone && registerErrors.phone && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.phone}</p>}
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                   <div>
-                    <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
-                    <input name="phone" value={form.phone} onChange={handleChange} placeholder="3001234567" style={{ width:'100%', padding:'12px 16px' }} />
+                    <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>DEPARTAMENTO</label>
+                    <select name="department" value={form.department} onChange={handleChange} onBlur={() => markTouched('department')} required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.department && registerErrors.department ? '#E05252' : 'var(--dark-4)') }}>
+                      <option value="">Seleccioná...</option>
+                      {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    {touched.department && registerErrors.department && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.department}</p>}
                   </div>
                   <div>
-                    <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>CIUDAD</label>
-                    <input name="address" value={form.address} onChange={handleChange} placeholder="Medellín" style={{ width:'100%', padding:'12px 16px' }} />
+                    <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>MUNICIPIO</label>
+                    <input
+                      name="municipality"
+                      list="municipios-register"
+                      value={form.municipality}
+                      onChange={handleChange}
+                      onBlur={() => markTouched('municipality')}
+                      disabled={!form.department}
+                      placeholder={form.department ? 'Escribí para buscar...' : 'Elegí un departamento'}
+                      autoComplete="off"
+                      required
+                      style={{ width:'100%', padding:'12px 16px', opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && registerErrors.municipality ? '#E05252' : 'var(--dark-4)') }}
+                    />
+                    <datalist id="municipios-register">
+                      {getMunicipalities(form.department).map(m => <option key={m} value={m} />)}
+                    </datalist>
+                    {touched.municipality && registerErrors.municipality && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.municipality}</p>}
                   </div>
                 </div>
               </>
@@ -82,7 +165,8 @@ export default function Login() {
 
             <div>
               <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>CORREO ELECTRÓNICO</label>
-              <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="tucorreo@email.com" required style={{ width:'100%', padding:'12px 16px' }} />
+              <input name="email" type="email" value={form.email} onChange={handleChange} onBlur={() => markTouched('email')} placeholder="tucorreo@email.com" required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.email && emailErr ? '#E05252' : 'var(--dark-4)') }} />
+              {touched.email && emailErr && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {emailErr}</p>}
             </div>
 
             <div>
@@ -105,13 +189,14 @@ export default function Login() {
                   {showPassword ? '🙈' : '👁'}
                 </button>
               </div>
+              {isRegister && <PasswordStrength password={form.password} email={form.email} />}
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitDisabled}
               className="btn-primary"
-              style={{ marginTop:8, width:'100%', padding:'14px 0', opacity: loading ? 0.6 : 1, fontSize:13 }}
+              style={{ marginTop:8, width:'100%', padding:'14px 0', opacity: isSubmitDisabled ? 0.6 : 1, fontSize:13 }}
             >
               {loading ? 'CARGANDO...' : isRegister ? 'CREAR CUENTA GRATIS' : 'INICIAR SESIÓN'}
             </button>
@@ -131,7 +216,7 @@ export default function Login() {
               {isRegister ? '¿Ya tenés cuenta? ' : '¿No tenés cuenta? '}
             </span>
             <button
-              onClick={() => { setIsRegister(!isRegister); setError('') }}
+              onClick={() => { setIsRegister(!isRegister); setError(''); setTouched({}) }}
               style={{ background:'none', border:'none', color:'var(--gold)', fontSize:13, fontWeight:600, cursor:'pointer', textDecoration:'underline' }}
             >
               {isRegister ? 'Iniciá sesión' : 'Registrate gratis'}

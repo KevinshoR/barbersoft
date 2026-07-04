@@ -1,21 +1,26 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { emailError } from '../utils/validators'
 
 export default function ForgotPassword() {
   const [email, setEmail]     = useState('')
+  const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sent, setSent]       = useState(false)
   const [error, setError]     = useState('')
   const navigate              = useNavigate()
 
+  const fieldError = emailError(email, { required: true })
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!email) { setError('Ingresá tu email'); return }
+    setTouched(true)
+    if (fieldError) return
     setLoading(true)
     setError('')
     try {
-      await api.post('/auth/forgot-password', { email })
+      await api.post('/auth/forgot-password', { email: email.trim() })
       setSent(true)
     } catch (err) {
       setError(err.response?.data?.error || 'Error enviando el email')
@@ -83,15 +88,17 @@ export default function ForgotPassword() {
               type="email"
               value={email}
               onChange={e => { setEmail(e.target.value); setError('') }}
+              onBlur={() => setTouched(true)}
               placeholder="tucorreo@email.com"
-              style={s.inp}
+              style={{ ...s.inp, border: '1px solid ' + (touched && fieldError ? '#E05252' : 'rgba(255,255,255,0.1)') }}
               autoFocus
             />
+            {touched && fieldError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {fieldError}</p>}
           </div>
           <button
             type="submit"
-            disabled={loading}
-            style={{ background: loading ? '#8B6914' : '#C9A84C', color:'#0A0A0A', border:'none', padding:'14px 0', borderRadius:10, cursor: loading ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', marginTop:4 }}
+            disabled={loading || !!fieldError}
+            style={{ background: (loading || fieldError) ? '#8B6914' : '#C9A84C', color:'#0A0A0A', border:'none', padding:'14px 0', borderRadius:10, cursor: (loading || fieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', marginTop:4 }}
           >
             {loading ? 'ENVIANDO...' : 'ENVIAR ENLACE'}
           </button>

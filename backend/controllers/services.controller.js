@@ -1,5 +1,16 @@
 const ServiceModel = require('../models/service.model')
 const pool         = require('../config/db')
+
+// Valida que la URL de la imagen tenga formato http/https
+function isValidImageUrl(url) {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 const ServicesController = {
   async getAll(req, res) {
     try {
@@ -13,9 +24,12 @@ const ServicesController = {
 
   async create(req, res) {
   try {
-    const { name, duration_min, price } = req.body
+    const { name, duration_min, price, image_url, description } = req.body
     if (!name || !duration_min || !price) {
       return res.status(400).json({ error: 'Nombre, duración y precio son obligatorios' })
+    }
+    if (image_url && !isValidImageUrl(image_url)) {
+      return res.status(400).json({ error: 'La URL de la imagen no es válida. Debe comenzar con http:// o https://' })
     }
 
     // Verificar nombre duplicado
@@ -29,7 +43,9 @@ const ServicesController = {
 
     const service = await ServiceModel.create({
       barbershop_id: req.barbershop.id,
-      name: name.trim(), duration_min, price
+      name: name.trim(), duration_min, price,
+      image_url: image_url?.trim() || null,
+      description: description?.trim() || null,
     })
     res.status(201).json({ service })
   } catch (err) {
@@ -40,6 +56,11 @@ const ServicesController = {
 
   async update(req, res) {
     try {
+      const { image_url } = req.body
+      if (image_url && !isValidImageUrl(image_url)) {
+        return res.status(400).json({ error: 'La URL de la imagen no es válida. Debe comenzar con http:// o https://' })
+      }
+
       const service = await ServiceModel.update(
         req.params.id,
         req.barbershop.id,

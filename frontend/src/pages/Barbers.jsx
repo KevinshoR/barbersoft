@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
+import { requiredError, lengthError, combine } from '../utils/validators'
 
 function Toast({ message, type, onClose }) {
   useEffect(() => {
@@ -32,13 +33,10 @@ function Toast({ message, type, onClose }) {
   )
 }
 
-function validate(name) {
-  const errors = {}
-  if (!name.trim()) errors.name = 'El nombre es obligatorio'
-  else if (name.trim().length < 2) errors.name = 'El nombre debe tener al menos 2 caracteres'
-  else if (name.trim().length > 60) errors.name = 'El nombre no puede superar 60 caracteres'
-  return errors
-}
+const validateName = combine(
+  v => requiredError(v, 'El nombre'),
+  v => lengthError(v, { min: 2, max: 60, label: 'El nombre' })
+)
 
 export default function Barbers() {
   const { pathname } = useLocation()
@@ -65,8 +63,8 @@ export default function Barbers() {
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    const errors = validate(name)
-    if (errors.name) { setNameError(errors.name); return }
+    const err = validateName(name)
+    if (err) { setNameError(err); return }
     setSaving(true)
     try {
       await api.post('/barbers', { name: name.trim() })
@@ -158,8 +156,8 @@ export default function Barbers() {
             <div style={{ marginBottom: 6 }}>
               <input
                 value={name}
-                onChange={e => { setName(e.target.value); setNameError('') }}
-                onBlur={() => { if (name) { const e = validate(name); setNameError(e.name || '') } }}
+                onChange={e => { const v = e.target.value; setName(v); setNameError(validateName(v) || '') }}
+                onBlur={() => setNameError(validateName(name) || '')}
                 placeholder="Nombre completo del barbero"
                 style={inputStyle(nameError)}
                 autoFocus
@@ -167,7 +165,7 @@ export default function Barbers() {
               {nameError && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {nameError}</p>}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button type="submit" disabled={saving} className="btn-primary" style={{ opacity: saving ? 0.6 : 1 }}>
+              <button type="submit" disabled={saving || !!validateName(name)} className="btn-primary" style={{ opacity: (saving || !!validateName(name)) ? 0.6 : 1 }}>
                 {saving ? 'GUARDANDO...' : 'GUARDAR'}
               </button>
             </div>

@@ -42,8 +42,13 @@ export default function Hours() {
     ))
   }
 
+  const getRowError = (hour) =>
+    (hour.is_open && hour.open_time && hour.close_time && hour.open_time >= hour.close_time)
+      ? 'La hora de apertura debe ser anterior al cierre'
+      : null
+
   const handleSave = async (hour) => {
-    if (hour.is_open && hour.open_time >= hour.close_time) {
+    if (getRowError(hour)) {
       showToast('La hora de apertura debe ser anterior al cierre', 'error')
       return
     }
@@ -94,46 +99,54 @@ export default function Hours() {
 
           {loading ? (
             <p style={{ color: 'var(--cream-dim)', textAlign: 'center', padding: '48px 0', fontSize: 14 }}>Cargando...</p>
-          ) : hours.map((hour, i) => (
+          ) : hours.map((hour, i) => {
+            const rowError = getRowError(hour)
+            return (
             <div
               key={hour.day_of_week}
-              style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 80px 90px', gap: 12, alignItems: 'center', padding: '14px 24px', borderBottom: i < hours.length - 1 ? '1px solid var(--dark-3)' : 'none', opacity: hour.is_open ? 1 : 0.5, transition: 'opacity 0.2s' }}
+              style={{ borderBottom: i < hours.length - 1 ? '1px solid var(--dark-3)' : 'none', padding: '14px 24px' }}
             >
-              <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 14 }}>{hour.day_name}</p>
-
-              <input
-                type="time"
-                value={hour.open_time}
-                onChange={e => handleChange(hour.day_of_week, 'open_time', e.target.value)}
-                disabled={!hour.is_open}
-                style={{ ...inp, opacity: hour.is_open ? 1 : 0.4, cursor: hour.is_open ? 'auto' : 'not-allowed' }}
-              />
-
-              <input
-                type="time"
-                value={hour.close_time}
-                onChange={e => handleChange(hour.day_of_week, 'close_time', e.target.value)}
-                disabled={!hour.is_open}
-                style={{ ...inp, opacity: hour.is_open ? 1 : 0.4, cursor: hour.is_open ? 'auto' : 'not-allowed' }}
-              />
-
-              {/* Toggle */}
               <div
-                onClick={() => handleChange(hour.day_of_week, 'is_open', !hour.is_open)}
-                style={{ width: 44, height: 24, borderRadius: 12, background: hour.is_open ? 'var(--gold)' : 'var(--dark-4)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+                style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 80px 90px', gap: 12, alignItems: 'center', opacity: hour.is_open ? 1 : 0.5, transition: 'opacity 0.2s' }}
               >
-                <div style={{ position: 'absolute', top: 3, left: hour.is_open ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: hour.is_open ? 'var(--dark)' : 'var(--cream-dim)', transition: 'left 0.2s' }} />
-              </div>
+                <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 14 }}>{hour.day_name}</p>
 
-              <button
-                onClick={() => handleSave(hour)}
-                disabled={saving === hour.day_of_week}
-                className="btn-primary" style={{ opacity: saving === hour.day_of_week ? 0.6 : 1, padding: '7px 16px' }}
-              >
-                {saving === hour.day_of_week ? '...' : 'GUARDAR'}
-              </button>
+                <input
+                  type="time"
+                  value={hour.open_time}
+                  onChange={e => handleChange(hour.day_of_week, 'open_time', e.target.value)}
+                  disabled={!hour.is_open}
+                  style={{ ...inp, opacity: hour.is_open ? 1 : 0.4, cursor: hour.is_open ? 'auto' : 'not-allowed', border: '1px solid ' + (rowError ? '#E05252' : 'var(--dark-4)') }}
+                />
+
+                <input
+                  type="time"
+                  value={hour.close_time}
+                  onChange={e => handleChange(hour.day_of_week, 'close_time', e.target.value)}
+                  disabled={!hour.is_open}
+                  style={{ ...inp, opacity: hour.is_open ? 1 : 0.4, cursor: hour.is_open ? 'auto' : 'not-allowed', border: '1px solid ' + (rowError ? '#E05252' : 'var(--dark-4)') }}
+                />
+
+                {/* Toggle */}
+                <div
+                  onClick={() => handleChange(hour.day_of_week, 'is_open', !hour.is_open)}
+                  style={{ width: 44, height: 24, borderRadius: 12, background: hour.is_open ? 'var(--gold)' : 'var(--dark-4)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+                >
+                  <div style={{ position: 'absolute', top: 3, left: hour.is_open ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: hour.is_open ? 'var(--dark)' : 'var(--cream-dim)', transition: 'left 0.2s' }} />
+                </div>
+
+                <button
+                  onClick={() => handleSave(hour)}
+                  disabled={saving === hour.day_of_week || !!rowError}
+                  className="btn-primary" style={{ opacity: (saving === hour.day_of_week || rowError) ? 0.6 : 1, padding: '7px 16px' }}
+                >
+                  {saving === hour.day_of_week ? '...' : 'GUARDAR'}
+                </button>
+              </div>
+              {rowError && <p style={{ color: '#E05252', fontSize: 12, marginTop: 8, marginLeft: 152 }}>⚠ {rowError}</p>}
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="animate-fade-up delay-2" style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)', borderRadius: 10, padding: '14px 20px', marginTop: 16 }}>

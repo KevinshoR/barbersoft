@@ -1,6 +1,7 @@
 ﻿import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useState, useRef, useEffect } from 'react'
+import ThemeToggle from './ThemeToggle'
 
 const links = [
   { to: '/dashboard',    label: 'Inicio',     icon: '⌂' },
@@ -39,8 +40,8 @@ export default function Navbar() {
 
   const statusColor = {
     trial:   'var(--gold)',
-    active:  '#4CAF7D',
-    blocked: '#E05252',
+    active:  'var(--success)',
+    blocked: 'var(--danger)',
   }
 
   const status = barbershop?.subscription_status || 'trial'
@@ -72,6 +73,9 @@ export default function Navbar() {
           )
         })}
       </div>
+
+      <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+      <ThemeToggle />
 
       {/* Perfil con dropdown */}
       <div ref={ref} style={{ position:'relative' }}>
@@ -126,7 +130,7 @@ export default function Navbar() {
             <div style={{ height:1, background:'var(--dark-4)', margin:'4px 0' }} />
             <button
               onClick={handleLogout}
-              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'#E05252', fontSize:13, fontFamily:'DM Sans', textAlign:'left' }}
+              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'var(--danger)', fontSize:13, fontFamily:'DM Sans', textAlign:'left' }}
               onMouseEnter={e => e.currentTarget.style.background='rgba(224,82,82,0.08)'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}
             >
@@ -135,6 +139,7 @@ export default function Navbar() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </nav>
   )

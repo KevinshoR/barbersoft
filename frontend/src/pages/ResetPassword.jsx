@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../services/api'
+import { isPasswordValid } from '../utils/passwordValidation'
+import PasswordStrength from '../components/PasswordStrength'
 
 export default function ResetPassword() {
   const [searchParams]          = useSearchParams()
@@ -12,9 +14,11 @@ export default function ResetPassword() {
   const [done, setDone]         = useState(false)
   const [error, setError]       = useState('')
 
+  const confirmError = confirm && password !== confirm ? 'Las contraseñas no coinciden' : ''
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (password.length < 6) { setError('Mínimo 6 caracteres'); return }
+    if (!isPasswordValid(password)) { setError('La contraseña no cumple los requisitos de seguridad'); return }
     if (password !== confirm) { setError('Las contraseñas no coinciden'); return }
     setLoading(true)
     setError('')
@@ -86,10 +90,11 @@ export default function ResetPassword() {
               type="password"
               value={password}
               onChange={e => { setPassword(e.target.value); setError('') }}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="••••••••"
               style={s.inp}
               autoFocus
             />
+            <PasswordStrength password={password} />
           </div>
           <div>
             <label style={s.label}>CONFIRMAR CONTRASEÑA</label>
@@ -98,26 +103,15 @@ export default function ResetPassword() {
               value={confirm}
               onChange={e => { setConfirm(e.target.value); setError('') }}
               placeholder="Repetí la contraseña"
-              style={s.inp}
+              style={{ ...s.inp, border: '1px solid ' + (confirmError ? '#E05252' : 'rgba(255,255,255,0.1)') }}
             />
+            {confirmError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {confirmError}</p>}
           </div>
-
-          {/* Indicador de seguridad */}
-          {password.length > 0 && (
-            <div>
-              <div style={{ height:4, background:'#1A1A1A', borderRadius:2, overflow:'hidden' }}>
-                <div style={{ height:'100%', borderRadius:2, transition:'all 0.3s', width: password.length < 6 ? '25%' : password.length < 10 ? '60%' : '100%', background: password.length < 6 ? '#E05252' : password.length < 10 ? '#C9A84C' : '#4CAF7D' }} />
-              </div>
-              <p style={{ fontSize:11, color: password.length < 6 ? '#E05252' : password.length < 10 ? '#C9A84C' : '#4CAF7D', marginTop:5 }}>
-                {password.length < 6 ? 'Muy corta' : password.length < 10 ? 'Aceptable' : 'Segura'}
-              </p>
-            </div>
-          )}
 
           <button
             type="submit"
-            disabled={loading}
-            style={{ background: loading ? '#8B6914' : '#C9A84C', color:'#0A0A0A', border:'none', padding:'14px 0', borderRadius:10, cursor: loading ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', marginTop:4 }}
+            disabled={loading || !isPasswordValid(password) || password !== confirm}
+            style={{ background: (loading || !isPasswordValid(password) || password !== confirm) ? '#8B6914' : '#C9A84C', color:'#0A0A0A', border:'none', padding:'14px 0', borderRadius:10, cursor: (loading || !isPasswordValid(password) || password !== confirm) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', marginTop:4 }}
           >
             {loading ? 'GUARDANDO...' : 'GUARDAR CONTRASEÑA'}
           </button>

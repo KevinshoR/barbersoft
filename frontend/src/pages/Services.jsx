@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
+import { requiredError, lengthError, numberRangeError, hasErrors } from '../utils/validators'
 
 function Toast({ message, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
@@ -21,13 +22,12 @@ function Toast({ message, type, onClose }) {
 
 function validate(form) {
   const errors = {}
-  if (!form.name.trim()) errors.name = 'El nombre es obligatorio'
-  else if (form.name.trim().length < 2) errors.name = 'Mínimo 2 caracteres'
+  errors.name = requiredError(form.name, 'El nombre') || lengthError(form.name, { min: 2, label: 'El nombre' })
   if (!form.duration_min) errors.duration_min = 'La duración es obligatoria'
-  else if (form.duration_min < 5) errors.duration_min = 'Mínimo 5 minutos'
-  else if (form.duration_min > 480) errors.duration_min = 'Máximo 480 minutos'
+  else errors.duration_min = numberRangeError(form.duration_min, { min: 5, max: 480, label: 'La duración' })
   if (!form.price) errors.price = 'El precio es obligatorio'
-  else if (form.price < 0) errors.price = 'El precio no puede ser negativo'
+  else errors.price = numberRangeError(form.price, { min: 0, label: 'El precio' })
+  Object.keys(errors).forEach(k => { if (!errors[k]) delete errors[k] })
   return errors
 }
 
@@ -41,8 +41,16 @@ export default function Services() {
   const [saving, setSaving]     = useState(false)
   const [toast, setToast]       = useState(null)
   const [deleting, setDeleting] = useState(null)
-  const [errors, setErrors]     = useState({})
-  const [form, setForm]         = useState({ name: '', duration_min: '', price: '' })
+  const [touched, setTouched]   = useState({})
+  const [form, setForm]         = useState({ name: '', duration_min: '', price: '', image_url: '', description: '' })
+  const [previewError, setPreviewError] = useState(false)
+  const [imgErrors, setImgErrors] = useState({})
+
+  const allErrors = validate(form)
+  const errors = Object.keys(allErrors).reduce((acc, k) => {
+    if (touched[k]) acc[k] = allErrors[k]
+    return acc
+  }, {})
 
   useEffect(() => { fetchServices() }, [])
 
@@ -58,17 +66,26 @@ export default function Services() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
-    setErrors({ ...errors, [e.target.name]: '' })
+    setTouched(t => ({ ...t, [e.target.name]: true }))
+    if (e.target.name === 'image_url') setPreviewError(false)
   }
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setErrors(errs); return }
+    setTouched({ name: true, duration_min: true, price: true })
+    if (hasErrors(allErrors)) return
     setSaving(true)
     try {
-      await api.post('/services', { name: form.name.trim(), duration_min: parseInt(form.duration_min), price: parseFloat(form.price) })
-      setForm({ name: '', duration_min: '', price: '' })
+      await api.post('/services', {
+        name: form.name.trim(),
+        duration_min: parseInt(form.duration_min),
+        price: parseFloat(form.price),
+        image_url: form.image_url.trim() || null,
+        description: form.description.trim() || null,
+      })
+      setForm({ name: '', duration_min: '', price: '', image_url: '', description: '' })
+      setTouched({})
+      setPreviewError(false)
       setShowForm(false)
       fetchServices()
       showToast('Servicio agregado correctamente')
@@ -122,7 +139,7 @@ export default function Services() {
             <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>CATÁLOGO</p>
             <h1 style={{ fontSize: 36, fontWeight: 900, color: 'var(--cream)' }}>Servicios</h1>
           </div>
-          <button onClick={() => { setShowForm(!showForm); setForm({ name: '', duration_min: '', price: '' }); setErrors({}) }} className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}>
+          <button onClick={() => { setShowForm(!showForm); setForm({ name: '', duration_min: '', price: '', image_url: '', description: '' }); setTouched({}); setPreviewError(false) }} className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}>
             {showForm ? 'CANCELAR' : '+ AGREGAR'}
           </button>
         </div>
@@ -132,13 +149,13 @@ export default function Services() {
             <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 600, marginBottom: 16 }}>NUEVO SERVICIO</p>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>NOMBRE</label>
-              <input name="name" value={form.name} onChange={handleChange} placeholder="Ej: Corte clásico" style={inp('name')} autoFocus />
+              <input name="name" value={form.name} onChange={handleChange} onBlur={handleChange} placeholder="Ej: Corte clásico" style={inp('name')} autoFocus />
               {errors.name && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {errors.name}</p>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>DURACIÓN (MINUTOS)</label>
-                <input name="duration_min" type="number" value={form.duration_min} onChange={handleChange} placeholder="Ej: 45" min="5" max="480" style={inp('duration_min')} />
+                <input name="duration_min" type="number" value={form.duration_min} onChange={handleChange} onBlur={handleChange} placeholder="Ej: 45" min="5" max="480" style={inp('duration_min')} />
                 {form.duration_min && (
   <p style={{ color:'var(--cream-dim)', fontSize:11, marginTop:5, opacity:0.7 }}>
     ⏱ Aproximadamente {form.duration_min} minutos por cita
@@ -148,11 +165,42 @@ export default function Services() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>PRECIO (COP)</label>
-                <input name="price" type="number" value={form.price} onChange={handleChange} placeholder="25000" min="0" style={inp('price')} />
+                <input name="price" type="number" value={form.price} onChange={handleChange} onBlur={handleChange} placeholder="25000" min="0" style={inp('price')} />
                 {errors.price && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {errors.price}</p>}
               </div>
             </div>
-            <button type="submit" disabled={saving} className="btn-primary" style={{ opacity: saving ? 0.6 : 1 }}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>URL DE IMAGEN (OPCIONAL)</label>
+              <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="https://ejemplo.com/foto.jpg" style={inp('image_url')} />
+              {form.image_url && /^https?:\/\/.+/i.test(form.image_url) && !previewError && (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img
+                    src={form.image_url}
+                    alt="Vista previa"
+                    onError={() => setPreviewError(true)}
+                    style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--dark-4)' }}
+                  />
+                  <span style={{ color: 'var(--cream-dim)', fontSize: 12 }}>Vista previa</span>
+                </div>
+              )}
+              {form.image_url && /^https?:\/\/.+/i.test(form.image_url) && previewError && (
+                <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 6, opacity: 0.7 }}>No se pudo cargar la imagen desde esa URL</p>
+              )}
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>DESCRIPCIÓN CORTA (OPCIONAL)</label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                maxLength={200}
+                rows={3}
+                placeholder="Ej: Corte a máquina y tijera, incluye lavado"
+                style={{ width: '100%', padding: '12px 16px', resize: 'vertical' }}
+              />
+              <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 5, textAlign: 'right', opacity: 0.7 }}>{form.description.length}/200</p>
+            </div>
+            <button type="submit" disabled={saving || hasErrors(allErrors)} className="btn-primary" style={{ opacity: (saving || hasErrors(allErrors)) ? 0.6 : 1 }}>
               {saving ? 'GUARDANDO...' : 'GUARDAR SERVICIO'}
             </button>
           </form>
@@ -168,11 +216,25 @@ export default function Services() {
             </div>
           ) : services.map((s, i) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: i < services.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 8, background: 'var(--dark-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--gold)' }}>✦</div>
-                <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+                {s.image_url && !imgErrors[s.id] ? (
+                  <img
+                    src={s.image_url}
+                    alt={s.name}
+                    onError={() => setImgErrors(prev => ({ ...prev, [s.id]: true }))}
+                    style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{ width: 42, height: 42, borderRadius: 8, background: 'var(--dark-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--gold)', flexShrink: 0 }}>✦</div>
+                )}
+                <div style={{ minWidth: 0 }}>
                   <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 15 }}>{s.name}</p>
                   <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2 }}>{s.duration_min} minutos</p>
+                  {s.description && (
+                    <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2, opacity: 0.8, maxWidth: 360, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {s.description}
+                    </p>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

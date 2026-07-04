@@ -2,7 +2,34 @@ const pool = require('../config/db')
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+// Horario con el que arranca toda barbería nueva: Lun-Sáb 09:00-18:00 abierto,
+// Domingo cerrado. Sin estas 7 filas, HoursModel.update() devuelve 404 porque
+// hace un UPDATE (no upsert) y asume que el día ya existe.
+const DEFAULT_HOURS = [0, 1, 2, 3, 4, 5, 6].map(day_of_week => ({
+  day_of_week,
+  open_time:  '09:00',
+  close_time: '18:00',
+  is_open:    day_of_week !== 0, // domingo (0) cerrado
+}))
+
 const HoursModel = {
+  async createDefaults(barbershop_id, db = pool) {
+    const values = []
+    const rows = DEFAULT_HOURS.map((h, i) => {
+      const base = i * 5
+      values.push(barbershop_id, h.day_of_week, h.open_time, h.close_time, h.is_open)
+      return `($${base + 1}, $${base + 2}, $${base + 3}::time, $${base + 4}::time, $${base + 5})`
+    }).join(', ')
+
+    const result = await db.query(
+      `INSERT INTO business_hours (barbershop_id, day_of_week, open_time, close_time, is_open)
+       VALUES ${rows}
+       RETURNING id, day_of_week, open_time, close_time, is_open`,
+      values
+    )
+    return result.rows
+  },
+
   async findAll(barbershop_id) {
     const result = await pool.query(
       `SELECT id, day_of_week, open_time, close_time, is_open

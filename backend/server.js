@@ -18,6 +18,7 @@ app.use('/api/subscription',  require('./routes/subscription.routes'))
 app.use('/api/barbers',      require('./routes/barbers.routes'))
 app.use('/api/public',       require('./routes/public.routes'))
 app.use('/api/hours', require('./routes/hours.routes'))
+app.use('/api/sync',  require('./routes/sync.routes'))
 
 // Ruta de prueba
 app.get('/', (req, res) => {

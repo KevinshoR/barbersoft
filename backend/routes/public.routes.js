@@ -2,6 +2,38 @@
 const pool             = require('../config/db')
 const AppointmentModel = require('../models/appointment.model')
 
+// Búsqueda pública de barberías por departamento/municipio
+// IMPORTANTE: debe ir antes de '/:slug' para que Express no lo confunda con un slug.
+router.get('/search', async (req, res) => {
+  try {
+    const { department, municipality } = req.query
+    if (!department) {
+      return res.status(400).json({ error: 'El departamento es obligatorio' })
+    }
+
+    const conditions = ['department = $1']
+    const params = [department]
+
+    if (municipality) {
+      params.push(municipality)
+      conditions.push(`municipality = $${params.length}`)
+    }
+
+    const result = await pool.query(
+      `SELECT id, name, slug, department, municipality
+       FROM barbershops
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY name ASC`,
+      params
+    )
+
+    res.json({ barbershops: result.rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error buscando barberías' })
+  }
+})
+
 // Info pública de la barbería por slug
 router.get('/:slug', async (req, res) => {
   try {
@@ -19,7 +51,7 @@ router.get('/:slug', async (req, res) => {
     )
 
     const services = await pool.query(
-      'SELECT id, name, duration_min, price FROM services WHERE barbershop_id = $1 AND active = true ORDER BY name ASC',
+      'SELECT id, name, duration_min, price, image_url, description FROM services WHERE barbershop_id = $1 AND active = true ORDER BY name ASC',
       [shop.id]
     )
 

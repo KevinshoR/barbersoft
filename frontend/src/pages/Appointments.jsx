@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
+import { requiredError, emailError, phoneError, hasErrors } from '../utils/validators'
 
 function Toast({ message, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
@@ -20,15 +21,21 @@ function Toast({ message, type, onClose }) {
 
 function validate(form) {
   const errors = {}
-if (!form.scheduled_at) {
-  errors.scheduled_at = 'La fecha y hora son obligatorias'
-} else {
-  const selected = new Date(form.scheduled_at)
-  const minDate  = new Date(Date.now() + 30 * 60 * 1000)        // 30 min desde ahora
-  const maxDate  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 mes
-  if (selected < minDate) errors.scheduled_at = 'La cita debe ser al menos 30 minutos desde ahora'
-  if (selected > maxDate) errors.scheduled_at = 'La cita no puede ser a más de 1 mes de distancia'
-}
+  if (!form.scheduled_at) {
+    errors.scheduled_at = 'La fecha y hora son obligatorias'
+  } else {
+    const selected = new Date(form.scheduled_at)
+    const minDate  = new Date(Date.now() + 30 * 60 * 1000)        // 30 min desde ahora
+    const maxDate  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 mes
+    if (selected < minDate) errors.scheduled_at = 'La cita debe ser al menos 30 minutos desde ahora'
+    if (selected > maxDate) errors.scheduled_at = 'La cita no puede ser a más de 1 mes de distancia'
+  }
+  errors.barber_id    = requiredError(form.barber_id, 'El barbero')
+  errors.service_id   = requiredError(form.service_id, 'El servicio')
+  errors.client_name  = requiredError(form.client_name, 'El nombre del cliente')
+  errors.client_phone = phoneError(form.client_phone, { required: true })
+  errors.client_email = emailError(form.client_email)
+  Object.keys(errors).forEach(k => { if (!errors[k]) delete errors[k] })
   return errors
 }
 
@@ -120,7 +127,7 @@ export default function Appointments() {
   const [saving, setSaving]             = useState(false)
   const [toast, setToast]               = useState(null)
   const [deleting, setDeleting]         = useState(null)
-  const [errors, setErrors]             = useState({})
+  const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage]                 = useState(1)
@@ -128,6 +135,12 @@ export default function Appointments() {
     barber_id:'', service_id:'', client_name:'',
     client_phone:'', client_email:'', scheduled_at:'', notes:''
   })
+
+  const allErrors = validate(form)
+  const errors = Object.keys(allErrors).reduce((acc, k) => {
+    if (touched[k]) acc[k] = allErrors[k]
+    return acc
+  }, {})
 
   useEffect(() => {
     Promise.all([api.get('/barbers'), api.get('/services')])
@@ -161,23 +174,30 @@ export default function Appointments() {
   // Reset página cuando cambia filtro
   useEffect(() => { setPage(1) }, [filterDate, filterStatus])
 
+  const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
-    setErrors({ ...errors, [e.target.name]: '' })
+    markTouched(e.target.name)
   }
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setErrors(errs); return }
+    setTouched({ barber_id: true, service_id: true, client_name: true, client_phone: true, client_email: true, scheduled_at: true })
+    if (hasErrors(allErrors)) return
     setSaving(true)
     try {
       await api.post('/appointments', {
         ...form,
+        client_name:  form.client_name.trim(),
+        client_phone: form.client_phone.trim(),
+        client_email: form.client_email.trim(),
+        notes:        form.notes.trim(),
         barber_id:  parseInt(form.barber_id),
         service_id: parseInt(form.service_id),
       })
       setForm({ barber_id:'', service_id:'', client_name:'', client_phone:'', client_email:'', scheduled_at:'', notes:'' })
+      setTouched({})
       setShowForm(false)
       fetchAppointments()
       showToast('Cita creada correctamente')
@@ -251,7 +271,7 @@ export default function Appointments() {
             </p>
           </div>
           <button
-            onClick={() => { setShowForm(!showForm); setErrors({}) }}
+            onClick={() => { setShowForm(!showForm); setTouched({}) }}
             className="btn-primary"
             style={{ opacity: showForm ? 0.7 : 1 }}
           >
@@ -311,7 +331,7 @@ export default function Appointments() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>BARBERO</label>
-                <select name="barber_id" value={form.barber_id} onChange={handleChange} style={inp('barber_id')}>
+                <select name="barber_id" value={form.barber_id} onChange={handleChange} onBlur={() => markTouched('barber_id')} style={inp('barber_id')}>
                   <option value="">Seleccioná un barbero</option>
                   {barbers.filter(b => b.active).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
@@ -319,7 +339,7 @@ export default function Appointments() {
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>SERVICIO</label>
-                <select name="service_id" value={form.service_id} onChange={handleChange} style={inp('service_id')}>
+                <select name="service_id" value={form.service_id} onChange={handleChange} onBlur={() => markTouched('service_id')} style={inp('service_id')}>
                   <option value="">Seleccioná un servicio</option>
                   {services.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name} — {s.duration_min}min</option>)}
                 </select>
@@ -327,22 +347,22 @@ export default function Appointments() {
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>NOMBRE DEL CLIENTE</label>
-                <input name="client_name" value={form.client_name} onChange={handleChange} placeholder="Juan Pérez" style={inp('client_name')} />
+                <input name="client_name" value={form.client_name} onChange={handleChange} onBlur={() => markTouched('client_name')} placeholder="Juan Pérez" style={inp('client_name')} />
                 {errors.client_name && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.client_name}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
-                <input name="client_phone" value={form.client_phone} onChange={handleChange} placeholder="3001234567" style={inp('client_phone')} />
+                <input name="client_phone" value={form.client_phone} onChange={handleChange} onBlur={() => markTouched('client_phone')} placeholder="3001234567" style={inp('client_phone')} />
                 {errors.client_phone && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.client_phone}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>EMAIL (OPCIONAL)</label>
-                <input name="client_email" type="email" value={form.client_email} onChange={handleChange} placeholder="cliente@email.com" style={inp('client_email')} />
+                <input name="client_email" type="email" value={form.client_email} onChange={handleChange} onBlur={() => markTouched('client_email')} placeholder="cliente@email.com" style={inp('client_email')} />
                 {errors.client_email && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.client_email}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>FECHA Y HORA</label>
-                <input name="scheduled_at" type="datetime-local" value={form.scheduled_at} onChange={handleChange}   style={inp('scheduled_at')} />
+                <input name="scheduled_at" type="datetime-local" value={form.scheduled_at} onChange={handleChange} onBlur={() => markTouched('scheduled_at')} style={inp('scheduled_at')} />
                 {errors.scheduled_at && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.scheduled_at}</p>}
               </div>
               <div style={{ gridColumn:'1 / -1' }}>
@@ -356,7 +376,7 @@ export default function Appointments() {
                 <span style={{ color:'var(--gold)', fontWeight:700, fontFamily:'Playfair Display', fontSize:16 }}>{formatPrice(selectedService.price)}</span>
               </div>
             )}
-            <button type="submit" disabled={saving} className="btn-primary" style={{ marginTop:20, opacity: saving ? 0.6 : 1 }}>
+            <button type="submit" disabled={saving || hasErrors(allErrors)} className="btn-primary" style={{ marginTop:20, opacity: (saving || hasErrors(allErrors)) ? 0.6 : 1 }}>
               {saving ? 'GUARDANDO...' : 'CREAR CITA'}
             </button>
           </form>

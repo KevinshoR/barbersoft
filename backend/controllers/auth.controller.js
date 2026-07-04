@@ -1,7 +1,9 @@
-const pool      = require('../config/db')
-const bcrypt    = require('bcryptjs')
-const jwt       = require('jsonwebtoken')
-const UserModel = require('../models/user.model')
+const pool         = require('../config/db')
+const bcrypt       = require('bcryptjs')
+const jwt          = require('jsonwebtoken')
+const UserModel    = require('../models/user.model')
+const ServiceModel = require('../models/service.model')
+const HoursModel   = require('../models/hours.model')
 const { Resend } = require('resend')
 const crypto    = require('crypto')
 
@@ -18,14 +20,44 @@ function generateSlug(name) {
     .replace(/\s+/g, '-')
 }
 
+// Reglas de fuerza de contraseña (deben coincidir con
+// frontend/src/utils/passwordValidation.js). Devuelve un mensaje de error
+// describiendo qué falta, o null si la contraseña es válida. No confiamos
+// solo en la validación del frontend.
+function validatePassword(password, email) {
+  if (!password) return 'La contraseña es obligatoria'
+
+  const missing = []
+  if (password.length < 8) missing.push('mínimo 8 caracteres')
+  if (!/[A-Z]/.test(password)) missing.push('al menos 1 letra mayúscula')
+  if (!/[a-z]/.test(password)) missing.push('al menos 1 letra minúscula')
+  if (!/[0-9]/.test(password)) missing.push('al menos 1 número')
+  if (!/[^A-Za-z0-9]/.test(password)) missing.push('al menos 1 carácter especial')
+
+  if (missing.length > 0) {
+    return `La contraseña debe tener ${missing.join(', ')}`
+  }
+
+  if (email && password.toLowerCase() === email.toLowerCase()) {
+    return 'La contraseña no puede ser igual al email'
+  }
+
+  return null
+}
+
 const AuthController = {
 
   async register(req, res) {
     try {
-      const { name, email, password, phone, address } = req.body
+      const { name, email, password, phone, address, department, municipality } = req.body
 
       if (!name || !email || !password) {
         return res.status(400).json({ error: 'Nombre, email y contraseña son obligatorios' })
+      }
+
+      const passwordError = validatePassword(password, email)
+      if (passwordError) {
+        return res.status(400).json({ error: passwordError })
       }
 
       // Verificar si el email ya existe
@@ -42,12 +74,32 @@ const AuthController = {
       // Encriptar contraseña
       const hashedPassword = await bcrypt.hash(password, 10)
 
-      // Crear barbería
-      const barbershop = await UserModel.create({
-        name, email,
-        password: hashedPassword,
-        phone, address, slug
-      })
+      // Barbería + servicios y horarios por defecto se crean de forma atómica:
+      // si algo falla (p.ej. el insert de horarios), no debe quedar una
+      // barbería a medias sin sus filas de servicios/horarios.
+      const client = await pool.connect()
+      let barbershop
+      try {
+        await client.query('BEGIN')
+
+        barbershop = await UserModel.create({
+          name, email,
+          password: hashedPassword,
+          phone, address, slug,
+          department: department ?? null,
+          municipality: municipality ?? null
+        }, client)
+
+        await ServiceModel.createDefaults(barbershop.id, client)
+        await HoursModel.createDefaults(barbershop.id, client)
+
+        await client.query('COMMIT')
+      } catch (err) {
+        await client.query('ROLLBACK')
+        throw err
+      } finally {
+        client.release()
+      }
 
       // Generar token
       const token = jwt.sign(
@@ -180,10 +232,6 @@ async resetPassword(req, res) {
       return res.status(400).json({ error: 'Token y contraseña son obligatorios' })
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' })
-    }
-
     const result = await pool.query(
       `SELECT * FROM password_resets
        WHERE token = $1 AND used = false AND expires_at > NOW()`,
@@ -195,6 +243,12 @@ async resetPassword(req, res) {
     }
 
     const reset = result.rows[0]
+
+    const passwordError = validatePassword(password, reset.email)
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError })
+    }
+
     const hashed = await bcrypt.hash(password, 10)
 
     await pool.query(
@@ -216,20 +270,22 @@ async resetPassword(req, res) {
 
 async updateProfile(req, res) {
   try {
-    const { name, phone, address } = req.body
+    const { name, phone, address, department, municipality } = req.body
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'El nombre es obligatorio' })
     }
 
     const result = await pool.query(
       `UPDATE barbershops
-       SET name    = $1,
-           phone   = $2,
-           address = $3
-       WHERE id = $4
-       RETURNING id, name, email, phone, address, slug,
+       SET name         = $1,
+           phone        = COALESCE($2, phone),
+           address      = COALESCE($3, address),
+           department   = COALESCE($4, department),
+           municipality = COALESCE($5, municipality)
+       WHERE id = $6
+       RETURNING id, name, email, phone, address, slug, department, municipality,
                  subscription_status, trial_ends_at, subscription_ends_at`,
-      [name.trim(), phone, address, req.barbershop.id]
+      [name.trim(), phone ?? null, address ?? null, department ?? null, municipality ?? null, req.barbershop.id]
     )
 
     res.json({ barbershop: result.rows[0] })

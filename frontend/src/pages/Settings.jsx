@@ -5,6 +5,8 @@ import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { getDepartments, getMunicipalities } from '../data/colombia'
+import { requiredError, lengthError, phoneError, combine } from '../utils/validators'
 
 function Toast({ message, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
@@ -27,6 +29,17 @@ const PAYMENT_METHODS = [
   { id:'transfer', label:'Transferencia',  icon:'🔄', desc:'Transferencia bancaria' },
 ]
 
+const infoSchema = {
+  name: combine(v => requiredError(v, 'El nombre'), v => lengthError(v, { min: 2, max: 100, label: 'El nombre' })),
+  phone: v => phoneError(v),
+  municipality: (v, form) => {
+    if (v && form.department && !getMunicipalities(form.department).includes(v)) {
+      return 'Seleccioná un municipio válido de la lista del departamento elegido'
+    }
+    return null
+  },
+}
+
 export default function Settings() {
   const { barbershop, login } = useAuth()
   const { pathname }          = useLocation()
@@ -34,25 +47,48 @@ export default function Settings() {
   const [saving, setSaving]   = useState(false)
   const [tab, setTab]         = useState('info')
   const [form, setForm]       = useState({
-    name:    barbershop?.name    || '',
-    phone:   barbershop?.phone   || '',
-    address: barbershop?.address || '',
+    name:         barbershop?.name         || '',
+    phone:        barbershop?.phone        || '',
+    department:   barbershop?.department   || '',
+    municipality: barbershop?.municipality || '',
   })
   const [payments, setPayments] = useState({
     nequi: false, pse: false, efectivo: true,
     tarjeta: false, transfer: false,
     nequi_number: '', account_name: ''
   })
+  const [touched, setTouched] = useState({})
+  const [paymentsTouched, setPaymentsTouched] = useState({})
+
+  const infoErrors = Object.keys(infoSchema).reduce((acc, field) => {
+    const err = infoSchema[field](form[field], form)
+    if (err) acc[field] = err
+    return acc
+  }, {})
+  const hasInfoErrors = Object.values(infoErrors).some(Boolean)
+
+  const nequiNumberError = payments.nequi ? phoneError(payments.nequi_number, { required: true }) : null
+  const nequiNameError   = payments.nequi ? requiredError(payments.account_name, 'El nombre de la cuenta') : null
+  const hasPaymentErrors = !!(nequiNumberError || nequiNameError)
 
   const showToast = (message, type = 'success') => setToast({ message, type })
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+  const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
+
+  const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); markTouched(e.target.name) }
+  const handleDepartmentChange = (e) => { setForm({ ...form, department: e.target.value, municipality: '' }); markTouched('department') }
 
   const handleSaveInfo = async () => {
-    if (!form.name.trim()) { showToast('El nombre es obligatorio', 'error'); return }
+    setTouched(t => ({ ...t, name: true, phone: true, municipality: true }))
+    if (hasInfoErrors) return
     setSaving(true)
     try {
-      const res = await api.put('/auth/profile', form)
+      const res = await api.put('/auth/profile', {
+        ...form,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        municipality: form.municipality.trim(),
+      })
       login(localStorage.getItem('token'), { ...barbershop, ...res.data.barbershop })
       showToast('Información actualizada correctamente')
     } catch (err) {
@@ -121,13 +157,15 @@ export default function Settings() {
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>NOMBRE</label>
-                <input name="name" value={form.name} onChange={handleChange} placeholder="Nombre de tu barbería" style={inp} />
+                <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Nombre de tu barbería" style={{ ...inp, border: '1px solid ' + (touched.name && infoErrors.name ? '#E05252' : 'var(--dark-4)') }} />
+                {touched.name && infoErrors.name && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {infoErrors.name}</p>}
               </div>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
-                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="3001234567" style={inp} />
+                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="3001234567" style={{ ...inp, border: '1px solid ' + (touched.phone && infoErrors.phone ? '#E05252' : 'var(--dark-4)') }} />
+                  {touched.phone && infoErrors.phone && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {infoErrors.phone}</p>}
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>EMAIL</label>
@@ -136,9 +174,32 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>DIRECCIÓN</label>
-                <input name="address" value={form.address} onChange={handleChange} placeholder="Calle 10 # 43-20, Medellín" style={inp} />
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                <div>
+                  <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>DEPARTAMENTO</label>
+                  <select name="department" value={form.department} onChange={handleDepartmentChange} style={inp}>
+                    <option value="">Seleccioná...</option>
+                    {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>MUNICIPIO</label>
+                  <input
+                    name="municipality"
+                    list="municipios-settings"
+                    value={form.municipality}
+                    onChange={handleChange}
+                    onBlur={() => markTouched('municipality')}
+                    disabled={!form.department}
+                    placeholder={form.department ? 'Escribí para buscar...' : 'Elegí un departamento primero'}
+                    autoComplete="off"
+                    style={{ ...inp, opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && infoErrors.municipality ? '#E05252' : 'var(--dark-4)') }}
+                  />
+                  <datalist id="municipios-settings">
+                    {getMunicipalities(form.department).map(m => <option key={m} value={m} />)}
+                  </datalist>
+                  {touched.municipality && infoErrors.municipality && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {infoErrors.municipality}</p>}
+                </div>
               </div>
 
               <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'12px 16px' }}>
@@ -153,9 +214,9 @@ export default function Settings() {
 
               <button
                 onClick={handleSaveInfo}
-                disabled={saving}
+                disabled={saving || hasInfoErrors}
                 className="btn-primary"
-                style={{ opacity: saving ? 0.6 : 1, alignSelf:'flex-start' }}
+                style={{ opacity: (saving || hasInfoErrors) ? 0.6 : 1, alignSelf:'flex-start' }}
               >
                 {saving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
               </button>
@@ -203,24 +264,37 @@ export default function Settings() {
                     <input
                       value={payments.nequi_number}
                       onChange={e => setPayments(p => ({ ...p, nequi_number: e.target.value }))}
+                      onBlur={() => setPaymentsTouched(t => ({ ...t, nequi_number: true }))}
                       placeholder="3001234567"
-                      style={inp}
+                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.nequi_number && nequiNumberError ? '#E05252' : 'var(--dark-4)') }}
                     />
+                    {paymentsTouched.nequi_number && nequiNumberError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {nequiNumberError}</p>}
                   </div>
                   <div>
                     <label style={{ display:'block', fontSize:11, color:'var(--cream-dim)', marginBottom:6, fontWeight:600, letterSpacing:'0.07em' }}>NOMBRE DE LA CUENTA</label>
                     <input
                       value={payments.account_name}
                       onChange={e => setPayments(p => ({ ...p, account_name: e.target.value }))}
+                      onBlur={() => setPaymentsTouched(t => ({ ...t, account_name: true }))}
                       placeholder="Tu nombre completo"
-                      style={inp}
+                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.account_name && nequiNameError ? '#E05252' : 'var(--dark-4)') }}
                     />
+                    {paymentsTouched.account_name && nequiNameError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {nequiNameError}</p>}
                   </div>
                 </div>
               </div>
             )}
 
-            <button className="btn-primary" style={{ marginTop:16 }} onClick={() => showToast('Métodos de pago guardados')}>
+            <button
+              className="btn-primary"
+              style={{ marginTop:16, opacity: hasPaymentErrors ? 0.6 : 1 }}
+              disabled={hasPaymentErrors}
+              onClick={() => {
+                setPaymentsTouched({ nequi_number: true, account_name: true })
+                if (hasPaymentErrors) return
+                showToast('Métodos de pago guardados')
+              }}
+            >
               GUARDAR MÉTODOS
             </button>
           </div>
