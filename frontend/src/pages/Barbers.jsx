@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, lengthError, combine } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
+import ImageUpload, { resolveImageSrc } from '../components/ImageUpload'
 
 const validateName = combine(
   v => requiredError(v, 'El nombre'),
@@ -20,10 +21,13 @@ export default function Barbers() {
   const [showForm, setShowForm] = useState(false)
   const [name, setName]         = useState('')
   const [nameError, setNameError] = useState('')
+  const [photoUrl, setPhotoUrl]   = useState('')
+  const [specialty, setSpecialty] = useState('')
   const [saving, setSaving]     = useState(false)
   const [toggling, setToggling] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [photoErrors, setPhotoErrors] = useState({})
 
   useEffect(() => { fetchBarbers() }, [])
 
@@ -41,8 +45,14 @@ export default function Barbers() {
     if (err) { setNameError(err); return }
     setSaving(true)
     try {
-      await api.post('/barbers', { name: name.trim() })
+      await api.post('/barbers', {
+        name: name.trim(),
+        photo_url: photoUrl.trim() || null,
+        specialty: specialty.trim() || null,
+      })
       setName('')
+      setPhotoUrl('')
+      setSpecialty('')
       setShowForm(false)
       fetchBarbers()
       toast.success('Barbero agregado correctamente')
@@ -122,7 +132,7 @@ export default function Barbers() {
             <h1 style={{ fontSize: 36, fontWeight: 900, color: 'var(--cream)' }}>Barberos</h1>
           </div>
           <button
-            onClick={() => { setShowForm(!showForm); setName(''); setNameError('') }}
+            onClick={() => { setShowForm(!showForm); setName(''); setNameError(''); setPhotoUrl(''); setSpecialty('') }}
             className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}
           >
             {showForm ? 'CANCELAR' : '+ AGREGAR'}
@@ -143,6 +153,27 @@ export default function Barbers() {
               />
               {nameError && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {nameError}</p>}
             </div>
+
+            <div style={{ marginTop: 16 }}>
+              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>ESPECIALIDAD <span style={{ opacity: 0.7 }}>(OPCIONAL)</span></label>
+              <input
+                value={specialty}
+                onChange={e => setSpecialty(e.target.value.slice(0, 120))}
+                placeholder="Ej: Fades y barba, 10 años de experiencia"
+                maxLength={120}
+                style={inputStyle(false)}
+              />
+              <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 5, textAlign: 'right', opacity: 0.7 }}>{specialty.length}/120</p>
+            </div>
+
+            <div style={{ marginTop: 6 }}>
+              <ImageUpload
+                label="Foto de perfil (opcional)"
+                value={photoUrl}
+                onChange={setPhotoUrl}
+              />
+            </div>
+
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button type="submit" disabled={saving || !!validateName(name)} className="btn-primary" style={{ opacity: (saving || !!validateName(name)) ? 0.6 : 1 }}>
                 {saving ? 'GUARDANDO...' : 'GUARDAR'}
@@ -151,42 +182,63 @@ export default function Barbers() {
           </form>
         )}
 
-        <div className="animate-fade-up delay-2" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, overflow: 'hidden' }}>
-          {loading ? (
+        {loading ? (
+          <div className="animate-fade-up delay-2" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12 }}>
             <p style={{ color: 'var(--cream-dim)', textAlign: 'center', padding: '48px 0', fontSize: 14 }}>Cargando...</p>
-          ) : barbers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '56px 0' }}>
-              <p style={{ fontSize: 36, marginBottom: 12 }}>◈</p>
-              <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay barberos. Agrega el primero.</p>
-            </div>
-          ) : barbers.map((barber, i) => (
-            <div key={barber.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: i < barbers.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: 'var(--dark)', fontFamily: 'Playfair Display' }}>
-                  {barber.name.charAt(0).toUpperCase()}
+          </div>
+        ) : barbers.length === 0 ? (
+          <div className="animate-fade-up delay-2" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, textAlign: 'center', padding: '56px 0' }}>
+            <p style={{ fontSize: 36, marginBottom: 12 }}>◈</p>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay barberos. Agrega el primero.</p>
+          </div>
+        ) : (
+          <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+            {barbers.map(barber => {
+              const photoSrc = resolveImageSrc(barber.photo_url)
+              return (
+                <div key={barber.id} style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    {photoSrc && !photoErrors[barber.id] ? (
+                      <img
+                        src={photoSrc}
+                        alt={barber.name}
+                        onError={() => setPhotoErrors(prev => ({ ...prev, [barber.id]: true }))}
+                        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--dark-4)' }}
+                      />
+                    ) : (
+                      <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: 'var(--dark)', fontFamily: 'Playfair Display', flexShrink: 0 }}>
+                        {barber.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 15 }}>{barber.name}</p>
+                      {barber.specialty && (
+                        <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2, opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {barber.specialty}
+                        </p>
+                      )}
+                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: barber.active ? 'var(--success)' : 'var(--cream-dim)', marginTop: 4 }}>
+                        {barber.active ? '● ACTIVO' : '○ INACTIVO'}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => handleToggle(barber)}
+                      disabled={toggling === barber.id}
+                      style={{ flex: 1, background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 0', borderRadius: 6, cursor: toggling === barber.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans', opacity: toggling === barber.id ? 0.6 : 1 }}
+                    >
+                      {toggling === barber.id ? '...' : barber.active ? 'DESACTIVAR' : 'ACTIVAR'}
+                    </button>
+                    <button onClick={() => handleDelete(barber)} className="btn-danger" style={{ flex: 1 }}>
+                      ELIMINAR
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 15 }}>{barber.name}</p>
-                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: barber.active ? 'var(--success)' : 'var(--cream-dim)', marginTop: 2 }}>
-                    {barber.active ? '● ACTIVO' : '○ INACTIVO'}
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => handleToggle(barber)}
-                  disabled={toggling === barber.id}
-                  style={{ background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 16px', borderRadius: 6, cursor: toggling === barber.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans', opacity: toggling === barber.id ? 0.6 : 1 }}
-                >
-                  {toggling === barber.id ? '...' : barber.active ? 'DESACTIVAR' : 'ACTIVAR'}
-                </button>
-                <button onClick={() => handleDelete(barber)} className="btn-danger">
-                  ELIMINAR
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )}
       <Footer />
       </main>
       <HelpButton path={pathname} />

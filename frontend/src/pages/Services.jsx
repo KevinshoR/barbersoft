@@ -6,6 +6,9 @@ import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, lengthError, numberRangeError, hasErrors } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
+import ImageUpload, { resolveImageSrc } from '../components/ImageUpload'
+
+const PAGE_SIZE = 6
 
 function validate(form) {
   const errors = {}
@@ -31,8 +34,8 @@ export default function Services() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [touched, setTouched]   = useState({})
   const [form, setForm]         = useState({ name: '', duration_min: '', price: '', image_url: '', description: '' })
-  const [previewError, setPreviewError] = useState(false)
   const [imgErrors, setImgErrors] = useState({})
+  const [page, setPage]         = useState(1)
 
   const allErrors = validate(form)
   const errors = Object.keys(allErrors).reduce((acc, k) => {
@@ -53,7 +56,6 @@ export default function Services() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
     setTouched(t => ({ ...t, [e.target.name]: true }))
-    if (e.target.name === 'image_url') setPreviewError(false)
   }
 
   const handleCreate = async (e) => {
@@ -71,7 +73,6 @@ export default function Services() {
       })
       setForm({ name: '', duration_min: '', price: '', image_url: '', description: '' })
       setTouched({})
-      setPreviewError(false)
       setShowForm(false)
       fetchServices()
       toast.success('Servicio agregado correctamente')
@@ -103,6 +104,10 @@ export default function Services() {
     boxShadow: errors[name] ? '0 0 0 2px rgba(224,82,82,0.15)' : 'none'
   })
 
+  const totalPages = Math.max(1, Math.ceil(services.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = services.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
 
@@ -129,7 +134,7 @@ export default function Services() {
             <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>CATÁLOGO</p>
             <h1 style={{ fontSize: 36, fontWeight: 900, color: 'var(--cream)' }}>Servicios</h1>
           </div>
-          <button onClick={() => { setShowForm(!showForm); setForm({ name: '', duration_min: '', price: '', image_url: '', description: '' }); setTouched({}); setPreviewError(false) }} className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}>
+          <button onClick={() => { setShowForm(!showForm); setForm({ name: '', duration_min: '', price: '', image_url: '', description: '' }); setTouched({}) }} className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}>
             {showForm ? 'CANCELAR' : '+ AGREGAR'}
           </button>
         </div>
@@ -160,22 +165,11 @@ export default function Services() {
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>URL DE IMAGEN (OPCIONAL)</label>
-              <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="https://ejemplo.com/foto.jpg" style={inp('image_url')} />
-              {form.image_url && /^https?:\/\/.+/i.test(form.image_url) && !previewError && (
-                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <img
-                    src={form.image_url}
-                    alt="Vista previa"
-                    onError={() => setPreviewError(true)}
-                    style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--dark-4)' }}
-                  />
-                  <span style={{ color: 'var(--cream-dim)', fontSize: 12 }}>Vista previa</span>
-                </div>
-              )}
-              {form.image_url && /^https?:\/\/.+/i.test(form.image_url) && previewError && (
-                <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 6, opacity: 0.7 }}>No se pudo cargar la imagen desde esa URL</p>
-              )}
+              <ImageUpload
+                label="Imagen de referencia (opcional)"
+                value={form.image_url}
+                onChange={(url) => setForm(f => ({ ...f, image_url: url }))}
+              />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>DESCRIPCIÓN CORTA (OPCIONAL)</label>
@@ -204,12 +198,12 @@ export default function Services() {
               <p style={{ fontSize: 36, marginBottom: 12 }}>✦</p>
               <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay servicios. Agrega el primero.</p>
             </div>
-          ) : services.map((s, i) => (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: i < services.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>
+          ) : paginated.map((s, i) => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: i < paginated.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
                 {s.image_url && !imgErrors[s.id] ? (
                   <img
-                    src={s.image_url}
+                    src={resolveImageSrc(s.image_url)}
                     alt={s.name}
                     onError={() => setImgErrors(prev => ({ ...prev, [s.id]: true }))}
                     style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
@@ -236,6 +230,41 @@ export default function Services() {
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+            <button
+              onClick={() => setPage(Math.max(1, safePage - 1))}
+              disabled={safePage === 1}
+              style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', color: safePage === 1 ? 'var(--dark-4)' : 'var(--cream-dim)', padding: '8px 14px', borderRadius: 8, cursor: safePage === 1 ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'DM Sans' }}
+            >
+              ←
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                style={{ background: n === safePage ? 'var(--gold)' : 'var(--dark-2)', border: '1px solid ' + (n === safePage ? 'var(--gold)' : 'var(--dark-4)'), color: n === safePage ? 'var(--dark)' : 'var(--cream-dim)', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: n === safePage ? 700 : 400, fontFamily: 'DM Sans', minWidth: 38 }}
+              >
+                {n}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setPage(Math.min(totalPages, safePage + 1))}
+              disabled={safePage === totalPages}
+              style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', color: safePage === totalPages ? 'var(--dark-4)' : 'var(--cream-dim)', padding: '8px 14px', borderRadius: 8, cursor: safePage === totalPages ? 'not-allowed' : 'pointer', fontSize: 13, fontFamily: 'DM Sans' }}
+            >
+              →
+            </button>
+
+            <span style={{ color: 'var(--cream-dim)', fontSize: 12, marginLeft: 8 }}>
+              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, services.length)} de {services.length}
+            </span>
+          </div>
+        )}
+
       <Footer />
       </main>
       <HelpButton path={pathname} />

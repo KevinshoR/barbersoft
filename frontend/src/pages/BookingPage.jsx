@@ -4,10 +4,12 @@ import api from '../services/api'
 import { requiredError, lengthError, emailError, phoneError, hasErrors } from '../utils/validators'
 import ThemeToggle from '../components/ThemeToggle'
 
+const DAY_ABBR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
 // Agrupa los días abiertos consecutivos con el mismo horario, ej: "Lun a Sáb: 08:00–18:00"
 function summarizeHours(hours) {
   if (!hours || !hours.length) return null
-  const dayAbbr = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const dayAbbr = DAY_ABBR
   const groups = []
   hours.forEach(h => {
     if (!h.is_open) return
@@ -81,6 +83,8 @@ const navigate = useNavigate()
   const [touched, setTouched]   = useState({})
   const [apiError, setApiError] = useState('')
   const submittingRef = useRef(false)
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
   const [form, setForm] = useState({
     barber_id: '', service_id: '', client_name: '',
     client_phone: '', client_email: '', scheduled_at: '', notes: ''
@@ -226,6 +230,8 @@ const navigate = useNavigate()
           onClick={() => {
             setSuccess(false)
             setStep(0)
+            setEmailOpen(false)
+            setNotesOpen(false)
             setForm({ barber_id: '', service_id: '', client_name: '', client_phone: '', client_email: '', scheduled_at: '', notes: '' })
           }}
           style={{ background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '11px 28px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans' }}
@@ -353,6 +359,28 @@ const navigate = useNavigate()
               </div>
             )}
 
+            {hours.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>DÍAS DE ATENCIÓN</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {hours.slice().sort((a, b) => a.day_of_week - b.day_of_week).map(h => (
+                    <span
+                      key={h.day_of_week}
+                      style={{
+                        padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
+                        background: h.is_open ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)',
+                        color:      h.is_open ? 'var(--gold)' : 'var(--cream-dim)',
+                        border:     '1px solid ' + (h.is_open ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'),
+                        opacity:    h.is_open ? 1 : 0.5,
+                      }}
+                    >
+                      {DAY_ABBR[h.day_of_week]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 24 }}>
               <label style={s.label}>FECHA Y HORA</label>
               <input
@@ -395,13 +423,34 @@ const navigate = useNavigate()
                 {errors.client_phone && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.client_phone}</p>}
               </div>
               <div>
-                <label style={s.label}>EMAIL <span style={{ opacity: 0.7 }}>(OPCIONAL)</span></label>
-                <input type="email" value={form.client_email} onChange={e => handleChange('client_email', e.target.value)} onBlur={() => markTouched('client_email')} placeholder="tucorreo@email.com" style={s.inp('client_email')} />
-                {errors.client_email && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.client_email}</p>}
+                <button
+                  type="button"
+                  onClick={() => setEmailOpen(o => !o)}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 13, fontWeight: 700, fontFamily: 'DM Sans' }}
+                >
+                  <span>{emailOpen ? '－' : '＋'}</span> Correo electrónico
+                </button>
+                {emailOpen && (
+                  <div className="animate-fade-up" style={{ marginTop: 10 }}>
+                    <input type="email" value={form.client_email} onChange={e => handleChange('client_email', e.target.value)} onBlur={() => markTouched('client_email')} placeholder="tucorreo@email.com" style={s.inp('client_email')} autoFocus />
+                    {errors.client_email && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.client_email}</p>}
+                    <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 6, opacity: 0.7 }}>Agrégalo si quieres recibir el recordatorio de tu cita por correo.</p>
+                  </div>
+                )}
               </div>
               <div>
-                <label style={s.label}>NOTAS <span style={{ opacity: 0.7 }}>(OPCIONAL)</span></label>
-                <input value={form.notes} onChange={e => handleChange('notes', e.target.value)} placeholder="Alguna indicación especial..." style={s.inp('notes')} />
+                <button
+                  type="button"
+                  onClick={() => setNotesOpen(o => !o)}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 13, fontWeight: 700, fontFamily: 'DM Sans' }}
+                >
+                  <span>{notesOpen ? '－' : '＋'}</span> Notas / indicaciones
+                </button>
+                {notesOpen && (
+                  <div className="animate-fade-up" style={{ marginTop: 10 }}>
+                    <input value={form.notes} onChange={e => handleChange('notes', e.target.value)} placeholder="Alguna indicación especial..." style={s.inp('notes')} autoFocus />
+                  </div>
+                )}
               </div>
             </div>
 
