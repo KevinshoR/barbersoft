@@ -1,49 +1,46 @@
 const cron             = require('node-cron')
-const twilio           = require('twilio')
+const pool              = require('../config/db')
 const AppointmentModel = require('../models/appointment.model')
+const { enviarRecordatorioCita } = require('../utils/mailer')
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-)
-
-const FROM = process.env.TWILIO_WHATSAPP_FROM
-
-function formatDateTime(dateStr) {
-  return new Date(dateStr).toLocaleString('es-CO', {
-    weekday: 'long',
-    day:     'numeric',
-    month:   'long',
-    hour:    '2-digit',
-    minute:  '2-digit',
-  })
+async function findPendingRemindersWithDetails() {
+  const result = await pool.query(
+    `SELECT a.id, a.client_name, a.client_email, a.scheduled_at,
+            b.name  AS barber_name,
+            s.name  AS service_name,
+            sh.name AS barbershop_name
+     FROM appointments a
+     LEFT JOIN barbers   b  ON a.barber_id     = b.id
+     LEFT JOIN services  s  ON a.service_id    = s.id
+     JOIN barbershops    sh ON a.barbershop_id = sh.id
+     WHERE a.status        = 'pending'
+       AND a.reminder_sent = false
+       AND a.scheduled_at BETWEEN NOW() + INTERVAL '55 minutes'
+                     AND NOW() + INTERVAL '65 minutes'`
+  )
+  return result.rows
 }
 
 async function sendReminders() {
   console.log('[Recordatorios] Revisando citas próximas...')
   try {
-    const appointments = await AppointmentModel.findPendingReminders()
+    const appointments = await findPendingRemindersWithDetails()
     if (appointments.length === 0) {
       console.log('[Recordatorios] No hay citas para recordar.')
       return
     }
     for (const appt of appointments) {
-      const phone          = appt.client_phone.replace(/\D/g, '')
-      const colombianPhone = phone.startsWith('57') ? phone : '57' + phone
-      const to             = 'whatsapp:+' + colombianPhone
-      const dateStr        = formatDateTime(appt.scheduled_at)
-
-      const message =
-        `✂ *${appt.barbershop_name}*\n\n` +
-        `Hola ${appt.client_name}, te recordamos que tenés una cita mañana:\n\n` +
-        `📅 *${dateStr}*\n\n` +
-        `Si necesitás cancelar o reprogramar, contactanos directamente.\n\n` +
-        `_BarberSaaS — Sistema de reservas_`
-
       try {
-        await client.messages.create({ from: FROM, to, body: message })
+        await enviarRecordatorioCita({
+          clienteEmail:   appt.client_email,
+          clienteNombre:  appt.client_name,
+          barberiaNombre: appt.barbershop_name,
+          barberoNombre:  appt.barber_name,
+          servicioNombre: appt.service_name,
+          fechaHora:      appt.scheduled_at,
+        })
         await AppointmentModel.markReminderSent(appt.id)
-        console.log('[Recordatorios] Enviado a:', appt.client_name, to)
+        console.log('[Recordatorios] Enviado a:', appt.client_name, appt.client_email)
       } catch (err) {
         console.error('[Recordatorios] Error enviando a', appt.client_name, ':', err.message)
       }

@@ -2,6 +2,7 @@ import Landing from './pages/Landing'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
 import ShopProfile from './pages/ShopProfile'
 import Login        from './pages/Login'
 import Dashboard    from './pages/Dashboard'
@@ -34,6 +35,7 @@ export default function App() {
   return (
     <ThemeProvider>
     <AuthProvider>
+    <ToastProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={
@@ -72,6 +74,7 @@ export default function App() {
           <Route path="/" element={<Landing />}/>
         </Routes>
       </BrowserRouter>
+    </ToastProvider>
     </AuthProvider>
     </ThemeProvider>
   )

@@ -4,35 +4,21 @@ import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
-
-function Toast({ message, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
-  const c = type === 'success'
-    ? { bg: 'rgba(76,175,125,0.12)', border: 'rgba(76,175,125,0.4)', color: '#4CAF7D', icon: '✓' }
-    : { bg: 'rgba(224,82,82,0.12)',  border: 'rgba(224,82,82,0.4)',  color: '#E05252', icon: '✕' }
-  return (
-    <div className="animate-fade-up" style={{ position: 'fixed', top: 24, right: 24, zIndex: 999, background: c.bg, border: '1px solid ' + c.border, color: c.color, borderRadius: 10, padding: '14px 20px', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, minWidth: 260, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-      <span>{c.icon}</span>{message}
-      <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
-    </div>
-  )
-}
+import { useToast } from '../context/ToastContext'
 
 export default function Hours() {
   const { pathname } = useLocation()
+  const toast = useToast()
   const [hours, setHours]   = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(null)
-  const [toast, setToast]     = useState(null)
 
   useEffect(() => { fetchHours() }, [])
-
-  const showToast = (message, type = 'success') => setToast({ message, type })
 
   const fetchHours = () => {
     api.get('/hours')
       .then(res => setHours(res.data.hours))
-      .catch(() => showToast('Error cargando horarios', 'error'))
+      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar los horarios.'))
       .finally(() => setLoading(false))
   }
 
@@ -49,7 +35,7 @@ export default function Hours() {
 
   const handleSave = async (hour) => {
     if (getRowError(hour)) {
-      showToast('La hora de apertura debe ser anterior al cierre', 'error')
+      toast.error('La hora de apertura debe ser anterior al cierre')
       return
     }
     setSaving(hour.day_of_week)
@@ -59,9 +45,9 @@ export default function Hours() {
         close_time: hour.close_time,
         is_open:    hour.is_open,
       })
-      showToast('Horario guardado')
+      toast.success(`Horario de ${hour.day_name} actualizado`)
     } catch (err) {
-      showToast(err.response?.data?.error || 'Error guardando horario', 'error')
+      toast.error(err.response?.data?.error || 'No se pudo guardar el horario. Intenta de nuevo.')
     } finally {
       setSaving(null)
     }
@@ -76,7 +62,6 @@ export default function Hours() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <Navbar />
       <main style={{ maxWidth: 700, margin: '0 auto', padding: '40px 24px' }}>
 
@@ -84,7 +69,7 @@ export default function Hours() {
           <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>CONFIGURACIÓN</p>
           <h1 style={{ fontSize: 36, fontWeight: 900, color: 'var(--cream)' }}>Horarios</h1>
           <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginTop: 6 }}>
-            Definí los días y horarios en que tu barbería atiende clientes.
+            Define los días y horarios en que tu barbería atiende clientes.
           </p>
         </div>
 

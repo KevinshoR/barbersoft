@@ -1,8 +1,9 @@
 const ServiceModel = require('../models/service.model')
 const pool         = require('../config/db')
 
-// Valida que la URL de la imagen tenga formato http/https
+// Acepta tanto un link externo (http/https) como una ruta interna (/uploads/...)
 function isValidImageUrl(url) {
+  if (url.startsWith('/uploads/')) return true
   try {
     const parsed = new URL(url)
     return parsed.protocol === 'http:' || parsed.protocol === 'https:'

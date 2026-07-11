@@ -5,19 +5,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import api from '../services/api'
-
-function Toast({ message, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
-  const c = type === 'success'
-    ? { bg:'rgba(76,175,125,0.12)', border:'rgba(76,175,125,0.4)', color:'#4CAF7D', icon:'✓' }
-    : { bg:'rgba(224,82,82,0.12)',  border:'rgba(224,82,82,0.4)',  color:'#E05252', icon:'✕' }
-  return (
-    <div className="animate-fade-up" style={{ position:'fixed', top:80, right:24, zIndex:998, background:c.bg, border:'1px solid '+c.border, color:c.color, borderRadius:10, padding:'14px 20px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:10, minWidth:260, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' }}>
-      <span>{c.icon}</span>{message}
-      <button onClick={onClose} style={{ marginLeft:'auto', background:'none', border:'none', color:'inherit', cursor:'pointer', fontSize:16, opacity:0.6 }}>×</button>
-    </div>
-  )
-}
+import { useToast } from '../context/ToastContext'
 
 function trialDaysLeft(trial_ends_at) {
   if (!trial_ends_at) return 0
@@ -69,20 +57,18 @@ export default function Subscription() {
 const { barbershop, refreshBarbershop } = useAuth()
   const { pathname }      = useLocation()
   const [searchParams]    = useSearchParams()
-  const [toast, setToast] = useState(null)
+  const toast = useToast()
   const [loading, setLoading] = useState(null)
-
-  const showToast = (message, type = 'success') => setToast({ message, type })
 
   // Detectar retorno de Mercado Pago
   useEffect(() => {
   refreshBarbershop()
   const payment = searchParams.get('payment')
   const blocked = searchParams.get('blocked')
-  if (payment === 'success') showToast('¡Pago exitoso! Tu suscripción fue activada.', 'success')
-  if (payment === 'failure') showToast('El pago no se completó. Intentá de nuevo.', 'error')
-  if (payment === 'pending') showToast('Pago pendiente. Te avisaremos cuando se confirme.', 'error')
-  if (blocked === 'true')    showToast('Tu suscripción venció. Elegí un plan para continuar.', 'error')
+  if (payment === 'success') toast.success('¡Pago exitoso! Tu suscripción fue activada.')
+  if (payment === 'failure') toast.error('El pago no se completó. Intenta de nuevo.')
+  if (payment === 'pending') toast.warning('Pago pendiente. Te avisaremos cuando se confirme.')
+  if (blocked === 'true')    toast.error('Tu suscripción venció. Elige un plan para continuar.')
 }, [])
 
   const handleSubscribe = async (planId) => {
@@ -91,7 +77,7 @@ const { barbershop, refreshBarbershop } = useAuth()
       const res = await api.post('/subscription/create-preference', { plan: planId })
       window.location.href = res.data.sandbox_point
     } catch (err) {
-      showToast(err.response?.data?.error || 'Error iniciando el pago', 'error')
+      toast.error(err.response?.data?.error || 'No se pudo iniciar el pago. Intenta de nuevo.')
     } finally {
       setLoading(null)
     }
@@ -109,7 +95,6 @@ const { barbershop, refreshBarbershop } = useAuth()
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <Navbar />
       <main style={{ maxWidth:860, margin:'0 auto', padding:'40px 24px' }}>
 
@@ -140,7 +125,7 @@ const { barbershop, refreshBarbershop } = useAuth()
               <p style={{ color:'var(--cream-dim)', fontSize:13, lineHeight:1.6 }}>
                 Tu período de prueba vence el{' '}
                 <span style={{ color:'var(--cream)', fontWeight:600 }}>{formatDate(barbershop?.trial_ends_at)}</span>.
-                Suscribite para mantener el acceso sin interrupciones.
+                Suscríbete para mantener el acceso sin interrupciones.
               </p>
             </div>
           )}
@@ -154,7 +139,7 @@ const { barbershop, refreshBarbershop } = useAuth()
                 <span style={{ color:'var(--gold)', fontWeight:700 }}>{formatDate(barbershop?.subscription_ends_at)}</span>
               </p>
               <p style={{ color:'var(--cream-dim)', fontSize:13 }}>
-                Podés cancelar en cualquier momento desde aquí.
+                Puedes cancelar en cualquier momento desde aquí.
               </p>
             </div>
           )}
@@ -165,7 +150,7 @@ const { barbershop, refreshBarbershop } = useAuth()
                 Tu cuenta está bloqueada por falta de pago.
               </p>
               <p style={{ color:'var(--cream-dim)', fontSize:13 }}>
-                Tus datos están seguros. Realizá el pago para recuperar el acceso inmediatamente.
+                Tus datos están seguros. Realiza el pago para recuperar el acceso inmediatamente.
               </p>
             </div>
           )}
@@ -173,7 +158,7 @@ const { barbershop, refreshBarbershop } = useAuth()
 
         {/* Planes */}
         <p className="animate-fade-up delay-2" style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:16 }}>
-          ELEGÍ TU PLAN
+          ELIGE TU PLAN
         </p>
 
         <div className="animate-fade-up delay-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:32 }}>
@@ -243,7 +228,7 @@ const { barbershop, refreshBarbershop } = useAuth()
             Procesado de forma segura a través de{' '}
             <span style={{ color:'var(--gold)' }}>Mercado Pago</span>.
             Los datos de tu tarjeta nunca se almacenan en nuestros servidores.
-            Podés cancelar tu suscripción en cualquier momento.
+            Puedes cancelar tu suscripción en cualquier momento.
           </p>
         </div>
 

@@ -1,4 +1,6 @@
 const AppointmentModel = require('../models/appointment.model')
+const pool              = require('../config/db')
+const { enviarConfirmacionCliente, enviarAvisoBarbero } = require('../utils/mailer')
 
 const AppointmentsController = {
 
@@ -58,6 +60,39 @@ const AppointmentsController = {
       client_name, client_phone, client_email,
       scheduled_at, notes
     })
+
+    try {
+      const infoResult = await pool.query(
+        `SELECT b.name AS barber_name, s.name AS service_name,
+                sh.name AS barbershop_name, sh.email AS barbershop_email
+         FROM barbers b, services s, barbershops sh
+         WHERE b.id = $1 AND s.id = $2 AND sh.id = $3`,
+        [barber_id, service_id, req.barbershop.id]
+      )
+      const info = infoResult.rows[0]
+
+      if (info) {
+        await enviarConfirmacionCliente({
+          clienteEmail:   client_email,
+          clienteNombre:  client_name,
+          barberiaNombre: info.barbershop_name,
+          barberoNombre:  info.barber_name,
+          servicioNombre: info.service_name,
+          fechaHora:      scheduled_at,
+        })
+
+        await enviarAvisoBarbero({
+          barberiaEmail:   info.barbershop_email,
+          barberiaNombre:  info.barbershop_name,
+          clienteNombre:   client_name,
+          clienteTelefono: client_phone,
+          servicioNombre:  info.service_name,
+          fechaHora:       scheduled_at,
+        })
+      }
+    } catch (mailErr) {
+      console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)
+    }
 
     res.status(201).json({ appointment })
   } catch (err) {

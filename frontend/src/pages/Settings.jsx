@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -7,19 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getDepartments, getMunicipalities } from '../data/colombia'
 import { requiredError, lengthError, phoneError, combine } from '../utils/validators'
-
-function Toast({ message, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
-  const c = type === 'success'
-    ? { bg:'rgba(76,175,125,0.12)', border:'rgba(76,175,125,0.4)', color:'#4CAF7D', icon:'✓' }
-    : { bg:'rgba(224,82,82,0.12)',  border:'rgba(224,82,82,0.4)',  color:'#E05252', icon:'✕' }
-  return (
-    <div className="animate-fade-up" style={{ position:'fixed', top:80, right:24, zIndex:998, background:c.bg, border:'1px solid '+c.border, color:c.color, borderRadius:10, padding:'14px 20px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:10, minWidth:260, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' }}>
-      <span>{c.icon}</span>{message}
-      <button onClick={onClose} style={{ marginLeft:'auto', background:'none', border:'none', color:'inherit', cursor:'pointer', fontSize:16, opacity:0.6 }}>×</button>
-    </div>
-  )
-}
+import { useToast } from '../context/ToastContext'
 
 const PAYMENT_METHODS = [
   { id:'nequi',    label:'Nequi',          icon:'📱', desc:'Pagos móviles Nequi' },
@@ -34,7 +22,7 @@ const infoSchema = {
   phone: v => phoneError(v),
   municipality: (v, form) => {
     if (v && form.department && !getMunicipalities(form.department).includes(v)) {
-      return 'Seleccioná un municipio válido de la lista del departamento elegido'
+      return 'Selecciona un municipio válido de la lista del departamento elegido'
     }
     return null
   },
@@ -43,8 +31,9 @@ const infoSchema = {
 export default function Settings() {
   const { barbershop, login } = useAuth()
   const { pathname }          = useLocation()
-  const [toast, setToast]     = useState(null)
+  const toast = useToast()
   const [saving, setSaving]   = useState(false)
+  const [subscribing, setSubscribing] = useState(null)
   const [tab, setTab]         = useState('info')
   const [form, setForm]       = useState({
     name:         barbershop?.name         || '',
@@ -71,8 +60,6 @@ export default function Settings() {
   const nequiNameError   = payments.nequi ? requiredError(payments.account_name, 'El nombre de la cuenta') : null
   const hasPaymentErrors = !!(nequiNumberError || nequiNameError)
 
-  const showToast = (message, type = 'success') => setToast({ message, type })
-
   const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
 
   const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); markTouched(e.target.name) }
@@ -90,9 +77,9 @@ export default function Settings() {
         municipality: form.municipality.trim(),
       })
       login(localStorage.getItem('token'), { ...barbershop, ...res.data.barbershop })
-      showToast('Información actualizada correctamente')
+      toast.success('Información actualizada correctamente')
     } catch (err) {
-      showToast(err.response?.data?.error || 'Error guardando cambios', 'error')
+      toast.error(err.response?.data?.error || 'No se pudieron guardar los cambios. Intenta de nuevo.')
     } finally {
       setSaving(false)
     }
@@ -127,7 +114,6 @@ export default function Settings() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <Navbar />
       <main style={{ maxWidth:720, margin:'0 auto', padding:'40px 24px' }}>
 
@@ -178,7 +164,7 @@ export default function Settings() {
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>DEPARTAMENTO</label>
                   <select name="department" value={form.department} onChange={handleDepartmentChange} style={inp}>
-                    <option value="">Seleccioná...</option>
+                    <option value="">Selecciona...</option>
                     {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
@@ -191,7 +177,7 @@ export default function Settings() {
                     onChange={handleChange}
                     onBlur={() => markTouched('municipality')}
                     disabled={!form.department}
-                    placeholder={form.department ? 'Escribí para buscar...' : 'Elegí un departamento primero'}
+                    placeholder={form.department ? 'Escribe para buscar...' : 'Elige un departamento primero'}
                     autoComplete="off"
                     style={{ ...inp, opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && infoErrors.municipality ? '#E05252' : 'var(--dark-4)') }}
                   />
@@ -208,7 +194,7 @@ export default function Settings() {
                   /reservar/{barbershop?.slug}
                 </p>
                 <p style={{ color:'var(--cream-dim)', fontSize:11, marginTop:4, opacity:0.6 }}>
-                  Compartí este link con tus clientes para que reserven su cita
+                  Comparte este link con tus clientes para que reserven su cita
                 </p>
               </div>
 
@@ -230,7 +216,7 @@ export default function Settings() {
             <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:28, marginBottom:16 }}>
               <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:6 }}>MÉTODOS DE PAGO ACEPTADOS</p>
               <p style={{ color:'var(--cream-dim)', fontSize:13, marginBottom:20, lineHeight:1.6 }}>
-                Activá los métodos que aceptás. Tus clientes los verán en la página de reservas.
+                Activa los métodos que aceptas. Tus clientes los verán en la página de reservas.
               </p>
 
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -292,7 +278,7 @@ export default function Settings() {
               onClick={() => {
                 setPaymentsTouched({ nequi_number: true, account_name: true })
                 if (hasPaymentErrors) return
-                showToast('Métodos de pago guardados')
+                toast.success('Métodos de pago guardados')
               }}
             >
               GUARDAR MÉTODOS
@@ -340,7 +326,7 @@ export default function Settings() {
 
               {status === 'blocked' && (
                 <p style={{ color:'#E05252', fontSize:14 }}>
-                  Tu cuenta está bloqueada. Realizá el pago para reactivar el acceso.
+                  Tu cuenta está bloqueada. Realiza el pago para reactivar el acceso.
                 </p>
               )}
             </div>
@@ -365,14 +351,24 @@ export default function Settings() {
                   </ul>
                   <button
                     onClick={() => {
-  api.post('/subscription/create-preference', { plan: plan.label === 'MENSUAL' ? 'monthly' : 'annual' })
+  const planId = plan.label === 'MENSUAL' ? 'monthly' : 'annual'
+  setSubscribing(planId)
+  api.post('/subscription/create-preference', { plan: planId })
     .then(res => { window.location.href = res.data.sandbox_point })
-    .catch(() => alert('Error iniciando el pago'))
+    .catch(err => {
+      toast.error(err.response?.data?.error || 'No se pudo iniciar el pago. Intenta de nuevo.')
+      setSubscribing(null)
+    })
 }}
+                    disabled={subscribing === (plan.label === 'MENSUAL' ? 'monthly' : 'annual') || status === 'active'}
                     className={plan.hot ? 'btn-primary' : 'btn-secondary'}
-                    style={{ width:'100%', padding:'11px 0', fontSize:11 }}
+                    style={{ width:'100%', padding:'11px 0', fontSize:11, opacity: subscribing === (plan.label === 'MENSUAL' ? 'monthly' : 'annual') ? 0.6 : 1 }}
                   >
-                    {status === 'active' ? 'PLAN ACTUAL' : 'SUSCRIBIRME'}
+                    {subscribing === (plan.label === 'MENSUAL' ? 'monthly' : 'annual')
+                      ? 'REDIRIGIENDO...'
+                      : status === 'active'
+                      ? 'PLAN ACTUAL'
+                      : 'SUSCRIBIRME'}
                   </button>
                 </div>
               ))}

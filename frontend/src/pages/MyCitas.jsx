@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { phoneError } from '../utils/validators'
 import ThemeToggle from '../components/ThemeToggle'
+import { useToast } from '../context/ToastContext'
 
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', {
   style: 'currency', currency: 'COP', minimumFractionDigits: 0
@@ -23,15 +24,14 @@ const STATUS = {
 export default function MyCitas() {
   const { slug }     = useParams()
   const navigate     = useNavigate()
+  const toast = useToast()
   const [phone, setPhone]           = useState('')
   const [touched, setTouched]       = useState(false)
   const [searched, setSearched]     = useState(false)
   const [loading, setLoading]       = useState(false)
   const [appointments, setAppointments] = useState([])
   const [shopName, setShopName]     = useState('')
-  const [error, setError]           = useState('')
   const [cancelling, setCancelling] = useState(null)
-  const [cancelSuccess, setCancelSuccess] = useState(null)
 
   const phoneFieldError = phoneError(phone, { required: true })
 
@@ -41,14 +41,13 @@ export default function MyCitas() {
     if (phoneFieldError) return
     const clean = phone.replace(/\D/g, '')
     setLoading(true)
-    setError('')
     try {
       const res = await api.get(`/public/${slug}/mis-citas?phone=${clean}`)
       setAppointments(res.data.appointments)
       setShopName(res.data.shop.name)
       setSearched(true)
     } catch (err) {
-      setError(err.response?.data?.error || 'Error buscando citas')
+      toast.error(err.response?.data?.error || 'No se pudieron buscar tus citas. Intenta de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -61,10 +60,9 @@ export default function MyCitas() {
         phone: phone.replace(/\D/g, '')
       })
       setAppointments(prev => prev.filter(a => a.id !== id))
-      setCancelSuccess(id)
-      setTimeout(() => setCancelSuccess(null), 3000)
+      toast.success('Cita cancelada correctamente')
     } catch (err) {
-      setError(err.response?.data?.error || 'Error cancelando cita')
+      toast.error(err.response?.data?.error || 'No se pudo cancelar la cita. Intenta de nuevo.')
     } finally {
       setCancelling(null)
     }
@@ -100,18 +98,11 @@ export default function MyCitas() {
           {shopName || 'Mis citas'}
         </h1>
         <p style={{ color: 'var(--cream-dim)', fontSize: 13 }}>
-          Consultá y cancelá tus citas
+          Consulta y cancela tus citas
         </p>
       </div>
 
       <main style={{ maxWidth: 480, margin: '0 auto', padding: '40px 20px' }}>
-
-        {/* Toast cancelación */}
-        {cancelSuccess && (
-          <div className="animate-fade-up" style={{ background: 'rgba(76,175,125,0.12)', border: '1px solid rgba(76,175,125,0.3)', color: 'var(--success)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, fontSize: 13, fontWeight: 600, textAlign: 'center' }}>
-            ✓ Cita cancelada correctamente
-          </div>
-        )}
 
         {!searched ? (
           /* Formulario búsqueda */
@@ -124,13 +115,13 @@ export default function MyCitas() {
                 ¿Cuál es tu número?
               </h2>
               <p style={{ color: 'var(--cream-dim)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
-                Ingresá el teléfono con el que hiciste la reserva y te mostramos tus citas.
+                Ingresa el teléfono con el que hiciste la reserva y te mostramos tus citas.
               </p>
 
               <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <input
                   value={phone}
-                  onChange={e => { setPhone(e.target.value); setError('') }}
+                  onChange={e => setPhone(e.target.value)}
                   onBlur={() => setTouched(true)}
                   placeholder="3001234567"
                   style={{ ...inp, border: '1px solid ' + (touched && phoneFieldError ? 'var(--danger)' : 'var(--border-soft)') }}
@@ -139,9 +130,6 @@ export default function MyCitas() {
                 />
                 {touched && phoneFieldError && (
                   <p style={{ color: 'var(--danger)', fontSize: 13, textAlign: 'left' }}>⚠ {phoneFieldError}</p>
-                )}
-                {error && (
-                  <p style={{ color: 'var(--danger)', fontSize: 13, textAlign: 'left' }}>⚠ {error}</p>
                 )}
                 <button
                   type="submit"

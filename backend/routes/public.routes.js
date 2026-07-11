@@ -1,6 +1,17 @@
 ﻿const router           = require('express').Router()
+const rateLimit        = require('express-rate-limit')
 const pool             = require('../config/db')
 const AppointmentModel = require('../models/appointment.model')
+const { enviarConfirmacionCliente, enviarAvisoBarbero } = require('../utils/mailer')
+
+// Limita reservas seguidas desde una misma IP para frenar spam de citas basura
+const reservaPublicaLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Has hecho demasiadas reservas seguidas. Espera unos minutos.' },
+})
 
 // Búsqueda pública de barberías por departamento/municipio
 // IMPORTANTE: debe ir antes de '/:slug' para que Express no lo confunda con un slug.
@@ -124,14 +135,14 @@ router.get('/:slug/availability', async (req, res) => {
 })
 
 // Crear cita pública
-router.post('/:slug/book', async (req, res) => {
+router.post('/:slug/book', reservaPublicaLimiter, async (req, res) => {
   try {
     const shopResult = await pool.query(
-      'SELECT id FROM barbershops WHERE slug = $1',
+      'SELECT id, name, email FROM barbershops WHERE slug = $1',
       [req.params.slug]
     )
     const shop = shopResult.rows[0]
-    if (!shop) return res.status(404).json({ error: 'Barbería no encontrada' })
+    if (!shop) return res.status(404).json({ error: 'No encontramos esta barbería. Verifica que el enlace sea correcto.' })
 
     const {
       barber_id, service_id,
@@ -140,18 +151,27 @@ router.post('/:slug/book', async (req, res) => {
     } = req.body
 
     if (!barber_id || !service_id || !client_name || !client_phone || !scheduled_at) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios' })
+      const faltantes = []
+      if (!service_id)    faltantes.push('servicio')
+      if (!barber_id)     faltantes.push('barbero')
+      if (!client_name)   faltantes.push('nombre')
+      if (!client_phone)  faltantes.push('teléfono')
+      if (!scheduled_at)  faltantes.push('fecha y hora')
+      return res.status(400).json({ error: `Faltan datos: por favor completa ${faltantes.join(', ')}.` })
     }
 
     if (new Date(scheduled_at) < new Date()) {
-      return res.status(400).json({ error: 'La fecha no puede ser en el pasado' })
+      return res.status(400).json({ error: 'No puedes reservar en una fecha u hora que ya pasó.' })
     }
 
     // Verificar horario de atención
 const HoursModel = require('../models/hours.model')
 const hoursCheck = await HoursModel.checkOpen(shop.id, scheduled_at)
 if (!hoursCheck.open) {
-  return res.status(400).json({ error: hoursCheck.reason })
+  const reason = hoursCheck.reason === 'El negocio está cerrado ese día'
+    ? 'La barbería no atiende el día que elegiste. Por favor elige otro día.'
+    : `${hoursCheck.reason}. Por favor elige una hora dentro de ese horario.`
+  return res.status(400).json({ error: reason })
 }
 
     const available = await AppointmentModel.checkAvailability({
@@ -162,7 +182,7 @@ if (!hoursCheck.open) {
     })
 
     if (!available) {
-      return res.status(409).json({ error: 'El barbero ya tiene una cita en ese horario. Por favor elegí otro horario.' })
+      return res.status(409).json({ error: 'Ese horario ya está reservado. Por favor elige otra hora.' })
     }
 
     const appointment = await AppointmentModel.create({
@@ -172,10 +192,42 @@ if (!hoursCheck.open) {
       scheduled_at, notes
     })
 
+    try {
+      const infoResult = await pool.query(
+        `SELECT b.name AS barber_name, s.name AS service_name
+         FROM barbers b, services s
+         WHERE b.id = $1 AND s.id = $2`,
+        [barber_id, service_id]
+      )
+      const info = infoResult.rows[0]
+
+      if (info) {
+        await enviarConfirmacionCliente({
+          clienteEmail:   client_email,
+          clienteNombre:  client_name,
+          barberiaNombre: shop.name,
+          barberoNombre:  info.barber_name,
+          servicioNombre: info.service_name,
+          fechaHora:      scheduled_at,
+        })
+
+        await enviarAvisoBarbero({
+          barberiaEmail:   shop.email,
+          barberiaNombre:  shop.name,
+          clienteNombre:   client_name,
+          clienteTelefono: client_phone,
+          servicioNombre:  info.service_name,
+          fechaHora:       scheduled_at,
+        })
+      }
+    } catch (mailErr) {
+      console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)
+    }
+
     res.status(201).json({ appointment, message: 'Cita reservada con éxito' })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'Error creando la reserva' })
+    res.status(500).json({ error: 'No pudimos procesar tu reserva. Por favor intenta de nuevo en unos minutos.' })
   }
 })
 

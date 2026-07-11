@@ -5,19 +5,7 @@ import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, emailError, phoneError, hasErrors } from '../utils/validators'
-
-function Toast({ message, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
-  const c = type === 'success'
-    ? { bg: 'rgba(76,175,125,0.12)', border: 'rgba(76,175,125,0.4)', color: '#4CAF7D', icon: '✓' }
-    : { bg: 'rgba(224,82,82,0.12)',  border: 'rgba(224,82,82,0.4)',  color: '#E05252', icon: '✕' }
-  return (
-    <div className="animate-fade-up" style={{ position:'fixed', top:80, right:24, zIndex:998, background:c.bg, border:'1px solid '+c.border, color:c.color, borderRadius:10, padding:'14px 20px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:10, minWidth:260, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' }}>
-      <span>{c.icon}</span>{message}
-      <button onClick={onClose} style={{ marginLeft:'auto', background:'none', border:'none', color:'inherit', cursor:'pointer', fontSize:16, opacity:0.6 }}>×</button>
-    </div>
-  )
-}
+import { useToast } from '../context/ToastContext'
 
 function validate(form) {
   const errors = {}
@@ -119,14 +107,15 @@ const formatPrice = (p) => new Intl.NumberFormat('es-CO', { style:'currency', cu
 
 export default function Appointments() {
   const { pathname } = useLocation()
+  const toast = useToast()
   const [appointments, setAppointments] = useState([])
   const [barbers, setBarbers]           = useState([])
   const [services, setServices]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [showForm, setShowForm]         = useState(false)
   const [saving, setSaving]             = useState(false)
-  const [toast, setToast]               = useState(null)
   const [deleting, setDeleting]         = useState(null)
+  const [deleteBusy, setDeleteBusy]     = useState(false)
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -145,18 +134,16 @@ export default function Appointments() {
   useEffect(() => {
     Promise.all([api.get('/barbers'), api.get('/services')])
       .then(([b, s]) => { setBarbers(b.data.barbers); setServices(s.data.services) })
-      .catch(console.error)
+      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar barberos y servicios.'))
   }, [])
 
   useEffect(() => { fetchAppointments() }, [])
-
-  const showToast = (message, type = 'success') => setToast({ message, type })
 
   const fetchAppointments = () => {
     setLoading(true)
     api.get('/appointments')
       .then(res => setAppointments(res.data.appointments))
-      .catch(() => showToast('Error cargando citas', 'error'))
+      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar las citas.'))
       .finally(() => setLoading(false))
   }
 
@@ -200,9 +187,9 @@ export default function Appointments() {
       setTouched({})
       setShowForm(false)
       fetchAppointments()
-      showToast('Cita creada correctamente')
+      toast.success('Cita creada correctamente')
     } catch (err) {
-      showToast(err.response?.data?.error || 'Error creando cita', 'error')
+      toast.error(err.response?.data?.error || 'No se pudo crear la cita. Intenta de nuevo.')
     } finally {
       setSaving(false)
     }
@@ -213,20 +200,23 @@ export default function Appointments() {
       await api.patch('/appointments/' + id, { status })
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a))
       const msg = { confirmed:'Cita confirmada', done:'Cita completada', cancelled:'Cita cancelada' }
-      showToast(msg[status] || 'Estado actualizado')
-    } catch {
-      showToast('Error actualizando estado', 'error')
+      toast.success(msg[status] || 'Estado actualizado')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo actualizar el estado de la cita.')
     }
   }
 
   const confirmDelete = async (id) => {
+    if (deleteBusy) return
+    setDeleteBusy(true)
     try {
       await api.delete('/appointments/' + id)
       fetchAppointments()
-      showToast('Cita eliminada')
-    } catch {
-      showToast('Error eliminando cita', 'error')
+      toast.success('Cita eliminada')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo eliminar la cita.')
     } finally {
+      setDeleteBusy(false)
       setDeleting(null)
     }
   }
@@ -241,7 +231,6 @@ export default function Appointments() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Modal eliminar */}
       {deleting && (
@@ -251,8 +240,10 @@ export default function Appointments() {
             <h3 style={{ color:'var(--cream)', fontSize:18, marginBottom:8 }}>¿Eliminar esta cita?</h3>
             <p style={{ color:'var(--cream-dim)', fontSize:13, marginBottom:24 }}>Esta acción no se puede deshacer.</p>
             <div style={{ display:'flex', gap:12, justifyContent:'center' }}>
-              <button onClick={() => setDeleting(null)} className="btn-secondary">Cancelar</button>
-              <button onClick={() => confirmDelete(deleting)} className="btn-danger">Sí, eliminar</button>
+              <button onClick={() => setDeleting(null)} disabled={deleteBusy} className="btn-secondary">Cancelar</button>
+              <button onClick={() => confirmDelete(deleting)} disabled={deleteBusy} className="btn-danger" style={{ opacity: deleteBusy ? 0.6 : 1 }}>
+                {deleteBusy ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
             </div>
           </div>
         </div>
@@ -332,7 +323,7 @@ export default function Appointments() {
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>BARBERO</label>
                 <select name="barber_id" value={form.barber_id} onChange={handleChange} onBlur={() => markTouched('barber_id')} style={inp('barber_id')}>
-                  <option value="">Seleccioná un barbero</option>
+                  <option value="">Selecciona un barbero</option>
                   {barbers.filter(b => b.active).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
                 {errors.barber_id && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.barber_id}</p>}
@@ -340,7 +331,7 @@ export default function Appointments() {
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>SERVICIO</label>
                 <select name="service_id" value={form.service_id} onChange={handleChange} onBlur={() => markTouched('service_id')} style={inp('service_id')}>
-                  <option value="">Seleccioná un servicio</option>
+                  <option value="">Selecciona un servicio</option>
                   {services.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name} — {s.duration_min}min</option>)}
                 </select>
                 {errors.service_id && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.service_id}</p>}

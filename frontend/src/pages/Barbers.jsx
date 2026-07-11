@@ -5,33 +5,7 @@ import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, lengthError, combine } from '../utils/validators'
-
-function Toast({ message, type, onClose }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3500)
-    return () => clearTimeout(t)
-  }, [])
-
-  const colors = {
-    success: { bg: 'rgba(76,175,125,0.12)', border: 'rgba(76,175,125,0.4)', color: '#4CAF7D', icon: '✓' },
-    error:   { bg: 'rgba(224,82,82,0.12)',  border: 'rgba(224,82,82,0.4)',  color: '#E05252', icon: '✕' },
-  }
-  const c = colors[type]
-
-  return (
-    <div className="animate-fade-up" style={{
-      position: 'fixed', top: 24, right: 24, zIndex: 999,
-      background: c.bg, border: '1px solid ' + c.border,
-      color: c.color, borderRadius: 10, padding: '14px 20px',
-      fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10,
-      minWidth: 260, boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
-    }}>
-      <span style={{ fontSize: 16 }}>{c.icon}</span>
-      {message}
-      <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
-    </div>
-  )
-}
+import { useToast } from '../context/ToastContext'
 
 const validateName = combine(
   v => requiredError(v, 'El nombre'),
@@ -40,24 +14,24 @@ const validateName = combine(
 
 export default function Barbers() {
   const { pathname } = useLocation()
+  const toast = useToast()
   const [barbers, setBarbers]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [name, setName]         = useState('')
   const [nameError, setNameError] = useState('')
   const [saving, setSaving]     = useState(false)
-  const [toast, setToast]       = useState(null)
+  const [toggling, setToggling] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   useEffect(() => { fetchBarbers() }, [])
-
-  const showToast = (message, type = 'success') => setToast({ message, type })
 
   const fetchBarbers = () => {
     setLoading(true)
     api.get('/barbers')
       .then(res => setBarbers(res.data.barbers))
-      .catch(() => showToast('Error cargando barberos', 'error'))
+      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar los barberos.'))
       .finally(() => setLoading(false))
   }
 
@@ -71,21 +45,24 @@ export default function Barbers() {
       setName('')
       setShowForm(false)
       fetchBarbers()
-      showToast('Barbero agregado correctamente')
+      toast.success('Barbero agregado correctamente')
     } catch (err) {
-      showToast(err.response?.data?.error || 'Error creando barbero', 'error')
+      toast.error(err.response?.data?.error || 'No se pudo crear el barbero. Intenta de nuevo.')
     } finally {
       setSaving(false)
     }
   }
 
   const handleToggle = async (barber) => {
+    setToggling(barber.id)
     try {
       await api.put('/barbers/' + barber.id, { active: !barber.active })
       fetchBarbers()
-      showToast(barber.active ? 'Barbero desactivado' : 'Barbero activado')
-    } catch {
-      showToast('Error actualizando barbero', 'error')
+      toast.success(barber.active ? 'Barbero desactivado' : 'Barbero activado')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo actualizar el barbero.')
+    } finally {
+      setToggling(null)
     }
   }
 
@@ -94,13 +71,16 @@ export default function Barbers() {
   }
 
   const confirmDelete = async (id) => {
+    if (deleteBusy) return
+    setDeleteBusy(true)
     try {
       await api.delete('/barbers/' + id)
       fetchBarbers()
-      showToast('Barbero eliminado')
-    } catch {
-      showToast('Error eliminando barbero', 'error')
+      toast.success('Barbero eliminado')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo eliminar el barbero.')
     } finally {
+      setDeleteBusy(false)
       setDeleting(null)
     }
   }
@@ -113,7 +93,6 @@ export default function Barbers() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Modal confirmar eliminar */}
       {deleting && (
@@ -123,11 +102,11 @@ export default function Barbers() {
             <h3 style={{ color: 'var(--cream)', fontSize: 18, marginBottom: 8 }}>¿Eliminar barbero?</h3>
             <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Esta acción no se puede deshacer. Las citas asociadas quedarán sin barbero asignado.</p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button onClick={() => setDeleting(null)} className="btn-secondary">
+              <button onClick={() => setDeleting(null)} disabled={deleteBusy} className="btn-secondary">
                 Cancelar
               </button>
-              <button onClick={() => confirmDelete(deleting)} className="btn-danger">
-                Sí, eliminar
+              <button onClick={() => confirmDelete(deleting)} disabled={deleteBusy} className="btn-danger" style={{ opacity: deleteBusy ? 0.6 : 1 }}>
+                {deleteBusy ? 'Eliminando...' : 'Sí, eliminar'}
               </button>
             </div>
           </div>
@@ -178,7 +157,7 @@ export default function Barbers() {
           ) : barbers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '56px 0' }}>
               <p style={{ fontSize: 36, marginBottom: 12 }}>◈</p>
-              <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay barberos. Agregá el primero.</p>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay barberos. Agrega el primero.</p>
             </div>
           ) : barbers.map((barber, i) => (
             <div key={barber.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: i < barbers.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>
@@ -194,8 +173,12 @@ export default function Barbers() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => handleToggle(barber)} style={{ background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
-                  {barber.active ? 'DESACTIVAR' : 'ACTIVAR'}
+                <button
+                  onClick={() => handleToggle(barber)}
+                  disabled={toggling === barber.id}
+                  style={{ background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 16px', borderRadius: 6, cursor: toggling === barber.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans', opacity: toggling === barber.id ? 0.6 : 1 }}
+                >
+                  {toggling === barber.id ? '...' : barber.active ? 'DESACTIVAR' : 'ACTIVAR'}
                 </button>
                 <button onClick={() => handleDelete(barber)} className="btn-danger">
                   ELIMINAR

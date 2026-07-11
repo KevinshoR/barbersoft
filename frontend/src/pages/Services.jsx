@@ -5,20 +5,7 @@ import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, lengthError, numberRangeError, hasErrors } from '../utils/validators'
-
-function Toast({ message, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t) }, [])
-  const c = type === 'success'
-    ? { bg: 'rgba(76,175,125,0.12)', border: 'rgba(76,175,125,0.4)', color: '#4CAF7D', icon: '✓' }
-    : { bg: 'rgba(224,82,82,0.12)',  border: 'rgba(224,82,82,0.4)',  color: '#E05252', icon: '✕' }
-  return (
-    <div className="animate-fade-up" style={{ position: 'fixed', top: 24, right: 24, zIndex: 999, background: c.bg, border: '1px solid ' + c.border, color: c.color, borderRadius: 10, padding: '14px 20px', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, minWidth: 260, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-      <span style={{ fontSize: 16 }}>{c.icon}</span>
-      {message}
-      <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
-    </div>
-  )
-}
+import { useToast } from '../context/ToastContext'
 
 function validate(form) {
   const errors = {}
@@ -35,12 +22,13 @@ const formatPrice = (price) => new Intl.NumberFormat('es-CO', { style: 'currency
 
 export default function Services() {
   const { pathname } = useLocation()
+  const toast = useToast()
   const [services, setServices] = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving]     = useState(false)
-  const [toast, setToast]       = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
   const [touched, setTouched]   = useState({})
   const [form, setForm]         = useState({ name: '', duration_min: '', price: '', image_url: '', description: '' })
   const [previewError, setPreviewError] = useState(false)
@@ -54,13 +42,11 @@ export default function Services() {
 
   useEffect(() => { fetchServices() }, [])
 
-  const showToast = (message, type = 'success') => setToast({ message, type })
-
   const fetchServices = () => {
     setLoading(true)
     api.get('/services')
       .then(res => setServices(res.data.services))
-      .catch(() => showToast('Error cargando servicios', 'error'))
+      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar los servicios.'))
       .finally(() => setLoading(false))
   }
 
@@ -88,22 +74,25 @@ export default function Services() {
       setPreviewError(false)
       setShowForm(false)
       fetchServices()
-      showToast('Servicio agregado correctamente')
+      toast.success('Servicio agregado correctamente')
     } catch (err) {
-      showToast(err.response?.data?.error || 'Error creando servicio', 'error')
+      toast.error(err.response?.data?.error || 'No se pudo crear el servicio. Intenta de nuevo.')
     } finally {
       setSaving(false)
     }
   }
 
   const confirmDelete = async (id) => {
+    if (deleteBusy) return
+    setDeleteBusy(true)
     try {
       await api.delete('/services/' + id)
       fetchServices()
-      showToast('Servicio eliminado')
-    } catch {
-      showToast('Error eliminando servicio', 'error')
+      toast.success('Servicio eliminado')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo eliminar el servicio.')
     } finally {
+      setDeleteBusy(false)
       setDeleting(null)
     }
   }
@@ -116,7 +105,6 @@ export default function Services() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {deleting && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -125,8 +113,10 @@ export default function Services() {
             <h3 style={{ color: 'var(--cream)', fontSize: 18, marginBottom: 8 }}>¿Eliminar servicio?</h3>
             <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Esta acción no se puede deshacer.</p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button onClick={() => setDeleting(null)} className="btn-secondary">Cancelar</button>
-              <button onClick={() => confirmDelete(deleting)} className="btn-danger">Sí, eliminar</button>
+              <button onClick={() => setDeleting(null)} disabled={deleteBusy} className="btn-secondary">Cancelar</button>
+              <button onClick={() => confirmDelete(deleting)} disabled={deleteBusy} className="btn-danger" style={{ opacity: deleteBusy ? 0.6 : 1 }}>
+                {deleteBusy ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
             </div>
           </div>
         </div>
@@ -212,7 +202,7 @@ export default function Services() {
           ) : services.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '56px 0' }}>
               <p style={{ fontSize: 36, marginBottom: 12 }}>✦</p>
-              <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay servicios. Agregá el primero.</p>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay servicios. Agrega el primero.</p>
             </div>
           ) : services.map((s, i) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: i < services.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>

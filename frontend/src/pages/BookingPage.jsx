@@ -1,10 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, lengthError, emailError, phoneError, hasErrors } from '../utils/validators'
 import ThemeToggle from '../components/ThemeToggle'
 
-function validate(form) {
+// Agrupa los días abiertos consecutivos con el mismo horario, ej: "Lun a Sáb: 08:00–18:00"
+function summarizeHours(hours) {
+  if (!hours || !hours.length) return null
+  const dayAbbr = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const groups = []
+  hours.forEach(h => {
+    if (!h.is_open) return
+    const key  = h.open_time + '-' + h.close_time
+    const last = groups[groups.length - 1]
+    if (last && last.key === key && last.days[last.days.length - 1] === h.day_of_week - 1) {
+      last.days.push(h.day_of_week)
+    } else {
+      groups.push({ key, days: [h.day_of_week], open: h.open_time, close: h.close_time })
+    }
+  })
+  if (!groups.length) return null
+  return groups.map(g => {
+    const label = g.days.length > 1
+      ? `${dayAbbr[g.days[0]]} a ${dayAbbr[g.days[g.days.length - 1]]}`
+      : dayAbbr[g.days[0]]
+    return `${label}: ${g.open}–${g.close}`
+  }).join(' · ')
+}
+
+function validate(form, hours) {
   const errors = {}
   if (!form.scheduled_at) {
     errors.scheduled_at = 'La fecha y hora son obligatorias'
@@ -12,8 +36,22 @@ function validate(form) {
     const selected = new Date(form.scheduled_at)
     const minDate  = new Date(Date.now() + 30 * 60 * 1000)        // 30 min desde ahora
     const maxDate  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 mes
-    if (selected < minDate) errors.scheduled_at = 'La cita debe ser al menos 30 minutos desde ahora'
-    if (selected > maxDate) errors.scheduled_at = 'La cita no puede ser a más de 1 mes de distancia'
+    if (selected < minDate) {
+      errors.scheduled_at = 'La cita debe ser al menos 30 minutos desde ahora'
+    } else if (selected > maxDate) {
+      errors.scheduled_at = 'La cita no puede ser a más de 1 mes de distancia'
+    } else if (hours && hours.length) {
+      const dayHours = hours.find(h => h.day_of_week === selected.getDay())
+      if (dayHours && !dayHours.is_open) {
+        const openDays = hours.filter(h => h.is_open).map(h => h.day).join(', ')
+        errors.scheduled_at = `La barbería no abre este día. Días de atención: ${openDays || 'consulta con el local'}.`
+      } else if (dayHours && dayHours.is_open) {
+        const time = selected.toTimeString().slice(0, 5)
+        if (time < dayHours.open_time || time >= dayHours.close_time) {
+          errors.scheduled_at = `Ese horario está fuera de atención. Este día abrimos de ${dayHours.open_time} a ${dayHours.close_time}.`
+        }
+      }
+    }
   }
   errors.client_name  = requiredError(form.client_name, 'El nombre') || lengthError(form.client_name, { min: 2, label: 'El nombre' })
   errors.client_phone = phoneError(form.client_phone, { required: true })
@@ -34,6 +72,7 @@ const navigate = useNavigate()
   const [shop, setShop]         = useState(null)
   const [barbers, setBarbers]   = useState([])
   const [services, setServices] = useState([])
+  const [hours, setHours]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [success, setSuccess]   = useState(false)
@@ -41,12 +80,13 @@ const navigate = useNavigate()
   const [step, setStep]         = useState(0)
   const [touched, setTouched]   = useState({})
   const [apiError, setApiError] = useState('')
+  const submittingRef = useRef(false)
   const [form, setForm] = useState({
     barber_id: '', service_id: '', client_name: '',
     client_phone: '', client_email: '', scheduled_at: '', notes: ''
   })
 
-  const allErrors = validate(form)
+  const allErrors = validate(form, hours)
   const errors = Object.keys(allErrors).reduce((acc, k) => {
     if (touched[k]) acc[k] = allErrors[k]
     return acc
@@ -58,6 +98,7 @@ const navigate = useNavigate()
         setShop(res.data.shop)
         setBarbers(res.data.barbers)
         setServices(res.data.services)
+        setHours(res.data.hours || [])
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
@@ -72,9 +113,12 @@ const navigate = useNavigate()
   }
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return
     setTouched(t => ({ ...t, client_name: true, client_phone: true, client_email: true, scheduled_at: true }))
     if (hasErrors(allErrors)) return
+    submittingRef.current = true
     setSaving(true)
+    setApiError('')
     try {
       await api.post('/public/' + slug + '/book', {
         ...form,
@@ -88,8 +132,9 @@ const navigate = useNavigate()
       setSuccess(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setApiError(err.response?.data?.error || 'Error al reservar. Intentá de nuevo.')
+      setApiError(err.response?.data?.error || 'No se pudo reservar tu cita. Intenta de nuevo.')
     } finally {
+      submittingRef.current = false
       setSaving(false)
     }
   }
@@ -101,7 +146,7 @@ const navigate = useNavigate()
     if (step === 0) return !!form.service_id
     if (step === 1) return !!form.barber_id
     if (step === 2) return !allErrors.scheduled_at
-    return !allErrors.client_name && !allErrors.client_phone && !allErrors.client_email
+    return !allErrors.scheduled_at && !allErrors.client_name && !allErrors.client_phone && !allErrors.client_email
   }
 
   const s = { // estilos base
@@ -127,7 +172,7 @@ const navigate = useNavigate()
       <div style={{ textAlign: 'center' }}>
         <p style={{ fontSize: 48, color: 'var(--gold)', marginBottom: 16 }}>✂</p>
         <h2 style={{ color: 'var(--cream)', fontFamily: 'Playfair Display', fontSize: 28, marginBottom: 8 }}>Barbería no encontrada</h2>
-        <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>Verificá que el enlace sea correcto</p>
+        <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>Verifica que el enlace sea correcto</p>
       </div>
     </div>
   )
@@ -141,7 +186,10 @@ const navigate = useNavigate()
 
         <h2 style={{ fontFamily: 'Playfair Display', fontSize: 32, color: 'var(--cream)', marginBottom: 10 }}>¡Reserva confirmada!</h2>
         <p style={{ color: 'var(--cream-dim)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
-          Tu cita en <strong style={{ color: 'var(--cream)' }}>{shop.name}</strong> fue agendada. Te contactaremos para confirmar.
+          Tu cita en <strong style={{ color: 'var(--cream)' }}>{shop.name}</strong> quedó reservada.{' '}
+          {form.client_email
+            ? 'Te enviamos un correo de confirmación con los detalles.'
+            : 'El local te contactará para confirmar tu cita.'}
         </p>
 
         {selectedService && selectedBarber && (
@@ -223,16 +271,20 @@ const navigate = useNavigate()
         </div>
 
         {apiError && (
-          <div className="animate-fade-up" style={{ background: 'rgba(224,82,82,0.1)', border: '1px solid rgba(224,82,82,0.3)', color: 'var(--danger)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, fontSize: 13, fontWeight: 600 }}>
-            ⚠ {apiError}
+          <div className="animate-fade-up" role="alert" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(224,82,82,0.12)', border: '1px solid var(--danger)', borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(224,82,82,0.2)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, flexShrink: 0 }}>!</div>
+            <div>
+              <p style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 700, marginBottom: 2 }}>No se pudo reservar tu cita</p>
+              <p style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 500, lineHeight: 1.5 }}>{apiError}</p>
+            </div>
           </div>
         )}
 
         {/* PASO 0 — Elegir servicio */}
         {step === 0 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Qué servicio querés?</h2>
-            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elegí el servicio que necesitás</p>
+            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Qué servicio quieres?</h2>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el servicio que necesitas</p>
             {services.map(service => (
               <div
                 key={service.id}
@@ -253,14 +305,17 @@ const navigate = useNavigate()
                 </div>
               </div>
             ))}
+            {!form.service_id && (
+              <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>⚠ Selecciona un servicio para continuar.</p>
+            )}
           </div>
         )}
 
         {/* PASO 1 — Elegir barbero */}
         {step === 1 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Con quién querés?</h2>
-            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elegí tu barbero de confianza</p>
+            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Con quién quieres?</h2>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige tu barbero de confianza</p>
             {barbers.map(barber => (
               <div
                 key={barber.id}
@@ -280,14 +335,23 @@ const navigate = useNavigate()
                 </div>
               </div>
             ))}
+            {!form.barber_id && (
+              <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>⚠ Selecciona un barbero para continuar.</p>
+            )}
           </div>
         )}
 
         {/* PASO 2 — Elegir fecha y hora */}
         {step === 2 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo venís?</h2>
-            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elegí el día y hora que mejor te quede</p>
+            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo vienes?</h2>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el día y hora que mejor te quede</p>
+
+            {summarizeHours(hours) && (
+              <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: 'var(--cream-dim)' }}>
+                🕒 Horario de atención: <strong style={{ color: 'var(--cream)' }}>{summarizeHours(hours)}</strong>
+              </div>
+            )}
 
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 24 }}>
               <label style={s.label}>FECHA Y HORA</label>
@@ -402,7 +466,7 @@ const navigate = useNavigate()
         </div>
 
         <p style={{ textAlign: 'center', color: 'var(--cream-dim)', fontSize: 11, opacity: 0.8, marginTop: 20 }}>
-          Al reservar aceptás que el local te contacte para confirmar tu cita.
+          Al reservar aceptas que el local te contacte para confirmar tu cita.
         </p>
 
       </main>

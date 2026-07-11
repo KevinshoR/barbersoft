@@ -25,9 +25,13 @@ CREATE TABLE barbers (
   barbershop_id  INT REFERENCES barbershops(id) ON DELETE CASCADE,
   name           VARCHAR(100) NOT NULL,
   photo_url      VARCHAR(255),
+  specialty      VARCHAR(120),        -- especialidad del barbero (ej: "Cortes clásicos")
   active         BOOLEAN DEFAULT true,
   created_at     TIMESTAMP DEFAULT NOW()
 );
+
+-- Migración para bases ya existentes (la tabla barbers ya tenía datos):
+-- ALTER TABLE barbers ADD COLUMN IF NOT EXISTS photo_url VARCHAR(255), ADD COLUMN IF NOT EXISTS specialty VARCHAR(120);
 
 -- Tabla de servicios (corte, barba, tinte, etc.)
 CREATE TABLE services (

@@ -15,7 +15,7 @@ const BarbersController = {
 
   async create(req, res) {
     try {
-      const { name, photo_url } = req.body
+      const { name, photo_url, specialty } = req.body
       if (!name) return res.status(400).json({ error: 'El nombre es obligatorio' })
 
       const existing = await pool.query(
@@ -29,7 +29,8 @@ const BarbersController = {
       const barber = await BarberModel.create({
         barbershop_id: req.barbershop.id,
         name: name.trim(),
-        photo_url
+        photo_url: photo_url?.trim() || null,
+        specialty: specialty?.trim() || null,
       })
       res.status(201).json({ barber })
     } catch (err) {
