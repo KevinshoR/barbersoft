@@ -38,7 +38,10 @@ const HoursModel = {
        ORDER BY day_of_week ASC`,
       [barbershop_id]
     )
-    return result.rows.map(r => ({
+    // Barbería sin sus 7 filas (ej. creada por un script que no llamó createDefaults):
+    // se las creamos en el momento para que el módulo nunca aparezca vacío/cerrado.
+    const rows = result.rows.length > 0 ? result.rows : await HoursModel.createDefaults(barbershop_id)
+    return rows.map(r => ({
       ...r,
       day_name: days[r.day_of_week],
       open_time:  r.open_time.slice(0, 5),
@@ -46,21 +49,40 @@ const HoursModel = {
     }))
   },
 
+  // UPSERT: si la fila (barbershop_id, day_of_week) no existe todavía (barbería
+  // huérfana sin sus 7 filas), la crea en vez de fallar con 404 como antes.
   async update(barbershop_id, day_of_week, { open_time, close_time, is_open }) {
     const result = await pool.query(
-      `UPDATE business_hours
-       SET open_time = $1, close_time = $2, is_open = $3
-       WHERE barbershop_id = $4 AND day_of_week = $5
+      `INSERT INTO business_hours (barbershop_id, day_of_week, open_time, close_time, is_open)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (barbershop_id, day_of_week)
+       DO UPDATE SET open_time  = EXCLUDED.open_time,
+                     close_time = EXCLUDED.close_time,
+                     is_open    = EXCLUDED.is_open
        RETURNING *`,
-      [open_time, close_time, is_open, barbershop_id, day_of_week]
+      [barbershop_id, day_of_week, open_time || '09:00', close_time || '18:00', is_open]
     )
     return result.rows[0]
   },
 
   async checkOpen(barbershop_id, scheduled_at) {
-    const date      = new Date(scheduled_at)
-    const dayOfWeek = date.getDay()
-    const time      = date.toTimeString().slice(0, 5)
+    // IMPORTANTE: el día y la hora se calculan SIEMPRE en zona horaria de Colombia
+    // (America/Bogota), sin importar la zona del servidor (Render corre en UTC).
+    // Sin esto, una cita de la noche/madrugada colombiana se corría de día en UTC
+    // y el sistema decía "cerrado ese día" por error.
+    const date = new Date(scheduled_at)
+
+    // Día de la semana en hora Colombia (0=Dom ... 6=Sáb)
+    const diaCol = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota', weekday: 'short',
+    }).format(date)
+    const mapaDias = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+    const dayOfWeek = mapaDias[diaCol]
+
+    // Hora HH:MM en hora Colombia, formato 24h
+    const time = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(date)
 
     const result = await pool.query(
       `SELECT is_open, open_time, close_time
