@@ -3,10 +3,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 const ToastContext = createContext(null)
 
 const TYPE_STYLES = {
-  success: { icon: '✓', color: 'var(--success)', bg: 'rgba(76,175,125,0.15)' },
-  error:   { icon: '✕', color: 'var(--danger)',  bg: 'rgba(224,82,82,0.15)'  },
+  success: { icon: '✓', color: 'var(--success)', bg: 'rgba(201,168,76,0.15)' },
+  error:   { icon: '✕', color: 'var(--danger)',  bg: 'rgba(232,201,122,0.15)'  },
   info:    { icon: 'i', color: 'var(--gold)',     bg: 'rgba(201,168,76,0.15)' },
-  warning: { icon: '⚠', color: '#E0A63D',         bg: 'rgba(224,166,61,0.15)' },
+  warning: { icon: '⚠', color: '#B8B0A0',         bg: 'rgba(184,176,160,0.15)' },
 }
 
 const AUTO_CLOSE_MS = 3500

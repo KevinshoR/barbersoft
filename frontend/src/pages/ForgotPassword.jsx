@@ -41,7 +41,7 @@ export default function ForgotPassword() {
     <div style={s.wrap}>
       <div style={s.orb} />
       <div className="animate-fade-up" style={s.card}>
-        <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(76,175,125,0.1)', border:'1px solid rgba(76,175,125,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:28, color:'#4CAF7D' }}>
+        <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(201,168,76,0.1)', border:'1px solid rgba(201,168,76,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:28, color:'#C9A84C' }}>
           ✓
         </div>
         <h2 style={{ fontFamily:'Playfair Display', fontSize:24, color:'#F5F0E8', textAlign:'center', marginBottom:12 }}>
@@ -76,7 +76,7 @@ export default function ForgotPassword() {
         </div>
 
         {error && (
-          <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'#E05252', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13 }}>
+          <div style={{ background:'rgba(232,201,122,0.1)', border:'1px solid rgba(232,201,122,0.3)', color:'#E8C97A', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13 }}>
             ⚠ {error}
           </div>
         )}
@@ -90,10 +90,10 @@ export default function ForgotPassword() {
               onChange={e => { setEmail(e.target.value); setError('') }}
               onBlur={() => setTouched(true)}
               placeholder="tucorreo@email.com"
-              style={{ ...s.inp, border: '1px solid ' + (touched && fieldError ? '#E05252' : 'rgba(255,255,255,0.1)') }}
+              style={{ ...s.inp, border: '1px solid ' + (touched && fieldError ? '#E8C97A' : 'rgba(255,255,255,0.1)') }}
               autoFocus
             />
-            {touched && fieldError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {fieldError}</p>}
+            {touched && fieldError && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {fieldError}</p>}
           </div>
           <button
             type="submit"

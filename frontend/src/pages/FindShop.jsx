@@ -96,7 +96,7 @@ export default function FindShop() {
           </p>
 
           {error && (
-            <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'var(--danger)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:13 }}>
+            <div style={{ background:'rgba(232,201,122,0.1)', border:'1px solid rgba(232,201,122,0.3)', color:'var(--danger)', borderRadius:8, padding:'12px 16px', marginBottom:16, fontSize:13 }}>
               ⚠ {error}
             </div>
           )}
@@ -183,7 +183,7 @@ export default function FindShop() {
             {showSlugFallback && (
               <div className="animate-fade-up" style={{ marginTop:16 }}>
                 {slugError && (
-                  <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'var(--danger)', borderRadius:8, padding:'12px 16px', marginBottom:14, fontSize:13 }}>
+                  <div style={{ background:'rgba(232,201,122,0.1)', border:'1px solid rgba(232,201,122,0.3)', color:'var(--danger)', borderRadius:8, padding:'12px 16px', marginBottom:14, fontSize:13 }}>
                     ⚠ {slugError}
                   </div>
                 )}

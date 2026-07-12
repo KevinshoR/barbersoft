@@ -97,8 +97,8 @@ export default function Settings() {
 
   const statusConfig = {
     trial:   { label:'Período de prueba', color:'var(--gold)',    bg:'rgba(201,168,76,0.12)'  },
-    active:  { label:'Activa',            color:'#4CAF7D',        bg:'rgba(76,175,125,0.12)'  },
-    blocked: { label:'Bloqueada',         color:'#E05252',        bg:'rgba(224,82,82,0.12)'   },
+    active:  { label:'Activa',            color:'#C9A84C',        bg:'rgba(201,168,76,0.12)'  },
+    blocked: { label:'Bloqueada',         color:'#E8C97A',        bg:'rgba(232,201,122,0.12)'   },
   }
 
   const status = barbershop?.subscription_status || 'trial'
@@ -113,9 +113,9 @@ export default function Settings() {
   const inp = { width:'100%', padding:'12px 16px' }
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
+    <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', flexDirection:'column' }}>
       <Navbar />
-      <main style={{ maxWidth:720, margin:'0 auto', padding:'40px 24px' }}>
+      <main style={{ maxWidth:720, margin:'0 auto', padding:'40px 24px', flex:1, width:'100%' }}>
 
         <div className="animate-fade-up" style={{ marginBottom:32 }}>
           <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>AJUSTES</p>
@@ -143,15 +143,15 @@ export default function Settings() {
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>NOMBRE</label>
-                <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Nombre de tu barbería" style={{ ...inp, border: '1px solid ' + (touched.name && infoErrors.name ? '#E05252' : 'var(--dark-4)') }} />
-                {touched.name && infoErrors.name && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {infoErrors.name}</p>}
+                <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Nombre de tu barbería" style={{ ...inp, border: '1px solid ' + (touched.name && infoErrors.name ? '#E8C97A' : 'var(--dark-4)') }} />
+                {touched.name && infoErrors.name && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {infoErrors.name}</p>}
               </div>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
-                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="3001234567" style={{ ...inp, border: '1px solid ' + (touched.phone && infoErrors.phone ? '#E05252' : 'var(--dark-4)') }} />
-                  {touched.phone && infoErrors.phone && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {infoErrors.phone}</p>}
+                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="3001234567" style={{ ...inp, border: '1px solid ' + (touched.phone && infoErrors.phone ? '#E8C97A' : 'var(--dark-4)') }} />
+                  {touched.phone && infoErrors.phone && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {infoErrors.phone}</p>}
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>EMAIL</label>
@@ -179,12 +179,12 @@ export default function Settings() {
                     disabled={!form.department}
                     placeholder={form.department ? 'Escribe para buscar...' : 'Elige un departamento primero'}
                     autoComplete="off"
-                    style={{ ...inp, opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && infoErrors.municipality ? '#E05252' : 'var(--dark-4)') }}
+                    style={{ ...inp, opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && infoErrors.municipality ? '#E8C97A' : 'var(--dark-4)') }}
                   />
                   <datalist id="municipios-settings">
                     {getMunicipalities(form.department).map(m => <option key={m} value={m} />)}
                   </datalist>
-                  {touched.municipality && infoErrors.municipality && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {infoErrors.municipality}</p>}
+                  {touched.municipality && infoErrors.municipality && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {infoErrors.municipality}</p>}
                 </div>
               </div>
 
@@ -252,9 +252,9 @@ export default function Settings() {
                       onChange={e => setPayments(p => ({ ...p, nequi_number: e.target.value }))}
                       onBlur={() => setPaymentsTouched(t => ({ ...t, nequi_number: true }))}
                       placeholder="3001234567"
-                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.nequi_number && nequiNumberError ? '#E05252' : 'var(--dark-4)') }}
+                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.nequi_number && nequiNumberError ? '#E8C97A' : 'var(--dark-4)') }}
                     />
-                    {paymentsTouched.nequi_number && nequiNumberError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {nequiNumberError}</p>}
+                    {paymentsTouched.nequi_number && nequiNumberError && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {nequiNumberError}</p>}
                   </div>
                   <div>
                     <label style={{ display:'block', fontSize:11, color:'var(--cream-dim)', marginBottom:6, fontWeight:600, letterSpacing:'0.07em' }}>NOMBRE DE LA CUENTA</label>
@@ -263,9 +263,9 @@ export default function Settings() {
                       onChange={e => setPayments(p => ({ ...p, account_name: e.target.value }))}
                       onBlur={() => setPaymentsTouched(t => ({ ...t, account_name: true }))}
                       placeholder="Tu nombre completo"
-                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.account_name && nequiNameError ? '#E05252' : 'var(--dark-4)') }}
+                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.account_name && nequiNameError ? '#E8C97A' : 'var(--dark-4)') }}
                     />
-                    {paymentsTouched.account_name && nequiNameError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {nequiNameError}</p>}
+                    {paymentsTouched.account_name && nequiNameError && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {nequiNameError}</p>}
                   </div>
                 </div>
               </div>
@@ -325,7 +325,7 @@ export default function Settings() {
               )}
 
               {status === 'blocked' && (
-                <p style={{ color:'#E05252', fontSize:14 }}>
+                <p style={{ color:'#E8C97A', fontSize:14 }}>
                   Tu cuenta está bloqueada. Realiza el pago para reactivar el acceso.
                 </p>
               )}
@@ -345,7 +345,7 @@ export default function Settings() {
                   <ul style={{ listStyle:'none', marginBottom:20 }}>
                     {plan.features.map(f => (
                       <li key={f} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--cream)', marginBottom:6 }}>
-                        <span style={{ color:'#4CAF7D', fontWeight:700 }}>✓</span>{f}
+                        <span style={{ color:'#C9A84C', fontWeight:700 }}>✓</span>{f}
                       </li>
                     ))}
                   </ul>
@@ -380,8 +380,8 @@ export default function Settings() {
           </div>
         )}
 
-        <Footer />
       </main>
+      <Footer />
       <HelpButton path={pathname} />
     </div>
   )

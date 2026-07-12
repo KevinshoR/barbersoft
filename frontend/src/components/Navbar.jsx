@@ -5,10 +5,9 @@ import ThemeToggle from './ThemeToggle'
 
 const links = [
   { to: '/dashboard',    label: 'Inicio',     icon: '⌂' },
-  { to: '/appointments', label: 'Citas',       icon: '◷' },
+  { to: '/appointments', label: 'Agenda',      icon: '◷' },
   { to: '/barbers',      label: 'Barberos',    icon: '◈' },
   { to: '/services',     label: 'Servicios',   icon: '✦' },
-  { to: '/hours',        label: 'Horarios',    icon: '◑' },
   { to: '/reports',      label: 'Reportes',    icon: '◎' },
 ]
 
@@ -40,8 +39,8 @@ export default function Navbar() {
 
   const statusColor = {
     trial:   'var(--gold)',
-    active:  'var(--success)',
-    blocked: 'var(--danger)',
+    active:  'var(--cream)',
+    blocked: 'var(--gold-dim)',
   }
 
   const status = barbershop?.subscription_status || 'trial'
@@ -131,7 +130,7 @@ export default function Navbar() {
             <button
               onClick={handleLogout}
               style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'var(--danger)', fontSize:13, fontFamily:'DM Sans', textAlign:'left' }}
-              onMouseEnter={e => e.currentTarget.style.background='rgba(224,82,82,0.08)'}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(232,201,122,0.08)'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}
             >
               <span style={{ fontSize:14, opacity:0.7 }}>→</span>

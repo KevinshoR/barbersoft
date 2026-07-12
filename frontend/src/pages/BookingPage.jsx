@@ -3,8 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, lengthError, emailError, phoneError, hasErrors } from '../utils/validators'
 import ThemeToggle from '../components/ThemeToggle'
+import { useToast } from '../context/ToastContext'
+import { EyeIcon } from '../components/Icons'
+import DetailModal from '../components/DetailModal'
 
 const DAY_ABBR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
+// "1,2,3,4,5,6" -> [1,2,3,4,5,6]. Si viene vacío/undefined, null (sin dato = no restringe).
+function parseWorkDays(value) {
+  if (!value) return null
+  const days = value.split(',').map(Number).filter(n => !Number.isNaN(n))
+  return days.length ? days : null
+}
+
+// Las imágenes internas (/uploads/...) se sirven desde el host del backend, no desde /api.
+const API_ORIGIN = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
+function resolveImg(url) {
+  if (!url) return null
+  if (url.startsWith('/uploads/')) return API_ORIGIN + url
+  return url
+}
 
 // Agrupa los días abiertos consecutivos con el mismo horario, ej: "Lun a Sáb: 08:00–18:00"
 function summarizeHours(hours) {
@@ -45,7 +63,7 @@ function validate(form, hours) {
     } else if (hours && hours.length) {
       const dayHours = hours.find(h => h.day_of_week === selected.getDay())
       if (dayHours && !dayHours.is_open) {
-        const openDays = hours.filter(h => h.is_open).map(h => h.day).join(', ')
+        const openDays = hours.filter(h => h.is_open).map(h => DAY_ABBR[h.day_of_week]).join(', ')
         errors.scheduled_at = `La barbería no abre este día. Días de atención: ${openDays || 'consulta con el local'}.`
       } else if (dayHours && dayHours.is_open) {
         const time = selected.toTimeString().slice(0, 5)
@@ -71,6 +89,7 @@ const STEPS = ['Servicio', 'Barbero', 'Fecha', 'Tus datos']
 export default function BookingPage() {
   const { slug } = useParams()
 const navigate = useNavigate()
+  const toast = useToast()
   const [shop, setShop]         = useState(null)
   const [barbers, setBarbers]   = useState([])
   const [services, setServices] = useState([])
@@ -85,6 +104,8 @@ const navigate = useNavigate()
   const submittingRef = useRef(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
+  const [detailService, setDetailService] = useState(null)
+  const [detailBarber, setDetailBarber]   = useState(null)
   const [form, setForm] = useState({
     barber_id: '', service_id: '', client_name: '',
     client_phone: '', client_email: '', scheduled_at: '', notes: ''
@@ -119,7 +140,14 @@ const navigate = useNavigate()
   const handleSubmit = async () => {
     if (submittingRef.current) return
     setTouched(t => ({ ...t, client_name: true, client_phone: true, client_email: true, scheduled_at: true }))
-    if (hasErrors(allErrors)) return
+    // Si abrió email/notas y los llenó mal, o falta algún dato, avisa CLARO (no morir en silencio)
+    if (hasErrors(allErrors)) {
+      const primerError = allErrors.scheduled_at || allErrors.client_name || allErrors.client_phone || allErrors.client_email || 'Revisa los datos marcados antes de continuar.'
+      setApiError(primerError)
+      toast.error(primerError)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     submittingRef.current = true
     setSaving(true)
     setApiError('')
@@ -136,7 +164,10 @@ const navigate = useNavigate()
       setSuccess(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setApiError(err.response?.data?.error || 'No se pudo reservar tu cita. Intenta de nuevo.')
+      const msg = err.response?.data?.error || 'No se pudo reservar tu cita. Intenta de nuevo.'
+      setApiError(msg)
+      toast.error(msg)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } finally {
       submittingRef.current = false
       setSaving(false)
@@ -186,7 +217,7 @@ const navigate = useNavigate()
       <ThemeToggle floating />
       <div className="animate-fade-up" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 20, padding: '48px 40px', maxWidth: 440, width: '100%', textAlign: 'center' }}>
 
-        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(76,175,125,0.12)', border: '1px solid rgba(76,175,125,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', fontSize: 36, color: 'var(--success)' }}>✓</div>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', fontSize: 36, color: 'var(--success)' }}>✓</div>
 
         <h2 style={{ fontFamily: 'Playfair Display', fontSize: 32, color: 'var(--cream)', marginBottom: 10 }}>¡Reserva confirmada!</h2>
         <p style={{ color: 'var(--cream-dim)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
@@ -246,6 +277,64 @@ const navigate = useNavigate()
     <div style={{ minHeight: '100vh', background: 'var(--dark)', fontFamily: 'DM Sans' }}>
       <ThemeToggle floating />
 
+      {/* Modal detalle de servicio */}
+      {detailService && (
+        <DetailModal
+          onClose={() => setDetailService(null)}
+          image={resolveImg(detailService.image_url)}
+          imageFallback={<span style={{ fontSize: 48, color: 'var(--dark)' }}>✦</span>}
+          title={detailService.name}
+          selectLabel="ELEGIR ESTE SERVICIO"
+          onSelect={() => { handleChange('service_id', String(detailService.id)); setDetailService(null) }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--dark-4)' }}>
+            <span style={{ color: 'var(--cream-dim)', fontSize: 13 }}>⏱ {detailService.duration_min} minutos</span>
+            <span style={{ color: 'var(--gold)', fontFamily: 'Playfair Display', fontWeight: 700, fontSize: 24 }}>{formatPrice(detailService.price)}</span>
+          </div>
+          {detailService.description && (
+            <p style={{ color: 'var(--cream-dim)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>{detailService.description}</p>
+          )}
+        </DetailModal>
+      )}
+
+      {/* Modal detalle de barbero */}
+      {detailBarber && (
+        <DetailModal
+          onClose={() => setDetailBarber(null)}
+          image={resolveImg(detailBarber.photo_url)}
+          imageFallback={<span style={{ fontFamily: 'Playfair Display', fontSize: 56, fontWeight: 900, color: 'var(--dark)' }}>{detailBarber.name.charAt(0).toUpperCase()}</span>}
+          title={detailBarber.name}
+          subtitle={detailBarber.specialty}
+          selectLabel="ELEGIR ESTE BARBERO"
+          onSelect={() => { handleChange('barber_id', String(detailBarber.id)); setDetailBarber(null) }}
+        >
+          {parseWorkDays(detailBarber.work_days) && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>DÍAS QUE TRABAJA</p>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {DAY_ABBR.map((label, day) => {
+                  const works = parseWorkDays(detailBarber.work_days).includes(day)
+                  return (
+                    <span
+                      key={day}
+                      style={{
+                        padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                        background: works ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)',
+                        color:      works ? 'var(--gold)' : 'var(--cream-dim)',
+                        border:     '1px solid ' + (works ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'),
+                        opacity:    works ? 1 : 0.4,
+                      }}
+                    >
+                      {label}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </DetailModal>
+      )}
+
       {/* Header del local */}
       <div style={{ background: 'var(--dark-2)', borderBottom: '1px solid var(--dark-3)', padding: '36px 24px 28px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -264,21 +353,21 @@ const navigate = useNavigate()
           {STEPS.map((label, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 0 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: i < step ? 'var(--success)' : i === step ? 'var(--gold)' : 'var(--dark-3)', border: '1px solid ' + (i < step ? 'rgba(76,175,125,0.5)' : i === step ? 'rgba(201,168,76,0.5)' : 'var(--dark-4)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: i <= step ? 'var(--dark)' : 'var(--cream-dim)', fontWeight: 700, transition: 'all 0.3s' }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: i < step ? 'var(--success)' : i === step ? 'var(--gold)' : 'var(--dark-3)', border: '1px solid ' + (i < step ? 'rgba(201,168,76,0.5)' : i === step ? 'rgba(201,168,76,0.5)' : 'var(--dark-4)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: i <= step ? 'var(--dark)' : 'var(--cream-dim)', fontWeight: 700, transition: 'all 0.3s' }}>
                   {i < step ? '✓' : i + 1}
                 </div>
                 <p style={{ fontSize: 10, color: i === step ? 'var(--gold)' : 'var(--cream-dim)', fontWeight: i === step ? 700 : 400, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{label.toUpperCase()}</p>
               </div>
               {i < STEPS.length - 1 && (
-                <div style={{ flex: 1, height: 1, background: i < step ? 'rgba(76,175,125,0.3)' : 'var(--dark-3)', margin: '0 8px', marginBottom: 20, transition: 'background 0.3s' }} />
+                <div style={{ flex: 1, height: 1, background: i < step ? 'rgba(201,168,76,0.3)' : 'var(--dark-3)', margin: '0 8px', marginBottom: 20, transition: 'background 0.3s' }} />
               )}
             </div>
           ))}
         </div>
 
         {apiError && (
-          <div className="animate-fade-up" role="alert" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(224,82,82,0.12)', border: '1px solid var(--danger)', borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(224,82,82,0.2)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, flexShrink: 0 }}>!</div>
+          <div className="animate-fade-up" role="alert" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(232,201,122,0.12)', border: '1px solid var(--danger)', borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(232,201,122,0.2)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, flexShrink: 0 }}>!</div>
             <div>
               <p style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 700, marginBottom: 2 }}>No se pudo reservar tu cita</p>
               <p style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 500, lineHeight: 1.5 }}>{apiError}</p>
@@ -297,11 +386,30 @@ const navigate = useNavigate()
                 onClick={() => handleChange('service_id', String(service.id))}
                 style={form.service_id === String(service.id) ? s.cardSelected : s.card}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{service.name}</p>
-                    <p style={{ color: 'var(--cream-dim)', fontSize: 13 }}>⏱ {service.duration_min} minutos</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                    {resolveImg(service.image_url) && (
+                      <img
+                        src={resolveImg(service.image_url)}
+                        alt={service.name}
+                        style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--dark-4)' }}
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{service.name}</p>
+                      <p style={{ color: 'var(--cream-dim)', fontSize: 13 }}>⏱ {service.duration_min} minutos</p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setDetailService(service) }}
+                    title="Ver más"
+                    aria-label={`Ver más de ${service.name}`}
+                    style={{ background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    <EyeIcon size={14} />
+                  </button>
                   <div style={{ textAlign: 'right' }}>
                     <p style={{ color: 'var(--gold)', fontFamily: 'Playfair Display', fontWeight: 700, fontSize: 20 }}>{formatPrice(service.price)}</p>
                     {form.service_id === String(service.id) && (
@@ -329,15 +437,36 @@ const navigate = useNavigate()
                 style={form.barber_id === String(barber.id) ? s.cardSelected : s.card}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.2)' : 'var(--dark-3)', border: '1px solid ' + (form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.4)' : 'var(--dark-4)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: 'Playfair Display', fontWeight: 900, color: 'var(--gold)', flexShrink: 0 }}>
-                    {barber.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1 }}>
+                  {resolveImg(barber.photo_url) ? (
+                    <img
+                      src={resolveImg(barber.photo_url)}
+                      alt={barber.name}
+                      style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid ' + (form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.4)' : 'var(--dark-4)') }}
+                      onError={(e) => { e.target.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.2)' : 'var(--dark-3)', border: '1px solid ' + (form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.4)' : 'var(--dark-4)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: 'Playfair Display', fontWeight: 900, color: 'var(--gold)', flexShrink: 0 }}>
+                      {barber.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 15 }}>{barber.name}</p>
+                    {barber.specialty && (
+                      <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2 }}>{barber.specialty}</p>
+                    )}
                     {form.barber_id === String(barber.id) && (
                       <p style={{ color: 'var(--success)', fontSize: 11, fontWeight: 700, marginTop: 3 }}>✓ SELECCIONADO</p>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setDetailBarber(barber) }}
+                    title="Ver más"
+                    aria-label={`Ver más de ${barber.name}`}
+                    style={{ background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    <EyeIcon size={14} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -359,35 +488,58 @@ const navigate = useNavigate()
               </div>
             )}
 
-            {hours.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>DÍAS DE ATENCIÓN</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {hours.slice().sort((a, b) => a.day_of_week - b.day_of_week).map(h => (
-                    <span
-                      key={h.day_of_week}
-                      style={{
-                        padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
-                        background: h.is_open ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)',
-                        color:      h.is_open ? 'var(--gold)' : 'var(--cream-dim)',
-                        border:     '1px solid ' + (h.is_open ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'),
-                        opacity:    h.is_open ? 1 : 0.5,
-                      }}
-                    >
-                      {DAY_ABBR[h.day_of_week]}
-                    </span>
-                  ))}
+            {hours.length > 0 && (() => {
+              const barberDays = parseWorkDays(selectedBarber?.work_days)
+              return (
+                <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 18, marginBottom: 16 }}>
+                  <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 12 }}>
+                    AGENDA DE LA SEMANA{barberDays && selectedBarber ? ` · ${selectedBarber.name.split(' ')[0]}` : ''}
+                  </p>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {hours.slice().sort((a, b) => a.day_of_week - b.day_of_week).map(h => {
+                      const barberWorksThisDay = !barberDays || barberDays.includes(h.day_of_week)
+                      const available = h.is_open && barberWorksThisDay
+                      return (
+                        <div
+                          key={h.day_of_week}
+                          title={!h.is_open ? 'La barbería no abre' : !barberWorksThisDay ? `${selectedBarber?.name} no atiende este día` : 'Disponible'}
+                          style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                            padding: '8px 10px', borderRadius: 12, minWidth: 42,
+                            background: available ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)',
+                            border:     '1px solid ' + (available ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'),
+                            opacity:    available ? 1 : 0.45,
+                          }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', color: available ? 'var(--gold)' : 'var(--cream-dim)' }}>
+                            {DAY_ABBR[h.day_of_week]}
+                          </span>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: available ? 'var(--gold)' : 'var(--dark-4)' }} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {barberDays && selectedBarber && (
+                    <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 10, opacity: 0.7 }}>
+                      Días resaltados: cuando la barbería está abierta y {selectedBarber.name.split(' ')[0]} atiende.
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 24 }}>
-              <label style={s.label}>FECHA Y HORA</label>
+              <label style={{ ...s.label, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13 }}>📅</span> FECHA Y HORA
+              </label>
               <input
                 type="datetime-local"
                 value={form.scheduled_at}
                 onChange={e => handleChange('scheduled_at', e.target.value)}
-                style={s.inp('scheduled_at')}
+                style={{
+                  ...s.inp('scheduled_at'),
+                  border: '1px solid ' + (errors.scheduled_at ? 'var(--danger)' : form.scheduled_at ? 'rgba(201,168,76,0.5)' : 'var(--border-soft)'),
+                }}
               />
               {errors.scheduled_at && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.scheduled_at}</p>}
             </div>
@@ -506,7 +658,7 @@ const navigate = useNavigate()
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={saving || !canNext()}
+              disabled={saving}
               style={{ flex: 2, background: saving ? 'var(--gold-dim)' : 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', transition: 'background 0.2s' }}
             >
               {saving ? 'RESERVANDO...' : 'CONFIRMAR RESERVA ✓'}

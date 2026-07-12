@@ -26,12 +26,14 @@ CREATE TABLE barbers (
   name           VARCHAR(100) NOT NULL,
   photo_url      VARCHAR(255),
   specialty      VARCHAR(120),        -- especialidad del barbero (ej: "Cortes clásicos")
+  work_days      VARCHAR(20) DEFAULT '1,2,3,4,5,6', -- días 0-6 (Date.getDay()) separados por coma; default Lun-Sáb
   active         BOOLEAN DEFAULT true,
   created_at     TIMESTAMP DEFAULT NOW()
 );
 
 -- Migración para bases ya existentes (la tabla barbers ya tenía datos):
 -- ALTER TABLE barbers ADD COLUMN IF NOT EXISTS photo_url VARCHAR(255), ADD COLUMN IF NOT EXISTS specialty VARCHAR(120);
+-- ALTER TABLE barbers ADD COLUMN IF NOT EXISTS work_days VARCHAR(20) DEFAULT '1,2,3,4,5,6';
 
 -- Tabla de servicios (corte, barba, tinte, etc.)
 CREATE TABLE services (

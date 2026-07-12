@@ -131,7 +131,7 @@ export default function Landing() {
         :root {
           --gold:#C9A84C; --gold-dim:#8B6914; --gold-glow:rgba(201,168,76,0.3);
           --dark:#0A0A0A; --dark-2:#111111; --dark-3:#1A1A1A; --dark-4:#242424;
-          --cream:#F5F0E8; --cream-dim:#B8B0A0; --success:#4CAF7D;
+          --cream:#F5F0E8; --cream-dim:#B8B0A0; --success:#C9A84C;
         }
         .landing-body { background:var(--dark); color:var(--cream); font-family:'DM Sans',sans-serif; overflow-x:hidden; }
         .landing-body h1,.landing-body h2,.landing-body h3 { font-family:'Playfair Display',serif; }
@@ -178,7 +178,7 @@ export default function Landing() {
         .mockup-bar{background:#161616;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #222}
         .mockup-dots{display:flex;gap:6px}
         .dot{width:10px;height:10px;border-radius:50%}
-        .dot-r{background:#E05252} .dot-y{background:#C9A84C} .dot-g{background:#4CAF7D}
+        .dot-r{background:#8B6914} .dot-y{background:#C9A84C} .dot-g{background:#E8C97A}
         .mockup-url{flex:1;background:#1F1F1F;border-radius:5px;padding:4px 12px;font-size:11px;color:#666;font-family:monospace}
         .mockup-body{padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
         .mock-stat{background:#161616;border:1px solid #222;border-radius:10px;padding:14px}
@@ -194,8 +194,8 @@ export default function Landing() {
         .mock-service{font-size:10px;color:#555;margin-top:2px}
         .mock-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:12px;letter-spacing:0.05em}
         .mock-pending{background:rgba(201,168,76,0.12);color:#C9A84C}
-        .mock-done{background:rgba(76,175,125,0.12);color:#4CAF7D}
-        .mock-confirm{background:rgba(184,176,160,0.12);color:#B8B0A0}
+        .mock-done{background:rgba(184,176,160,0.12);color:#B8B0A0}
+        .mock-confirm{background:rgba(245,240,232,0.10);color:#F5F0E8}
         .mockup-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent);animation:scanline 4s linear infinite;pointer-events:none}
         .stats-bar{background:var(--dark-2);border-top:1px solid rgba(201,168,76,0.1);border-bottom:1px solid rgba(201,168,76,0.1);padding:40px 24px}
         .stats-inner{max-width:900px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:32px}
@@ -212,10 +212,10 @@ export default function Landing() {
         .feat p{font-size:13px;color:var(--cream-dim);line-height:1.65}
         .contrast-grid{max-width:900px;margin:48px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .contrast-col{border-radius:14px;padding:28px}
-        .contrast-col.bad{background:rgba(224,82,82,0.05);border:1px solid rgba(224,82,82,0.15)}
+        .contrast-col.bad{background:rgba(232,201,122,0.05);border:1px solid rgba(232,201,122,0.15)}
         .contrast-col.good{background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15)}
         .contrast-label{font-size:11px;font-weight:700;letter-spacing:0.1em;margin-bottom:20px;display:flex;align-items:center;gap:8px}
-        .contrast-col.bad .contrast-label{color:#E05252}
+        .contrast-col.bad .contrast-label{color:#E8C97A}
         .contrast-col.good .contrast-label{color:var(--gold)}
         .contrast-item{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;font-size:14px}
         .contrast-col.bad .contrast-item{color:#B8B0A0}

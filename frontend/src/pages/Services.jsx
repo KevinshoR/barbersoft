@@ -7,6 +7,7 @@ import api from '../services/api'
 import { requiredError, lengthError, numberRangeError, hasErrors } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
 import ImageUpload, { resolveImageSrc } from '../components/ImageUpload'
+import { TrashIcon } from '../components/Icons'
 
 const PAGE_SIZE = 6
 
@@ -100,8 +101,8 @@ export default function Services() {
 
   const inp = (name) => ({
     width: '100%', padding: '12px 16px',
-    border: '1px solid ' + (errors[name] ? '#E05252' : 'var(--dark-4)'),
-    boxShadow: errors[name] ? '0 0 0 2px rgba(224,82,82,0.15)' : 'none'
+    border: '1px solid ' + (errors[name] ? '#E8C97A' : 'var(--dark-4)'),
+    boxShadow: errors[name] ? '0 0 0 2px rgba(232,201,122,0.15)' : 'none'
   })
 
   const totalPages = Math.max(1, Math.ceil(services.length / PAGE_SIZE))
@@ -109,7 +110,7 @@ export default function Services() {
   const paginated  = services.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--dark)', display: 'flex', flexDirection: 'column' }}>
 
       {deleting && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -128,7 +129,7 @@ export default function Services() {
       )}
 
       <Navbar />
-      <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
+      <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px', flex: 1, width: '100%' }}>
         <div className="animate-fade-up" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
           <div>
             <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>CATÁLOGO</p>
@@ -145,7 +146,7 @@ export default function Services() {
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>NOMBRE</label>
               <input name="name" value={form.name} onChange={handleChange} onBlur={handleChange} placeholder="Ej: Corte clásico" style={inp('name')} autoFocus />
-              {errors.name && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {errors.name}</p>}
+              {errors.name && <p style={{ color: '#E8C97A', fontSize: 12, marginTop: 6 }}>⚠ {errors.name}</p>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               <div>
@@ -156,12 +157,12 @@ export default function Services() {
     ⏱ Aproximadamente {form.duration_min} minutos por cita
   </p>
 )}
-                {errors.duration_min && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {errors.duration_min}</p>}
+                {errors.duration_min && <p style={{ color: '#E8C97A', fontSize: 12, marginTop: 6 }}>⚠ {errors.duration_min}</p>}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 6, fontWeight: 600 }}>PRECIO (COP)</label>
                 <input name="price" type="number" value={form.price} onChange={handleChange} onBlur={handleChange} placeholder="25000" min="0" style={inp('price')} />
-                {errors.price && <p style={{ color: '#E05252', fontSize: 12, marginTop: 6 }}>⚠ {errors.price}</p>}
+                {errors.price && <p style={{ color: '#E8C97A', fontSize: 12, marginTop: 6 }}>⚠ {errors.price}</p>}
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
@@ -223,8 +224,8 @@ export default function Services() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <p style={{ color: 'var(--gold)', fontFamily: 'Playfair Display', fontWeight: 700, fontSize: 18 }}>{formatPrice(s.price)}</p>
-                <button onClick={() => setDeleting(s.id)} className="btn-danger">
-                  ELIMINAR
+                <button onClick={() => setDeleting(s.id)} className="btn-danger" title="Eliminar" aria-label="Eliminar servicio" style={{ padding: '9px 11px', display: 'inline-flex' }}>
+                  <TrashIcon />
                 </button>
               </div>
             </div>
@@ -265,8 +266,8 @@ export default function Services() {
           </div>
         )}
 
-      <Footer />
       </main>
+      <Footer />
       <HelpButton path={pathname} />
     </div>
   )

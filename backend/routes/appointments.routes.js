@@ -10,5 +10,6 @@ router.get('/',          AppointmentsController.getAll)
 router.post('/',         AppointmentsController.create)
 router.patch('/:id',     AppointmentsController.updateStatus)
 router.delete('/:id',    AppointmentsController.remove)
+router.post('/:id/remind', AppointmentsController.remind)
 
 module.exports = router

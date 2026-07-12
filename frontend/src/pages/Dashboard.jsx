@@ -5,6 +5,10 @@ import HelpButton from '../components/HelpButton'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell,
+} from 'recharts'
 
 function formatDate() {
   return new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
@@ -20,14 +24,47 @@ function trialDaysLeft(trial_ends_at) {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
 
-const statusColor = { pending: '#E8C97A', confirmed: '#5B8DEF', cancelled: '#E05252', done: '#4CAF7D' }
+const statusColor = { pending: '#C9A84C', confirmed: '#F5F0E8', cancelled: '#8B6914', done: '#B8B0A0' }
 const statusLabel = { pending: 'Pendiente', confirmed: 'Confirmada', cancelled: 'Cancelada', done: 'Completada' }
-const statusBg    = { pending: 'rgba(232,201,122,0.12)', confirmed: 'rgba(91,141,239,0.12)', cancelled: 'rgba(224,82,82,0.12)', done: 'rgba(76,175,125,0.12)' }
+const statusBg    = { pending: 'rgba(201,168,76,0.12)', confirmed: 'rgba(245,240,232,0.10)', cancelled: 'rgba(139,105,20,0.18)', done: 'rgba(184,176,160,0.12)' }
+
+const DAY_ABBR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
+// Últimos 7 días (incluye hoy), como claves YYYY-MM-DD en orden cronológico
+function lastSevenDayKeys() {
+  const keys = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    keys.push(d.toISOString().slice(0, 10))
+  }
+  return keys
+}
+
+function formatPrice(p) {
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p || 0)
+}
+
+// Tooltip propio (tema oscuro/dorado) — el default de Recharts es blanco y no encaja
+function ChartTooltip({ active, payload, label, formatter }) {
+  if (!active || !payload || !payload.length) return null
+  return (
+    <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 8, padding: '8px 12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+      <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginBottom: 4 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: 'var(--cream)', fontSize: 13, fontWeight: 700 }}>
+          {formatter ? formatter(p.value) : p.value}
+        </p>
+      ))}
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const { barbershop } = useAuth()
   const { pathname }   = useLocation()
   const [appointments, setAppointments] = useState([])
+  const [weekAppointments, setWeekAppointments] = useState([])
   const [loaded, setLoaded]   = useState(false)
 const [copied, setCopied]   = useState(false)
 
@@ -38,6 +75,12 @@ const [copied, setCopied]   = useState(false)
       .catch(() => setLoaded(true))
   }, [])
 
+  useEffect(() => {
+    api.get('/appointments')
+      .then(res => setWeekAppointments(res.data.appointments))
+      .catch(() => setWeekAppointments([]))
+  }, [])
+
   const pending   = appointments.filter(a => a.status === 'pending').length
   const confirmed = appointments.filter(a => a.status === 'confirmed').length
   const isTrial   = barbershop?.subscription_status === 'trial'
@@ -45,14 +88,39 @@ const [copied, setCopied]   = useState(false)
 
   const stats = [
     { label: 'CITAS HOY',    value: appointments.length, color: 'var(--gold)' },
-    { label: 'PENDIENTES',   value: pending,              color: '#E8C97A' },
-    { label: 'CONFIRMADAS',  value: confirmed,            color: 'var(--success)' },
+    { label: 'PENDIENTES',   value: pending,              color: 'var(--gold-light)' },
+    { label: 'CONFIRMADAS',  value: confirmed,            color: 'var(--gold-dim)' },
   ]
 
+  // Últimos 7 días: citas (sin canceladas) e ingresos (citas completadas)
+  const dayKeys = lastSevenDayKeys()
+  const weeklyData = dayKeys.map(key => {
+    const dayAppts = weekAppointments.filter(a => a.scheduled_at.slice(0, 10) === key)
+    const count    = dayAppts.filter(a => a.status !== 'cancelled').length
+    const revenue  = dayAppts.filter(a => a.status === 'done').reduce((sum, a) => sum + parseFloat(a.price || 0), 0)
+    const d = new Date(key + 'T00:00:00')
+    return { label: DAY_ABBR[d.getDay()], count, revenue }
+  })
+  const hasWeekRevenue = weeklyData.some(d => d.revenue > 0)
+
+  // Distribución de citas por estado, últimos 7 días
+  const weekStatusCounts = { pending: 0, confirmed: 0, done: 0, cancelled: 0 }
+  weekAppointments
+    .filter(a => dayKeys.includes(a.scheduled_at.slice(0, 10)))
+    .forEach(a => { if (weekStatusCounts[a.status] !== undefined) weekStatusCounts[a.status]++ })
+
+  const statusDistribution = [
+    { key: 'pending',   label: 'Pendientes',  value: weekStatusCounts.pending,   opacity: 1 },
+    { key: 'confirmed', label: 'Confirmadas', value: weekStatusCounts.confirmed, opacity: 0.8 },
+    { key: 'done',      label: 'Completadas', value: weekStatusCounts.done,      opacity: 0.6 },
+    { key: 'cancelled', label: 'Canceladas',  value: weekStatusCounts.cancelled, opacity: 0.4 },
+  ]
+  const hasWeekAppointments = weekStatusCounts.pending + weekStatusCounts.confirmed + weekStatusCounts.done + weekStatusCounts.cancelled > 0
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--dark)', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px' }}>
+      <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px', flex: 1, width: '100%' }}>
 
         {/* Banner trial */}
         {isTrial && (
@@ -92,7 +160,7 @@ const [copied, setCopied]   = useState(false)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }}
-    style={{ background: copied ? 'rgba(76,175,125,0.15)' : 'var(--dark-3)', border:'1px solid ' + (copied ? 'rgba(76,175,125,0.3)' : 'var(--dark-4)'), color: copied ? '#4CAF7D' : 'var(--cream-dim)', padding:'4px 12px', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily:'DM Sans', transition:'all 0.2s' }}
+    style={{ background: copied ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', border:'1px solid ' + (copied ? 'rgba(201,168,76,0.3)' : 'var(--dark-4)'), color: copied ? '#C9A84C' : 'var(--cream-dim)', padding:'4px 12px', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily:'DM Sans', transition:'all 0.2s' }}
   >
     {copied ? '✓ COPIADO' : 'COPIAR'}
   </button>
@@ -108,6 +176,60 @@ const [copied, setCopied]   = useState(false)
               <p style={{ fontSize: 48, fontWeight: 900, color: stat.color, lineHeight: 1, fontFamily: 'Playfair Display' }}>{stat.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Gráficas */}
+        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: hasWeekRevenue ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16, marginBottom: 32 }}>
+
+          {/* Citas por día (última semana) */}
+          <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 20px 12px' }}>
+            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 16 }}>CITAS · ÚLTIMOS 7 DÍAS</p>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={weeklyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid stroke="var(--dark-4)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={{ stroke: 'var(--dark-4)' }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,76,0.08)' }} />
+                <Bar dataKey="count" name="Citas" fill="var(--gold)" radius={[4, 4, 0, 0]} maxBarSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Distribución por estado */}
+          <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 20px 12px' }}>
+            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 16 }}>ESTADO · ÚLTIMOS 7 DÍAS</p>
+            {hasWeekAppointments ? (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={statusDistribution} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--dark-4)" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="label" tick={{ fill: 'var(--cream)', fontSize: 11 }} axisLine={false} tickLine={false} width={78} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,76,0.08)' }} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                    {statusDistribution.map(s => <Cell key={s.key} fill="var(--gold)" fillOpacity={s.opacity} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p style={{ color: 'var(--cream-dim)', fontSize: 13, textAlign: 'center', padding: '48px 0', opacity: 0.6 }}>Sin citas esta semana</p>
+            )}
+          </div>
+
+          {/* Ingresos por día (solo si hay citas completadas con precio) */}
+          {hasWeekRevenue && (
+            <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 20px 12px' }}>
+              <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 16 }}>INGRESOS · ÚLTIMOS 7 DÍAS</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={weeklyData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--dark-4)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={{ stroke: 'var(--dark-4)' }} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--cream-dim)', fontSize: 10 }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? (v / 1000) + 'K' : v} />
+                  <Tooltip content={<ChartTooltip formatter={formatPrice} />} cursor={{ stroke: 'var(--dark-4)' }} />
+                  <Line type="monotone" dataKey="revenue" name="Ingresos" stroke="var(--gold)" strokeWidth={2} dot={{ r: 3, fill: 'var(--gold)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Citas de hoy */}
@@ -144,8 +266,8 @@ const [copied, setCopied]   = useState(false)
           )}
         </div>
 
-      <Footer />
       </main>
+      <Footer />
       <HelpButton path={pathname} />
     </div>
   )

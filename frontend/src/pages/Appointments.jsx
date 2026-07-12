@@ -6,6 +6,23 @@ import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, emailError, phoneError, hasErrors } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
+import { TrashIcon } from '../components/Icons'
+import Hours from './Hours'
+
+const TABS = [
+  { id: 'citas',   label: 'Citas' },
+  { id: 'horario', label: 'Horario de atención' },
+]
+
+// Ícono local (el set compartido de components/Icons.jsx no incluye campana)
+function BellIcon({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  )
+}
 
 function validate(form) {
   const errors = {}
@@ -27,11 +44,14 @@ function validate(form) {
   return errors
 }
 
+// Fondos SÓLIDOS (no rgba translúcido) — los 4 estados se diferencian por
+// intensidad de dorado/gris, nunca por un color distinto. `accent` es una
+// versión más clara, solo para el texto de las opciones del menú (fondo oscuro).
 const STATUS_CONFIG = {
-  pending:   { label:'Pendiente',  color:'#C9A84C', bg:'rgba(201,168,76,0.12)',  dot:'#C9A84C' },
-  confirmed: { label:'Confirmada', color:'#B8B0A0', bg:'rgba(184,176,160,0.12)', dot:'#B8B0A0' },
-  done:      { label:'Completada', color:'#4CAF7D', bg:'rgba(76,175,125,0.12)',  dot:'#4CAF7D' },
-  cancelled: { label:'Cancelada',  color:'#E05252', bg:'rgba(224,82,82,0.12)',   dot:'#E05252' },
+  pending:   { label:'Pendiente',  bg:'#C9A84C', text:'#0D0D0D', accent:'#E8C97A' },
+  confirmed: { label:'Confirmada', bg:'#8B6914', text:'#F5F0E8', accent:'#C9A84C' },
+  done:      { label:'Completada', bg:'#6B6356', text:'#F5F0E8', accent:'#B8B0A0' },
+  cancelled: { label:'Cancelada',  bg:'#3A3632', text:'#B8B0A0', accent:'#8A8175' },
 }
 
 const TRANSITIONS = {
@@ -60,9 +80,8 @@ function StatusSelector({ status, onUpdate }) {
 
   if (options.length === 0) {
     return (
-      <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:current.bg, border:'1px solid '+current.color+'33', borderRadius:20, padding:'5px 12px' }}>
-        <div style={{ width:6, height:6, borderRadius:'50%', background:current.dot }} />
-        <span style={{ color:current.color, fontSize:11, fontWeight:700, letterSpacing:'0.06em' }}>{current.label.toUpperCase()}</span>
+      <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:current.bg, borderRadius:20, padding:'5px 12px' }}>
+        <span style={{ color:current.text, fontSize:11, fontWeight:700, letterSpacing:'0.06em' }}>{current.label.toUpperCase()}</span>
       </div>
     )
   }
@@ -71,11 +90,10 @@ function StatusSelector({ status, onUpdate }) {
     <div ref={ref} style={{ position:'relative', display:'inline-block', zIndex:50 }}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(prev => !prev) }}
-        style={{ display:'inline-flex', alignItems:'center', gap:6, background:current.bg, border:'1px solid '+current.color+'44', borderRadius:20, padding:'5px 12px', cursor:'pointer', transition:'all 0.2s' }}
+        style={{ display:'inline-flex', alignItems:'center', gap:6, background:current.bg, border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer', transition:'all 0.2s' }}
       >
-        <div style={{ width:6, height:6, borderRadius:'50%', background:current.dot }} />
-        <span style={{ color:current.color, fontSize:11, fontWeight:700, letterSpacing:'0.06em' }}>{current.label.toUpperCase()}</span>
-        <span style={{ color:current.color, fontSize:9, opacity:0.7 }}>▾</span>
+        <span style={{ color:current.text, fontSize:11, fontWeight:700, letterSpacing:'0.06em' }}>{current.label.toUpperCase()}</span>
+        <span style={{ color:current.text, fontSize:9, opacity:0.7 }}>▾</span>
       </button>
 
       {open && (
@@ -90,8 +108,8 @@ function StatusSelector({ status, onUpdate }) {
                 onMouseEnter={e => e.currentTarget.style.background='#2A2A2A'}
                 onMouseLeave={e => e.currentTarget.style.background='transparent'}
               >
-                <div style={{ width:6, height:6, borderRadius:'50%', background:cfg.dot, flexShrink:0 }} />
-                <span style={{ color:cfg.color, fontSize:12, fontWeight:600 }}>{cfg.label}</span>
+                <div style={{ width:6, height:6, borderRadius:'50%', background:cfg.accent, flexShrink:0 }} />
+                <span style={{ color:cfg.accent, fontSize:12, fontWeight:600 }}>{cfg.label}</span>
               </button>
             )
           })}
@@ -106,8 +124,9 @@ const formatDate  = (d) => new Date(d).toLocaleDateString('es-CO', { weekday:'sh
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(p)
 
 export default function Appointments() {
-  const { pathname } = useLocation()
+  const location = useLocation()
   const toast = useToast()
+  const [tab, setTab] = useState(location.state?.tab === 'horario' ? 'horario' : 'citas')
   const [appointments, setAppointments] = useState([])
   const [barbers, setBarbers]           = useState([])
   const [services, setServices]         = useState([])
@@ -116,6 +135,7 @@ export default function Appointments() {
   const [saving, setSaving]             = useState(false)
   const [deleting, setDeleting]         = useState(null)
   const [deleteBusy, setDeleteBusy]     = useState(false)
+  const [reminding, setReminding]       = useState(null)
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -221,16 +241,29 @@ export default function Appointments() {
     }
   }
 
+  const handleRemind = async (id) => {
+    if (reminding) return
+    setReminding(id)
+    try {
+      await api.post('/appointments/' + id + '/remind')
+      toast.success('Recordatorio enviado al cliente')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo enviar el recordatorio.')
+    } finally {
+      setReminding(null)
+    }
+  }
+
   const inp = (name) => ({
     width:'100%', padding:'12px 16px',
-    border:'1px solid ' + (errors[name] ? '#E05252' : 'var(--dark-4)'),
-    boxShadow: errors[name] ? '0 0 0 2px rgba(224,82,82,0.15)' : 'none'
+    border:'1px solid ' + (errors[name] ? '#E8C97A' : 'var(--dark-4)'),
+    boxShadow: errors[name] ? '0 0 0 2px rgba(232,201,122,0.15)' : 'none'
   })
 
   const selectedService = services.find(s => s.id === parseInt(form.service_id))
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
+    <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', flexDirection:'column' }}>
 
       {/* Modal eliminar */}
       {deleting && (
@@ -250,17 +283,35 @@ export default function Appointments() {
       )}
 
       <Navbar />
-      <main style={{ maxWidth:900, margin:'0 auto', padding:'40px 24px' }}>
+      <main style={{ maxWidth:900, margin:'0 auto', padding:'40px 24px', flex:1, width:'100%' }}>
 
         {/* Header */}
-        <div className="animate-fade-up" style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:32 }}>
-          <div>
-            <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>AGENDA</p>
-            <h1 style={{ fontSize:36, fontWeight:900, color:'var(--cream)' }}>Citas</h1>
-            <p style={{ color:'var(--cream-dim)', fontSize:13, marginTop:4 }}>
-              {appointments.length} en total · {filtered.length} con filtros
-            </p>
-          </div>
+        <div className="animate-fade-up" style={{ marginBottom:24 }}>
+          <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>AGENDA</p>
+          <h1 style={{ fontSize:36, fontWeight:900, color:'var(--cream)' }}>Agenda</h1>
+        </div>
+
+        {/* Tabs */}
+        <div className="animate-fade-up delay-1" style={{ display:'flex', gap:4, background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:10, padding:4, marginBottom:24, maxWidth:400 }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => { setTab(t.id); setDeleting(null) }}
+              style={{ flex:1, padding:'9px 0', borderRadius:7, border:'none', background: tab === t.id ? 'var(--gold)' : 'transparent', color: tab === t.id ? 'var(--dark)' : 'var(--cream-dim)', fontSize:12, fontWeight:700, letterSpacing:'0.05em', cursor:'pointer', transition:'all 0.2s', fontFamily:'DM Sans' }}
+            >
+              {t.label.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+      {tab === 'citas' ? (
+      <div className="animate-fade-up" key="citas-tab">
+
+        {/* Contador + acción */}
+        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20 }}>
+          <p style={{ color:'var(--cream-dim)', fontSize:13 }}>
+            {appointments.length} en total · {filtered.length} con filtros
+          </p>
           <button
             onClick={() => { setShowForm(!showForm); setTouched({}) }}
             className="btn-primary"
@@ -271,7 +322,7 @@ export default function Appointments() {
         </div>
 
         {/* Filtros */}
-        <div className="animate-fade-up delay-1" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:'16px 24px', marginBottom:20, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+        <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:'16px 24px', marginBottom:20, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
           <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, flexShrink:0 }}>FILTROS</p>
 
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -326,7 +377,7 @@ export default function Appointments() {
                   <option value="">Selecciona un barbero</option>
                   {barbers.filter(b => b.active).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
-                {errors.barber_id && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.barber_id}</p>}
+                {errors.barber_id && <p style={{ color:'#E8C97A', fontSize:12, marginTop:5 }}>⚠ {errors.barber_id}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>SERVICIO</label>
@@ -334,27 +385,27 @@ export default function Appointments() {
                   <option value="">Selecciona un servicio</option>
                   {services.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name} — {s.duration_min}min</option>)}
                 </select>
-                {errors.service_id && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.service_id}</p>}
+                {errors.service_id && <p style={{ color:'#E8C97A', fontSize:12, marginTop:5 }}>⚠ {errors.service_id}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>NOMBRE DEL CLIENTE</label>
                 <input name="client_name" value={form.client_name} onChange={handleChange} onBlur={() => markTouched('client_name')} placeholder="Juan Pérez" style={inp('client_name')} />
-                {errors.client_name && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.client_name}</p>}
+                {errors.client_name && <p style={{ color:'#E8C97A', fontSize:12, marginTop:5 }}>⚠ {errors.client_name}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
                 <input name="client_phone" value={form.client_phone} onChange={handleChange} onBlur={() => markTouched('client_phone')} placeholder="3001234567" style={inp('client_phone')} />
-                {errors.client_phone && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.client_phone}</p>}
+                {errors.client_phone && <p style={{ color:'#E8C97A', fontSize:12, marginTop:5 }}>⚠ {errors.client_phone}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>EMAIL (OPCIONAL)</label>
                 <input name="client_email" type="email" value={form.client_email} onChange={handleChange} onBlur={() => markTouched('client_email')} placeholder="cliente@email.com" style={inp('client_email')} />
-                {errors.client_email && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.client_email}</p>}
+                {errors.client_email && <p style={{ color:'#E8C97A', fontSize:12, marginTop:5 }}>⚠ {errors.client_email}</p>}
               </div>
               <div>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>FECHA Y HORA</label>
                 <input name="scheduled_at" type="datetime-local" value={form.scheduled_at} onChange={handleChange} onBlur={() => markTouched('scheduled_at')} style={inp('scheduled_at')} />
-                {errors.scheduled_at && <p style={{ color:'#E05252', fontSize:12, marginTop:5 }}>⚠ {errors.scheduled_at}</p>}
+                {errors.scheduled_at && <p style={{ color:'#E8C97A', fontSize:12, marginTop:5 }}>⚠ {errors.scheduled_at}</p>}
               </div>
               <div style={{ gridColumn:'1 / -1' }}>
                 <label style={{ display:'block', fontSize:11, letterSpacing:'0.07em', color:'var(--cream-dim)', marginBottom:6, fontWeight:600 }}>NOTAS (OPCIONAL)</label>
@@ -384,7 +435,9 @@ export default function Appointments() {
                 {filtered.length === 0 && appointments.length > 0 ? 'No hay citas con esos filtros' : 'No hay citas todavía'}
               </p>
             </div>
-          ) : paginated.map((a, i) => (
+          ) : paginated.map((a, i) => {
+            const canRemind = a.status !== 'cancelled' && !!a.client_email && new Date(a.scheduled_at) > new Date()
+            return (
             <div
               key={a.id}
               style={{ padding:'16px 24px', borderBottom: i < paginated.length-1 ? '1px solid var(--dark-3)' : 'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative' }}
@@ -407,16 +460,30 @@ export default function Appointments() {
                   status={a.status}
                   onUpdate={(newStatus) => handleStatus(a.id, newStatus)}
                 />
+                {canRemind && (
+                  <button
+                    onClick={() => handleRemind(a.id)}
+                    disabled={reminding === a.id}
+                    title="Recordar al cliente"
+                    aria-label={`Enviar recordatorio a ${a.client_name}`}
+                    style={{ background:'transparent', border:'1px solid var(--dark-4)', color:'var(--gold)', padding:'6px 9px', borderRadius:8, cursor: reminding === a.id ? 'not-allowed' : 'pointer', display:'inline-flex', alignItems:'center', opacity: reminding === a.id ? 0.5 : 1, transition:'all 0.2s' }}
+                  >
+                    <BellIcon size={14} />
+                  </button>
+                )}
                 <button
                   onClick={() => setDeleting(a.id)}
                   className="btn-danger"
-                  style={{ padding:'5px 10px', fontSize:12 }}
+                  title="Eliminar"
+                  aria-label={`Eliminar cita de ${a.client_name}`}
+                  style={{ padding:'6px 9px', display:'inline-flex', alignItems:'center' }}
                 >
-                  ✕
+                  <TrashIcon size={14} />
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Paginación */}
@@ -454,9 +521,16 @@ export default function Appointments() {
           </div>
         )}
 
-      <Footer />
+      </div>
+      ) : (
+      <div className="animate-fade-up" key="horario-tab">
+        <Hours />
+      </div>
+      )}
+
       </main>
-      <HelpButton path={pathname} />
+      <Footer />
+      <HelpButton path={location.pathname} />
     </div>
   )
 }

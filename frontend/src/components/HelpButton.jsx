@@ -2,10 +2,9 @@ import { useState } from 'react'
 
 const HELP = {
   '/dashboard':    { title:'Panel principal',   text:'Resumen del día: citas programadas, pendientes y confirmadas. El banner dorado te avisa cuántos días quedan de prueba gratuita.' },
-  '/appointments': { title:'Citas',             text:'Gestioná todas las citas. Filtrá por fecha o estado, creá nuevas y cambiá el estado con el selector de colores en cada fila.' },
+  '/appointments': { title:'Agenda',            text:'En la pestaña "Citas" gestioná todas las citas: filtrá por fecha o estado, creá nuevas y cambiá el estado con el selector de colores. En "Horario de atención" configurá los días y horas en que tu barbería recibe clientes.' },
   '/barbers':      { title:'Barberos',          text:'Administrá tu equipo. Podés activar o desactivar barberos sin eliminarlos. No se pueden eliminar si tienen citas activas.' },
   '/services':     { title:'Servicios',         text:'Configurá los servicios con precio y duración. Los clientes los verán al momento de reservar su cita.' },
-  '/hours':        { title:'Horarios',          text:'Definí los días y horarios de atención. Los clientes solo podrán reservar dentro de estos horarios.' },
   '/reports':      { title:'Reportes',          text:'Analizá tu negocio: ingresos del mes, citas completadas, mejor barbero y cliente que más ha gastado.' },
   '/subscription': { title:'Suscripción',       text:'Gestioná tu plan. Con 14 días de prueba gratis podés probar todas las funciones sin necesitar tarjeta.' },
   '/settings':     { title:'Configuración',     text:'Editá la información de tu barbería, métodos de pago aceptados y datos de contacto que ven tus clientes.' },

@@ -1,6 +1,6 @@
 const AppointmentModel = require('../models/appointment.model')
 const pool              = require('../config/db')
-const { enviarConfirmacionCliente, enviarAvisoBarbero } = require('../utils/mailer')
+const { enviarConfirmacionCliente, enviarAvisoBarbero, enviarRecordatorioCita } = require('../utils/mailer')
 
 const AppointmentsController = {
 
@@ -131,6 +131,42 @@ const AppointmentsController = {
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Error eliminando cita' })
+    }
+  },
+
+  async remind(req, res) {
+    try {
+      const infoResult = await pool.query(
+        `SELECT a.client_name, a.client_email, a.scheduled_at,
+                b.name AS barber_name, s.name AS service_name,
+                sh.name AS barbershop_name
+         FROM appointments a
+         LEFT JOIN barbers   b  ON a.barber_id     = b.id
+         LEFT JOIN services  s  ON a.service_id    = s.id
+         JOIN barbershops    sh ON a.barbershop_id = sh.id
+         WHERE a.id = $1 AND a.barbershop_id = $2`,
+        [req.params.id, req.barbershop.id]
+      )
+      const appt = infoResult.rows[0]
+      if (!appt) return res.status(404).json({ error: 'Cita no encontrada' })
+
+      if (!appt.client_email) {
+        return res.status(400).json({ error: 'Esta cita no tiene correo registrado. Agrega uno para poder enviar el recordatorio.' })
+      }
+
+      await enviarRecordatorioCita({
+        clienteEmail:   appt.client_email,
+        clienteNombre:  appt.client_name,
+        barberiaNombre: appt.barbershop_name,
+        barberoNombre:  appt.barber_name,
+        servicioNombre: appt.service_name,
+        fechaHora:      appt.scheduled_at,
+      })
+
+      res.json({ message: 'Recordatorio enviado' })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'No se pudo enviar el recordatorio. Intenta de nuevo.' })
     }
   }
 }

@@ -43,7 +43,7 @@ export default function ResetPassword() {
   if (!token) return (
     <div style={s.wrap}>
       <div style={s.card}>
-        <p style={{ color:'#E05252', textAlign:'center', fontSize:14 }}>
+        <p style={{ color:'#E8C97A', textAlign:'center', fontSize:14 }}>
           ⚠ Enlace inválido. Solicitá uno nuevo desde el login.
         </p>
         <button onClick={() => navigate('/login')} style={{ width:'100%', marginTop:20, background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'13px 0', borderRadius:10, cursor:'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans' }}>
@@ -57,7 +57,7 @@ export default function ResetPassword() {
     <div style={s.wrap}>
       <div style={s.orb} />
       <div className="animate-fade-up" style={s.card}>
-        <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(76,175,125,0.1)', border:'1px solid rgba(76,175,125,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:28, color:'#4CAF7D' }}>✓</div>
+        <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(201,168,76,0.1)', border:'1px solid rgba(201,168,76,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:28, color:'#C9A84C' }}>✓</div>
         <h2 style={{ fontFamily:'Playfair Display', fontSize:24, color:'#F5F0E8', textAlign:'center', marginBottom:12 }}>¡Contraseña actualizada!</h2>
         <p style={{ color:'#B8B0A0', fontSize:14, textAlign:'center', lineHeight:1.7, marginBottom:28 }}>Ya podés iniciar sesión con tu nueva contraseña.</p>
         <button onClick={() => navigate('/login')} style={{ width:'100%', background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'13px 0', borderRadius:10, cursor:'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans' }}>
@@ -78,7 +78,7 @@ export default function ResetPassword() {
         </div>
 
         {error && (
-          <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'#E05252', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13 }}>
+          <div style={{ background:'rgba(232,201,122,0.1)', border:'1px solid rgba(232,201,122,0.3)', color:'#E8C97A', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13 }}>
             ⚠ {error}
           </div>
         )}
@@ -103,9 +103,9 @@ export default function ResetPassword() {
               value={confirm}
               onChange={e => { setConfirm(e.target.value); setError('') }}
               placeholder="Repetí la contraseña"
-              style={{ ...s.inp, border: '1px solid ' + (confirmError ? '#E05252' : 'rgba(255,255,255,0.1)') }}
+              style={{ ...s.inp, border: '1px solid ' + (confirmError ? '#E8C97A' : 'rgba(255,255,255,0.1)') }}
             />
-            {confirmError && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {confirmError}</p>}
+            {confirmError && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {confirmError}</p>}
           </div>
 
           <button

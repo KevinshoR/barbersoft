@@ -88,15 +88,15 @@ const { barbershop, refreshBarbershop } = useAuth()
 
   const statusConfig = {
     trial:   { label:'PERÍODO DE PRUEBA', color:'var(--gold)',    bg:'rgba(201,168,76,0.12)',  border:'rgba(201,168,76,0.3)'  },
-    active:  { label:'ACTIVA',            color:'#4CAF7D',        bg:'rgba(76,175,125,0.12)',  border:'rgba(76,175,125,0.3)'  },
-    blocked: { label:'BLOQUEADA',         color:'#E05252',        bg:'rgba(224,82,82,0.12)',   border:'rgba(224,82,82,0.3)'   },
+    active:  { label:'ACTIVA',            color:'#C9A84C',        bg:'rgba(201,168,76,0.12)',  border:'rgba(201,168,76,0.3)'  },
+    blocked: { label:'BLOQUEADA',         color:'#E8C97A',        bg:'rgba(232,201,122,0.12)',   border:'rgba(232,201,122,0.3)'   },
   }
   const sc = statusConfig[status] || statusConfig['trial']
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
+    <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', flexDirection:'column' }}>
       <Navbar />
-      <main style={{ maxWidth:860, margin:'0 auto', padding:'40px 24px' }}>
+      <main style={{ maxWidth:860, margin:'0 auto', padding:'40px 24px', flex:1, width:'100%' }}>
 
         {/* Header */}
         <div className="animate-fade-up" style={{ marginBottom:40 }}>
@@ -146,7 +146,7 @@ const { barbershop, refreshBarbershop } = useAuth()
 
           {status === 'blocked' && (
             <div>
-              <p style={{ color:'#E05252', fontSize:15, fontWeight:600, marginBottom:6 }}>
+              <p style={{ color:'#E8C97A', fontSize:15, fontWeight:600, marginBottom:6 }}>
                 Tu cuenta está bloqueada por falta de pago.
               </p>
               <p style={{ color:'var(--cream-dim)', fontSize:13 }}>
@@ -192,7 +192,7 @@ const { barbershop, refreshBarbershop } = useAuth()
               <ul style={{ listStyle:'none', marginBottom:28 }}>
                 {plan.features.map(f => (
                   <li key={f} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, color:'var(--cream)', fontSize:13 }}>
-                    <span style={{ color:'#4CAF7D', fontSize:14, fontWeight:700, flexShrink:0 }}>✓</span>
+                    <span style={{ color:'#C9A84C', fontSize:14, fontWeight:700, flexShrink:0 }}>✓</span>
                     {f}
                   </li>
                 ))}
@@ -232,8 +232,8 @@ const { barbershop, refreshBarbershop } = useAuth()
           </p>
         </div>
 
-        <Footer />
       </main>
+      <Footer />
       <HelpButton path={pathname} />
     </div>
   )

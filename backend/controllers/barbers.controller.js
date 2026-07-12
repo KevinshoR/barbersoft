@@ -15,7 +15,7 @@ const BarbersController = {
 
   async create(req, res) {
     try {
-      const { name, photo_url, specialty } = req.body
+      const { name, photo_url, specialty, work_days } = req.body
       if (!name) return res.status(400).json({ error: 'El nombre es obligatorio' })
 
       const existing = await pool.query(
@@ -31,6 +31,7 @@ const BarbersController = {
         name: name.trim(),
         photo_url: photo_url?.trim() || null,
         specialty: specialty?.trim() || null,
+        work_days: work_days?.trim() || null,
       })
       res.status(201).json({ barber })
     } catch (err) {

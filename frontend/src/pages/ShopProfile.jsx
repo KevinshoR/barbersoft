@@ -65,9 +65,9 @@ export default function ShopProfile() {
 
           {/* Estado hoy */}
           {todayHours && (
-            <div style={{ display:'inline-flex', alignItems:'center', gap:6, background: isOpenToday ? 'rgba(76,175,125,0.1)' : 'rgba(224,82,82,0.1)', border:'1px solid ' + (isOpenToday ? 'rgba(76,175,125,0.3)' : 'rgba(224,82,82,0.3)'), borderRadius:20, padding:'5px 14px', marginBottom:24 }}>
-              <div style={{ width:6, height:6, borderRadius:'50%', background: isOpenToday ? '#4CAF7D' : '#E05252' }} />
-              <span style={{ color: isOpenToday ? '#4CAF7D' : '#E05252', fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:6, background: isOpenToday ? 'rgba(201,168,76,0.1)' : 'rgba(232,201,122,0.1)', border:'1px solid ' + (isOpenToday ? 'rgba(201,168,76,0.3)' : 'rgba(232,201,122,0.3)'), borderRadius:20, padding:'5px 14px', marginBottom:24 }}>
+              <div style={{ width:6, height:6, borderRadius:'50%', background: isOpenToday ? '#C9A84C' : '#E8C97A' }} />
+              <span style={{ color: isOpenToday ? '#C9A84C' : '#E8C97A', fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>
                 {isOpenToday ? `ABIERTO HOY · ${todayHours.open_time} - ${todayHours.close_time}` : 'CERRADO HOY'}
               </span>
             </div>
@@ -141,7 +141,7 @@ export default function ShopProfile() {
                     {b.name.charAt(0).toUpperCase()}
                   </div>
                   <p style={{ color:'#F5F0E8', fontWeight:600, fontSize:14 }}>{b.name}</p>
-                  <p style={{ color:'#4CAF7D', fontSize:10, fontWeight:700, letterSpacing:'0.06em', marginTop:4 }}>● DISPONIBLE</p>
+                  <p style={{ color:'#C9A84C', fontSize:10, fontWeight:700, letterSpacing:'0.06em', marginTop:4 }}>● DISPONIBLE</p>
                 </div>
               ))}
             </div>
@@ -174,7 +174,7 @@ export default function ShopProfile() {
                       {h.open_time} – {h.close_time}
                     </p>
                   ) : (
-                    <p style={{ color:'#E05252', fontSize:12, fontWeight:600, letterSpacing:'0.06em' }}>CERRADO</p>
+                    <p style={{ color:'#E8C97A', fontSize:12, fontWeight:600, letterSpacing:'0.06em' }}>CERRADO</p>
                   )}
                 </div>
               ))}

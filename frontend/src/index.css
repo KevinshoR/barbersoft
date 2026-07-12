@@ -12,9 +12,9 @@
   --dark-4:     #2A2A2A;
   --cream:      #F5F0E8;
   --cream-dim:  #B8B0A0;
-  --success:    #4CAF7D;
-  --danger:     #E05252;
-  --info:       #5B8DEF;
+  --success:    #C9A84C;
+  --danger:     #E8C97A;
+  --info:       #B8B0A0;
 
   /* Superficies translúcidas ("vidrio") usadas en las pantallas públicas
      (cards/inputs sobre el fondo). En modo oscuro son blanco a baja opacidad;
@@ -25,10 +25,10 @@
   --border-strong: rgba(255,255,255,0.16);
   --overlay-bg:    rgba(13,13,13,0.88);
 
-  --toast-success-bg:     rgba(76,175,125,0.12);
-  --toast-success-border: rgba(76,175,125,0.4);
-  --toast-error-bg:       rgba(224,82,82,0.12);
-  --toast-error-border:   rgba(224,82,82,0.4);
+  --toast-success-bg:     rgba(201,168,76,0.12);
+  --toast-success-border: rgba(201,168,76,0.4);
+  --toast-error-bg:       rgba(232,201,122,0.12);
+  --toast-error-border:   rgba(232,201,122,0.4);
 }
 
 [data-theme="light"] {
@@ -41,9 +41,9 @@
   --dark-4:     #DDD5C5;
   --cream:      #2A2420;
   --cream-dim:  #6B6356;
-  --success:    #2F8F5E;
-  --danger:     #C8392F;
-  --info:       #3D6FD1;
+  --success:    #B8923A;
+  --danger:     #D4AF5C;
+  --info:       #6B6356;
 
   --surface-1:     rgba(13,13,13,0.035);
   --surface-2:     rgba(13,13,13,0.055);
@@ -51,10 +51,10 @@
   --border-strong: rgba(13,13,13,0.20);
   --overlay-bg:    rgba(255,255,255,0.88);
 
-  --toast-success-bg:     rgba(47,143,94,0.12);
-  --toast-success-border: rgba(47,143,94,0.4);
-  --toast-error-bg:       rgba(200,57,47,0.1);
-  --toast-error-border:   rgba(200,57,47,0.35);
+  --toast-success-bg:     rgba(184,146,58,0.12);
+  --toast-success-border: rgba(184,146,58,0.4);
+  --toast-error-bg:       rgba(212,175,92,0.1);
+  --toast-error-border:   rgba(212,175,92,0.35);
 }
 
 * {
@@ -169,9 +169,9 @@ select option {
 }
 
 .btn-danger {
-  background: rgba(224,82,82,0.08);
+  background: rgba(232,201,122,0.08);
   color: var(--danger);
-  border: 1px solid rgba(224,82,82,0.25);
+  border: 1px solid rgba(232,201,122,0.25);
   padding: 10px 22px;
   border-radius: 8px;
   cursor: pointer;
@@ -183,14 +183,14 @@ select option {
 }
 
 .btn-danger:hover {
-  background: rgba(224,82,82,0.15);
-  border-color: rgba(224,82,82,0.5);
+  background: rgba(232,201,122,0.15);
+  border-color: rgba(232,201,122,0.5);
 }
 
 .btn-success {
-  background: rgba(76,175,125,0.1);
+  background: rgba(201,168,76,0.1);
   color: var(--success);
-  border: 1px solid rgba(76,175,125,0.3);
+  border: 1px solid rgba(201,168,76,0.3);
   padding: 10px 22px;
   border-radius: 8px;
   cursor: pointer;
@@ -202,5 +202,5 @@ select option {
 }
 
 .btn-success:hover {
-  background: rgba(76,175,125,0.18);
+  background: rgba(201,168,76,0.18);
 }

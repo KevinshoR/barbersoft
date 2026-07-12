@@ -4,6 +4,10 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import api from '../services/api'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell,
+} from 'recharts'
 
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', {
   style: 'currency', currency: 'COP', minimumFractionDigits: 0
@@ -20,17 +24,17 @@ function StatCard({ label, value, sub, color }) {
   )
 }
 
-function Bar({ label, value, max, color }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0
+// Tooltip propio (tema oscuro/dorado) — el default de Recharts es blanco y no encaja
+function ChartTooltip({ active, payload, label, formatter }) {
+  if (!active || !payload || !payload.length) return null
   return (
-    <div style={{ marginBottom:14 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-        <span style={{ color:'var(--cream)', fontSize:13 }}>{label}</span>
-        <span style={{ color:color, fontSize:13, fontWeight:700 }}>{value}</span>
-      </div>
-      <div style={{ height:5, background:'var(--dark-3)', borderRadius:3, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:pct+'%', background:color, borderRadius:3, transition:'width 0.8s ease' }} />
-      </div>
+    <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 8, padding: '8px 12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+      <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginBottom: 4 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: 'var(--cream)', fontSize: 13, fontWeight: 700 }}>
+          {formatter ? formatter(p.value) : p.value}
+        </p>
+      ))}
     </div>
   )
 }
@@ -57,14 +61,25 @@ export default function Reports() {
     ? (data.statuses.pending + data.statuses.confirmed + data.statuses.done + data.statuses.cancelled)
     : 0
 
-  const maxDaily = data && data.dailyAppointments.length > 0
-    ? Math.max(...data.dailyAppointments.map(d => parseInt(d.count)))
-    : 1
+  const statusChartData = data ? [
+    { key: 'pending',   label: 'Pendientes',  value: data.statuses.pending,   opacity: 1 },
+    { key: 'confirmed', label: 'Confirmadas', value: data.statuses.confirmed, opacity: 0.8 },
+    { key: 'done',      label: 'Completadas', value: data.statuses.done,      opacity: 0.6 },
+    { key: 'cancelled', label: 'Canceladas',  value: data.statuses.cancelled, opacity: 0.4 },
+  ] : []
+
+  const dailyChartData = data
+    ? data.dailyAppointments.map(d => ({ day: new Date(d.date).getDate(), count: parseInt(d.count) }))
+    : []
+
+  const revenueByServiceChartData = data
+    ? data.revenueByService.map(s => ({ name: s.name, total: parseFloat(s.total), count: s.count }))
+    : []
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
+    <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', flexDirection:'column' }}>
       <Navbar />
-      <main style={{ maxWidth:1000, margin:'0 auto', padding:'40px 24px' }}>
+      <main style={{ maxWidth:1000, margin:'0 auto', padding:'40px 24px', flex:1, width:'100%' }}>
 
         {/* Header */}
         <div className="animate-fade-up" style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:32 }}>
@@ -82,7 +97,7 @@ export default function Reports() {
 
         {/* Error */}
         {error && (
-          <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'#E05252', borderRadius:10, padding:'14px 18px', marginBottom:24, fontSize:13 }}>
+          <div style={{ background:'rgba(232,201,122,0.1)', border:'1px solid rgba(232,201,122,0.3)', color:'#E8C97A', borderRadius:10, padding:'14px 18px', marginBottom:24, fontSize:13 }}>
             ⚠ {error}
           </div>
         )}
@@ -115,19 +130,19 @@ export default function Reports() {
                 label="MEJOR BARBERO"
                 value={data.topBarber?.name || '—'}
                 sub={data.topBarber ? data.topBarber.count + ' citas' : 'Sin datos'}
-                color="var(--success)"
+                color="var(--gold)"
               />
               <StatCard
                 label="SERVICIO TOP"
                 value={data.topService?.name || '—'}
                 sub={data.topService ? data.topService.count + ' veces' : 'Sin datos'}
-                color="var(--gold)"
+                color="var(--gold-light)"
               />
               <StatCard
                 label="MEJOR CLIENTE"
                 value={data.topClient?.client_name || '—'}
                 sub={data.topClient ? formatPrice(data.topClient.total) + ' · ' + data.topClient.visits + ' visitas' : 'Sin datos'}
-                color="var(--cream)"
+                color="var(--cream-dim)"
               />
             </div>
 
@@ -135,55 +150,65 @@ export default function Reports() {
 
               {/* Estado de citas */}
               <div className="animate-fade-up delay-2" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:24 }}>
-                <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:20 }}>CITAS POR ESTADO</p>
-                <Bar label="Completadas" value={data.statuses.done}      max={total} color="var(--success)" />
-                <Bar label="Pendientes"  value={data.statuses.pending}   max={total} color="var(--gold)"    />
-                <Bar label="Confirmadas" value={data.statuses.confirmed} max={total} color="var(--cream-dim)" />
-                <Bar label="Canceladas"  value={data.statuses.cancelled} max={total} color="var(--danger)"  />
+                <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:700, marginBottom:20 }}>CITAS POR ESTADO</p>
+                {total === 0 ? (
+                  <p style={{ color:'var(--cream-dim)', fontSize:13, textAlign:'center', padding:'40px 0', opacity:0.6 }}>Sin citas este mes</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={statusChartData} layout="vertical" margin={{ top:4, right:16, left:4, bottom:0 }}>
+                      <CartesianGrid stroke="var(--dark-4)" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} tick={{ fill:'var(--cream-dim)', fontSize:11 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="label" tick={{ fill:'var(--cream)', fontSize:11 }} axisLine={false} tickLine={false} width={82} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill:'rgba(201,168,76,0.08)' }} />
+                      <Bar dataKey="value" radius={[0,4,4,0]} maxBarSize={18}>
+                        {statusChartData.map(s => <Cell key={s.key} fill="var(--gold)" fillOpacity={s.opacity} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
 
               {/* Ingresos por servicio */}
               <div className="animate-fade-up delay-2" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:24 }}>
-                <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:20 }}>INGRESOS POR SERVICIO</p>
-                {data.revenueByService.length === 0 ? (
-                  <p style={{ color:'var(--cream-dim)', fontSize:13, textAlign:'center', padding:'24px 0', opacity:0.6 }}>Sin datos este mes</p>
-                ) : data.revenueByService.map((s, i) => (
-                  <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom: i < data.revenueByService.length-1 ? '1px solid var(--dark-3)' : 'none' }}>
-                    <div>
-                      <p style={{ color:'var(--cream)', fontSize:13, fontWeight:500 }}>{s.name}</p>
-                      <p style={{ color:'var(--cream-dim)', fontSize:11, marginTop:2 }}>{s.count} citas</p>
-                    </div>
-                    <p style={{ color:'var(--gold)', fontFamily:'Playfair Display', fontWeight:700, fontSize:15 }}>{formatPrice(s.total)}</p>
-                  </div>
-                ))}
+                <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:700, marginBottom:20 }}>INGRESOS POR SERVICIO</p>
+                {revenueByServiceChartData.length === 0 ? (
+                  <p style={{ color:'var(--cream-dim)', fontSize:13, textAlign:'center', padding:'40px 0', opacity:0.6 }}>Sin datos este mes</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={revenueByServiceChartData} layout="vertical" margin={{ top:4, right:16, left:4, bottom:0 }}>
+                      <CartesianGrid stroke="var(--dark-4)" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} tick={{ fill:'var(--cream-dim)', fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? (v/1000)+'K' : v} />
+                      <YAxis type="category" dataKey="name" tick={{ fill:'var(--cream)', fontSize:11 }} axisLine={false} tickLine={false} width={90} />
+                      <Tooltip content={<ChartTooltip formatter={formatPrice} />} cursor={{ fill:'rgba(201,168,76,0.08)' }} />
+                      <Bar dataKey="total" fill="var(--gold)" radius={[0,4,4,0]} maxBarSize={18} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
             {/* Citas por día */}
             <div className="animate-fade-up delay-3" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:24 }}>
-              <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:20 }}>CITAS POR DÍA</p>
-              {data.dailyAppointments.length === 0 ? (
+              <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:700, marginBottom:20 }}>CITAS POR DÍA</p>
+              {dailyChartData.length === 0 ? (
                 <p style={{ color:'var(--cream-dim)', fontSize:13, textAlign:'center', padding:'24px 0', opacity:0.6 }}>Sin citas este mes</p>
               ) : (
-                <div style={{ display:'flex', alignItems:'flex-end', gap:4, height:100 }}>
-                  {data.dailyAppointments.map((d, i) => {
-                    const pct = Math.round((parseInt(d.count) / maxDaily) * 100)
-                    const day = new Date(d.date).getDate()
-                    return (
-                      <div key={i} title={`Día ${day}: ${d.count} cita(s)`} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, cursor:'default' }}>
-                        <div style={{ width:'100%', height:pct+'%', minHeight:4, background:'var(--gold)', borderRadius:'3px 3px 0 0', opacity:0.75, transition:'height 0.5s ease' }} />
-                        <p style={{ color:'var(--cream-dim)', fontSize:9 }}>{day}</p>
-                      </div>
-                    )
-                  })}
-                </div>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={dailyChartData} margin={{ top:4, right:4, left:-20, bottom:0 }}>
+                    <CartesianGrid stroke="var(--dark-4)" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fill:'var(--cream-dim)', fontSize:10 }} axisLine={{ stroke:'var(--dark-4)' }} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fill:'var(--cream-dim)', fontSize:11 }} axisLine={false} tickLine={false} width={28} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill:'rgba(201,168,76,0.08)' }} />
+                    <Bar dataKey="count" name="Citas" fill="var(--gold)" radius={[3,3,0,0]} maxBarSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </div>
           </>
         )}
 
-        <Footer />
       </main>
+      <Footer />
       <HelpButton path={pathname} />
     </div>
   )

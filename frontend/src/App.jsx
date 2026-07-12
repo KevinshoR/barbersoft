@@ -17,7 +17,6 @@ import FindShop  from './pages/FindShop'
 import Subscription from './pages/Subscription'
 import Settings     from './pages/Settings'
 import BookingPage  from './pages/BookingPage'
-import Hours from './pages/Hours'
 
 function PrivateRoute({ children }) {
   const { barbershop, loading } = useAuth()
@@ -45,8 +44,8 @@ export default function App() {
             <PrivateRoute><Dashboard /></PrivateRoute>
           }/>
           <Route path="/hours" element={
-  <PrivateRoute><Hours /></PrivateRoute>
-}/>
+            <Navigate to="/appointments" state={{ tab: 'horario' }} replace />
+          }/>
           <Route path="/appointments" element={
             <PrivateRoute><Appointments /></PrivateRoute>
           }/>

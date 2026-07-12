@@ -113,7 +113,7 @@ export default function Login() {
         <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:16, padding:32 }}>
 
           {error && (
-            <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'var(--danger)', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13 }}>
+            <div style={{ background:'rgba(232,201,122,0.1)', border:'1px solid rgba(232,201,122,0.3)', color:'var(--danger)', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13 }}>
               {error}
             </div>
           )}
@@ -123,22 +123,22 @@ export default function Login() {
               <>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>NOMBRE DE LA BARBERÍA</label>
-                  <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Ej: Barbería El Paisa" required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.name && registerErrors.name ? '#E05252' : 'var(--dark-4)') }} />
-                  {touched.name && registerErrors.name && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.name}</p>}
+                  <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Ej: Barbería El Paisa" required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.name && registerErrors.name ? '#E8C97A' : 'var(--dark-4)') }} />
+                  {touched.name && registerErrors.name && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {registerErrors.name}</p>}
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>TELÉFONO</label>
-                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="3001234567" style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.phone && registerErrors.phone ? '#E05252' : 'var(--dark-4)') }} />
-                  {touched.phone && registerErrors.phone && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.phone}</p>}
+                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="3001234567" style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.phone && registerErrors.phone ? '#E8C97A' : 'var(--dark-4)') }} />
+                  {touched.phone && registerErrors.phone && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {registerErrors.phone}</p>}
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                   <div>
                     <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>DEPARTAMENTO</label>
-                    <select name="department" value={form.department} onChange={handleChange} onBlur={() => markTouched('department')} required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.department && registerErrors.department ? '#E05252' : 'var(--dark-4)') }}>
+                    <select name="department" value={form.department} onChange={handleChange} onBlur={() => markTouched('department')} required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.department && registerErrors.department ? '#E8C97A' : 'var(--dark-4)') }}>
                       <option value="">Seleccioná...</option>
                       {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
-                    {touched.department && registerErrors.department && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.department}</p>}
+                    {touched.department && registerErrors.department && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {registerErrors.department}</p>}
                   </div>
                   <div>
                     <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>MUNICIPIO</label>
@@ -152,12 +152,12 @@ export default function Login() {
                       placeholder={form.department ? 'Escribí para buscar...' : 'Elegí un departamento'}
                       autoComplete="off"
                       required
-                      style={{ width:'100%', padding:'12px 16px', opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && registerErrors.municipality ? '#E05252' : 'var(--dark-4)') }}
+                      style={{ width:'100%', padding:'12px 16px', opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && registerErrors.municipality ? '#E8C97A' : 'var(--dark-4)') }}
                     />
                     <datalist id="municipios-register">
                       {getMunicipalities(form.department).map(m => <option key={m} value={m} />)}
                     </datalist>
-                    {touched.municipality && registerErrors.municipality && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {registerErrors.municipality}</p>}
+                    {touched.municipality && registerErrors.municipality && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {registerErrors.municipality}</p>}
                   </div>
                 </div>
               </>
@@ -165,8 +165,8 @@ export default function Login() {
 
             <div>
               <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>CORREO ELECTRÓNICO</label>
-              <input name="email" type="email" value={form.email} onChange={handleChange} onBlur={() => markTouched('email')} placeholder="tucorreo@email.com" required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.email && emailErr ? '#E05252' : 'var(--dark-4)') }} />
-              {touched.email && emailErr && <p style={{ color:'#E05252', fontSize:12, marginTop:6 }}>⚠ {emailErr}</p>}
+              <input name="email" type="email" value={form.email} onChange={handleChange} onBlur={() => markTouched('email')} placeholder="tucorreo@email.com" required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.email && emailErr ? '#E8C97A' : 'var(--dark-4)') }} />
+              {touched.email && emailErr && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {emailErr}</p>}
             </div>
 
             <div>

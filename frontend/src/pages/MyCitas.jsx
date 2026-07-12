@@ -16,9 +16,9 @@ const formatDateTime = (d) => new Date(d).toLocaleString('es-CO', {
 
 const STATUS = {
   pending:   { label: 'Pendiente',  color: 'var(--gold)',      bg: 'rgba(201,168,76,0.12)'  },
-  confirmed: { label: 'Confirmada', color: 'var(--cream-dim)', bg: 'rgba(184,176,160,0.12)' },
-  done:      { label: 'Completada', color: 'var(--success)',   bg: 'rgba(76,175,125,0.12)'  },
-  cancelled: { label: 'Cancelada',  color: 'var(--danger)',    bg: 'rgba(224,82,82,0.12)'   },
+  confirmed: { label: 'Confirmada', color: 'var(--cream)',     bg: 'rgba(245,240,232,0.10)' },
+  done:      { label: 'Completada', color: 'var(--cream-dim)', bg: 'rgba(184,176,160,0.12)' },
+  cancelled: { label: 'Cancelada',  color: 'var(--gold-dim)',  bg: 'rgba(139,105,20,0.18)'  },
 }
 
 export default function MyCitas() {
@@ -244,8 +244,8 @@ export default function MyCitas() {
                         <button
                           onClick={() => handleCancel(a.id)}
                           disabled={cancelling === a.id}
-                          style={{ width: '100%', background: 'transparent', border: '1px solid rgba(224,82,82,0.2)', color: 'var(--danger)', padding: '10px 0', borderRadius: 8, cursor: cancelling === a.id ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', opacity: cancelling === a.id ? 0.6 : 1, transition: 'all 0.2s' }}
-                          onMouseEnter={e => { if (cancelling !== a.id) e.target.style.background = 'rgba(224,82,82,0.08)' }}
+                          style={{ width: '100%', background: 'transparent', border: '1px solid rgba(232,201,122,0.2)', color: 'var(--danger)', padding: '10px 0', borderRadius: 8, cursor: cancelling === a.id ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', opacity: cancelling === a.id ? 0.6 : 1, transition: 'all 0.2s' }}
+                          onMouseEnter={e => { if (cancelling !== a.id) e.target.style.background = 'rgba(232,201,122,0.08)' }}
                           onMouseLeave={e => e.target.style.background = 'transparent'}
                         >
                           {cancelling === a.id ? 'CANCELANDO...' : 'CANCELAR CITA'}
