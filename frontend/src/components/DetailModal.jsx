@@ -31,7 +31,7 @@ export default function DetailModal({ onClose, image, imageFallback, title, subt
         </div>
 
         <div style={{ padding: '24px 24px 0', overflowY: 'auto', flex: 1 }}>
-          <h3 style={{ fontFamily: 'Playfair Display', fontSize: 24, fontWeight: 900, color: 'var(--cream)', marginBottom: subtitle ? 4 : 16 }}>{title}</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 900, color: 'var(--cream)', marginBottom: subtitle ? 4 : 16 }}>{title}</h3>
           {subtitle && <p style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700, marginBottom: 16 }}>{subtitle}</p>}
           {children}
         </div>
@@ -39,13 +39,13 @@ export default function DetailModal({ onClose, image, imageFallback, title, subt
         <div style={{ display: 'flex', gap: 10, padding: 24, flexShrink: 0 }}>
           <button
             onClick={onClose}
-            style={{ flex: 1, background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans' }}
+            style={{ flex: 1, background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}
           >
             CERRAR
           </button>
           <button
             onClick={onSelect}
-            style={{ flex: 2, background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans' }}
+            style={{ flex: 2, background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}
           >
             {selectLabel}
           </button>

@@ -116,7 +116,7 @@ const { barbershop, refreshBarbershop } = useAuth()
           {status === 'trial' && (
             <div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:10 }}>
-                <span style={{ fontFamily:'Playfair Display', fontSize:52, fontWeight:900, color:'var(--gold)', lineHeight:1 }}>{daysLeft}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize:52, fontWeight:900, color:'var(--gold)', lineHeight:1 }}>{daysLeft}</span>
                 <span style={{ color:'var(--cream-dim)', fontSize:15 }}>días restantes de prueba gratuita</span>
               </div>
               <div style={{ height:5, background:'var(--dark-3)', borderRadius:3, marginBottom:14, overflow:'hidden' }}>
@@ -182,7 +182,7 @@ const { barbershop, refreshBarbershop } = useAuth()
               <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:10 }}>{plan.label}</p>
 
               <div style={{ display:'flex', alignItems:'baseline', gap:4, marginBottom:4 }}>
-                <span style={{ fontFamily:'Playfair Display', fontSize:42, fontWeight:900, color: plan.popular ? 'var(--gold)' : 'var(--cream)', lineHeight:1 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize:42, fontWeight:900, color: plan.popular ? 'var(--gold)' : 'var(--cream)', lineHeight:1 }}>
                   {plan.price}
                 </span>
               </div>

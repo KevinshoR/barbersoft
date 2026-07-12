@@ -51,7 +51,7 @@ export default function Navbar() {
       {/* Logo */}
       <Link to="/dashboard" style={{ display:'flex', alignItems:'center', gap:8, textDecoration:'none' }}>
         <span style={{ color:'var(--gold)', fontSize:20 }}>✂</span>
-        <span style={{ fontFamily:'Playfair Display', fontWeight:900, fontSize:18, color:'var(--cream)', letterSpacing:'0.02em' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight:900, fontSize:18, color:'var(--cream)', letterSpacing:'0.02em' }}>
           Barber<span style={{ color:'var(--gold)' }}>soft</span>
         </span>
       </Link>
@@ -83,7 +83,7 @@ export default function Navbar() {
           style={{ display:'flex', alignItems:'center', gap:10, background: open ? 'var(--dark-3)' : 'transparent', border:'1px solid ' + (open ? 'var(--dark-4)' : 'transparent'), borderRadius:10, padding:'7px 12px', cursor:'pointer', transition:'all 0.2s' }}
         >
           {/* Avatar */}
-          <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg, var(--gold-dim), var(--gold))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontFamily:'Playfair Display', fontWeight:900, color:'var(--dark)', flexShrink:0 }}>
+          <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg, var(--gold-dim), var(--gold))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontFamily: 'var(--font-display)', fontWeight:900, color:'var(--dark)', flexShrink:0 }}>
             {barbershop?.name?.charAt(0).toUpperCase() || 'B'}
           </div>
           <div style={{ textAlign:'left' }}>
@@ -116,7 +116,7 @@ export default function Navbar() {
               <button
                 key={item.label}
                 onClick={item.action}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'var(--cream)', fontSize:13, fontFamily:'DM Sans', textAlign:'left' }}
+                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'var(--cream)', fontSize:13, fontFamily: 'var(--font-body)', textAlign:'left' }}
                 onMouseEnter={e => e.currentTarget.style.background='var(--dark-3)'}
                 onMouseLeave={e => e.currentTarget.style.background='transparent'}
               >
@@ -129,7 +129,7 @@ export default function Navbar() {
             <div style={{ height:1, background:'var(--dark-4)', margin:'4px 0' }} />
             <button
               onClick={handleLogout}
-              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'var(--danger)', fontSize:13, fontFamily:'DM Sans', textAlign:'left' }}
+              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'transparent', border:'none', padding:'9px 12px', borderRadius:8, cursor:'pointer', transition:'background 0.15s', color:'var(--danger)', fontSize:13, fontFamily: 'var(--font-body)', textAlign:'left' }}
               onMouseEnter={e => e.currentTarget.style.background='rgba(232,201,122,0.08)'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}
             >

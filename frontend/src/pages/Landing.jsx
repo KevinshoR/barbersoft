@@ -133,8 +133,8 @@ export default function Landing() {
           --dark:#0A0A0A; --dark-2:#111111; --dark-3:#1A1A1A; --dark-4:#242424;
           --cream:#F5F0E8; --cream-dim:#B8B0A0; --success:#C9A84C;
         }
-        .landing-body { background:var(--dark); color:var(--cream); font-family:'DM Sans',sans-serif; overflow-x:hidden; }
-        .landing-body h1,.landing-body h2,.landing-body h3 { font-family:'Playfair Display',serif; }
+        .landing-body { background:var(--dark); color:var(--cream); font-family:var(--font-body),sans-serif; overflow-x:hidden; }
+        .landing-body h1,.landing-body h2,.landing-body h3 { font-family:var(--font-display),serif; }
         @keyframes fadeUp   { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
         @keyframes float    { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-12px) rotate(1deg)} }
         @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -148,13 +148,13 @@ export default function Landing() {
         #particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.4}
         #navbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 48px;height:68px;display:flex;align-items:center;justify-content:space-between;transition:all 0.3s}
         #navbar.scrolled{background:rgba(10,10,10,0.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,168,76,0.1)}
-        .logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--cream);text-decoration:none;display:flex;align-items:center;gap:10px;cursor:pointer}
+        .logo{font-family:var(--font-display),serif;font-size:22px;font-weight:900;color:var(--cream);text-decoration:none;display:flex;align-items:center;gap:10px;cursor:pointer}
         .logo-icon{width:36px;height:36px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--dark);flex-shrink:0}
         .logo span{color:var(--gold)}
         .nav-links{display:flex;align-items:center;gap:36px;list-style:none}
         .nav-links a{color:var(--cream-dim);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:0.04em;transition:color 0.2s}
         .nav-links a:hover{color:var(--cream)}
-        .btn-nav{background:var(--gold);color:var(--dark);border:none;padding:10px 24px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.25s;position:relative;overflow:hidden}
+        .btn-nav{background:var(--gold);color:var(--dark);border:none;padding:10px 24px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;cursor:pointer;font-family:var(--font-body),sans-serif;transition:all 0.25s;position:relative;overflow:hidden}
         .btn-nav:hover{background:#E8C97A;transform:translateY(-1px)}
         .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:120px 24px 80px;position:relative;overflow:hidden;text-align:center}
         .hero-orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px)}
@@ -167,7 +167,7 @@ export default function Landing() {
         .hero-line2{display:block;background:linear-gradient(135deg,#C9A84C 0%,#F5D47A 40%,#C9A84C 60%,#E8C97A 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite,fadeUp 0.6s ease 0.15s both}
         .hero-sub{font-size:clamp(16px,2vw,20px);color:var(--cream-dim);line-height:1.65;margin:24px auto 44px;max-width:520px;animation:fadeUp 0.6s ease 0.25s both;font-weight:300}
         .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp 0.6s ease 0.35s both;margin-bottom:64px}
-        .btn-hero{padding:16px 40px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.07em;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;transition:all 0.25s;display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden;border:none}
+        .btn-hero{padding:16px 40px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.07em;cursor:pointer;font-family:var(--font-body),sans-serif;text-decoration:none;transition:all 0.25s;display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden;border:none}
         .btn-hero-gold{background:var(--gold);color:var(--dark);animation:glow 3s ease-in-out infinite}
         .btn-hero-gold:hover{background:#E8C97A;transform:translateY(-2px);box-shadow:0 12px 40px rgba(201,168,76,0.35)}
         .btn-hero-outline{background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,0.15) !important}
@@ -183,7 +183,7 @@ export default function Landing() {
         .mockup-body{padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
         .mock-stat{background:#161616;border:1px solid #222;border-radius:10px;padding:14px}
         .mock-stat-label{font-size:9px;color:#666;letter-spacing:0.1em;font-weight:600;margin-bottom:6px}
-        .mock-stat-value{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:var(--gold)}
+        .mock-stat-value{font-family:var(--font-display),serif;font-size:24px;font-weight:900;color:var(--gold)}
         .mockup-appointments{grid-column:1/-1;background:#161616;border:1px solid #222;border-radius:10px;overflow:hidden}
         .mock-appt-header{padding:12px 14px;border-bottom:1px solid #222;font-size:11px;font-weight:600;color:#555;letter-spacing:0.08em}
         .mock-appt{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #1A1A1A}
@@ -199,7 +199,7 @@ export default function Landing() {
         .mockup-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent);animation:scanline 4s linear infinite;pointer-events:none}
         .stats-bar{background:var(--dark-2);border-top:1px solid rgba(201,168,76,0.1);border-bottom:1px solid rgba(201,168,76,0.1);padding:40px 24px}
         .stats-inner{max-width:900px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:32px}
-        .stat-number{font-family:'Playfair Display',serif;font-size:48px;font-weight:900;color:var(--gold);line-height:1;display:block}
+        .stat-number{font-family:var(--font-display),serif;font-size:48px;font-weight:900;color:var(--gold);line-height:1;display:block}
         .stat-label{font-size:11px;color:var(--cream-dim);letter-spacing:0.1em;font-weight:600;margin-top:6px;display:block}
         .section-header{text-align:center;margin-bottom:64px}
         .section-eyebrow{display:inline-block;color:var(--gold);font-size:11px;font-weight:700;letter-spacing:0.14em;margin-bottom:12px}
@@ -208,7 +208,7 @@ export default function Landing() {
         .feat{background:var(--dark-2);padding:36px 28px;transition:background 0.3s;cursor:default;position:relative;overflow:hidden}
         .feat:hover{background:#161616}
         .feat-icon{font-size:32px;margin-bottom:16px;display:block}
-        .feat h3{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:var(--cream);margin-bottom:8px}
+        .feat h3{font-family:var(--font-body),sans-serif;font-size:16px;font-weight:700;color:var(--cream);margin-bottom:8px}
         .feat p{font-size:13px;color:var(--cream-dim);line-height:1.65}
         .contrast-grid{max-width:900px;margin:48px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .contrast-col{border-radius:14px;padding:28px}
@@ -223,9 +223,9 @@ export default function Landing() {
         .steps-row{max-width:900px;margin:64px auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
         .steps-row::before{content:'';position:absolute;top:22px;left:calc(12.5%);width:75%;height:1px;background:linear-gradient(90deg,transparent,var(--gold-dim),transparent);opacity:0.3}
         .step{text-align:center;padding:0 16px}
-        .step-num{width:44px;height:44px;border-radius:50%;background:var(--dark-3);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:var(--gold);position:relative;z-index:1;transition:all 0.3s}
+        .step-num{width:44px;height:44px;border-radius:50%;background:var(--dark-3);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:var(--font-display),serif;font-size:18px;font-weight:900;color:var(--gold);position:relative;z-index:1;transition:all 0.3s}
         .step:hover .step-num{background:rgba(201,168,76,0.1);border-color:var(--gold);box-shadow:0 0 20px var(--gold-glow)}
-        .step h3{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:var(--cream);margin-bottom:8px}
+        .step h3{font-family:var(--font-body),sans-serif;font-size:14px;font-weight:700;color:var(--cream);margin-bottom:8px}
         .step p{font-size:12px;color:var(--cream-dim);line-height:1.6}
         .pricing-cards{max-width:680px;margin:64px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .price-card{background:var(--dark-3);border:1px solid var(--dark-4);border-radius:16px;padding:32px 28px;position:relative;overflow:hidden;transition:transform 0.3s,box-shadow 0.3s}
@@ -235,7 +235,7 @@ export default function Landing() {
         .price-card.hot:hover{box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 40px rgba(201,168,76,0.1)}
         .hot-label{display:inline-block;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:0.08em;margin-bottom:16px}
         .price-title{font-size:11px;color:var(--cream-dim);letter-spacing:0.1em;font-weight:600;margin-bottom:12px}
-        .price-amount{font-family:'Playfair Display',serif;font-size:44px;font-weight:900;color:var(--cream);line-height:1}
+        .price-amount{font-family:var(--font-display),serif;font-size:44px;font-weight:900;color:var(--cream);line-height:1}
         .price-card.hot .price-amount{color:var(--gold)}
         .price-cop{font-size:12px;color:var(--cream-dim);margin:4px 0 2px}
         .price-billing{font-size:11px;color:var(--cream-dim);opacity:0.5;margin-bottom:24px}
@@ -243,14 +243,14 @@ export default function Landing() {
         .price-list li{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--cream);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
         .price-list li:last-child{border:none}
         .price-list li::before{content:'✓';color:var(--success);font-weight:700;font-size:13px;flex-shrink:0}
-        .btn-price{display:block;width:100%;padding:13px 0;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;text-align:center;transition:all 0.25s}
+        .btn-price{display:block;width:100%;padding:13px 0;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;cursor:pointer;font-family:var(--font-body),sans-serif;text-decoration:none;text-align:center;transition:all 0.25s}
         .btn-price-outline{background:transparent;color:var(--cream);border:1px solid var(--dark-4)}
         .btn-price-outline:hover{border-color:var(--gold);color:var(--gold)}
         .btn-price-gold{background:var(--gold);color:var(--dark);border:none}
         .btn-price-gold:hover{background:#E8C97A}
         .faq-list{max-width:680px;margin:56px auto 0}
         .faq-item{border-bottom:1px solid var(--dark-4);overflow:hidden}
-        .faq-q{width:100%;background:none;border:none;padding:20px 0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--cream);text-align:left;gap:16px;transition:color 0.2s}
+        .faq-q{width:100%;background:none;border:none;padding:20px 0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:var(--font-body),sans-serif;font-size:15px;font-weight:600;color:var(--cream);text-align:left;gap:16px;transition:color 0.2s}
         .faq-q:hover{color:var(--gold)}
         .faq-icon{font-size:18px;color:var(--gold);transition:transform 0.3s;flex-shrink:0}
         .faq-item.open .faq-icon{transform:rotate(45deg)}

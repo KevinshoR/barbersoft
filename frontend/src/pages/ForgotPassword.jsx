@@ -33,7 +33,7 @@ export default function ForgotPassword() {
     wrap: { minHeight:'100vh', background:'#0A0A0A', display:'flex', alignItems:'center', justifyContent:'center', padding:24, position:'relative', overflow:'hidden' },
     orb:  { position:'absolute', top:-200, left:'50%', transform:'translateX(-50%)', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%)', pointerEvents:'none' },
     card: { background:'#161616', border:'1px solid #2A2A2A', borderRadius:16, padding:36, width:'100%', maxWidth:420, position:'relative', zIndex:1 },
-    inp:  { width:'100%', padding:'13px 16px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#F5F0E8', borderRadius:10, fontSize:14, fontFamily:'DM Sans', outline:'none' },
+    inp:  { width:'100%', padding:'13px 16px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#F5F0E8', borderRadius:10, fontSize:14, fontFamily: 'var(--font-body)', outline:'none' },
     label: { display:'block', fontSize:11, letterSpacing:'0.08em', color:'#C9A84C', marginBottom:7, fontWeight:600 },
   }
 
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
         <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(201,168,76,0.1)', border:'1px solid rgba(201,168,76,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:28, color:'#C9A84C' }}>
           ✓
         </div>
-        <h2 style={{ fontFamily:'Playfair Display', fontSize:24, color:'#F5F0E8', textAlign:'center', marginBottom:12 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize:24, color:'#F5F0E8', textAlign:'center', marginBottom:12 }}>
           Email enviado
         </h2>
         <p style={{ color:'#B8B0A0', fontSize:14, textAlign:'center', lineHeight:1.7, marginBottom:28 }}>
@@ -52,7 +52,7 @@ export default function ForgotPassword() {
         </p>
         <button
           onClick={() => navigate('/login')}
-          style={{ width:'100%', background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'13px 0', borderRadius:10, cursor:'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans' }}
+          style={{ width:'100%', background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'13px 0', borderRadius:10, cursor:'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily: 'var(--font-body)' }}
         >
           VOLVER AL LOGIN
         </button>
@@ -67,7 +67,7 @@ export default function ForgotPassword() {
 
         <div style={{ textAlign:'center', marginBottom:32 }}>
           <p style={{ fontSize:36, color:'#C9A84C', marginBottom:10 }}>✂</p>
-          <h1 style={{ fontFamily:'Playfair Display', fontSize:26, color:'#F5F0E8', marginBottom:6 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize:26, color:'#F5F0E8', marginBottom:6 }}>
             Recuperar contraseña
           </h1>
           <p style={{ color:'#B8B0A0', fontSize:13 }}>
@@ -98,7 +98,7 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={loading || !!fieldError}
-            style={{ background: (loading || fieldError) ? '#8B6914' : '#C9A84C', color:'#0A0A0A', border:'none', padding:'14px 0', borderRadius:10, cursor: (loading || fieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', marginTop:4 }}
+            style={{ background: (loading || fieldError) ? '#8B6914' : '#C9A84C', color:'#0A0A0A', border:'none', padding:'14px 0', borderRadius:10, cursor: (loading || fieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily: 'var(--font-body)', marginTop:4 }}
           >
             {loading ? 'ENVIANDO...' : 'ENVIAR ENLACE'}
           </button>

@@ -160,7 +160,7 @@ const [copied, setCopied]   = useState(false)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }}
-    style={{ background: copied ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', border:'1px solid ' + (copied ? 'rgba(201,168,76,0.3)' : 'var(--dark-4)'), color: copied ? '#C9A84C' : 'var(--cream-dim)', padding:'4px 12px', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily:'DM Sans', transition:'all 0.2s' }}
+    style={{ background: copied ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', border:'1px solid ' + (copied ? 'rgba(201,168,76,0.3)' : 'var(--dark-4)'), color: copied ? '#C9A84C' : 'var(--cream-dim)', padding:'4px 12px', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily: 'var(--font-body)', transition:'all 0.2s' }}
   >
     {copied ? '✓ COPIADO' : 'COPIAR'}
   </button>
@@ -173,7 +173,7 @@ const [copied, setCopied]   = useState(false)
             <div key={stat.label} style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '24px 28px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: stat.color, opacity: 0.6 }} />
               <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 12 }}>{stat.label}</p>
-              <p style={{ fontSize: 48, fontWeight: 900, color: stat.color, lineHeight: 1, fontFamily: 'Playfair Display' }}>{stat.value}</p>
+              <p style={{ fontSize: 48, fontWeight: 900, color: stat.color, lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stat.value}</p>
             </div>
           ))}
         </div>

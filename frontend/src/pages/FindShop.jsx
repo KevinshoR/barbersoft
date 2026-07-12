@@ -68,10 +68,10 @@ export default function FindShop() {
     }
   }
 
-  const inputStyle = { width:'100%', padding:'13px 16px', background:'var(--surface-1)', border:'1px solid var(--border-soft)', color:'var(--cream)', borderRadius:10, fontSize:14, fontFamily:'DM Sans', outline:'none' }
+  const inputStyle = { width:'100%', padding:'13px 16px', background:'var(--surface-1)', border:'1px solid var(--border-soft)', color:'var(--cream)', borderRadius:10, fontSize:14, fontFamily: 'var(--font-body)', outline:'none' }
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'DM Sans', position:'relative', overflow:'hidden' }}>
+    <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, fontFamily: 'var(--font-body)', position:'relative', overflow:'hidden' }}>
       <ThemeToggle floating />
       <div style={{ position:'absolute', top:-150, left:'50%', transform:'translateX(-50%)', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%)', pointerEvents:'none' }} />
 
@@ -80,7 +80,7 @@ export default function FindShop() {
         {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:40 }}>
           <div style={{ fontSize:40, color:'var(--gold)', marginBottom:10 }}>✂</div>
-          <h1 style={{ fontFamily:'Playfair Display', fontSize:32, fontWeight:900, color:'var(--cream)', marginBottom:8, letterSpacing:'-0.02em' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize:32, fontWeight:900, color:'var(--cream)', marginBottom:8, letterSpacing:'-0.02em' }}>
             Barber<span style={{ color:'var(--gold)' }}>soft</span>
           </h1>
           <p style={{ color:'var(--cream-dim)', fontSize:14 }}>
@@ -136,7 +136,7 @@ export default function FindShop() {
             <button
               type="submit"
               disabled={loading || !!departmentFieldError || !!municipalityFieldError}
-              style={{ background: (loading || departmentFieldError || municipalityFieldError) ? 'var(--gold-dim)' : 'var(--gold)', color:'var(--dark)', border:'none', padding:'14px 0', borderRadius:10, cursor: (loading || departmentFieldError || municipalityFieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', transition:'background 0.2s' }}
+              style={{ background: (loading || departmentFieldError || municipalityFieldError) ? 'var(--gold-dim)' : 'var(--gold)', color:'var(--dark)', border:'none', padding:'14px 0', borderRadius:10, cursor: (loading || departmentFieldError || municipalityFieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.08em', fontFamily: 'var(--font-body)', transition:'background 0.2s' }}
             >
               {loading ? 'BUSCANDO...' : 'BUSCAR →'}
             </button>
@@ -159,7 +159,7 @@ export default function FindShop() {
                       </div>
                       <button
                         onClick={() => navigate('/reservar/' + shop.slug)}
-                        style={{ background:'var(--gold)', color:'var(--dark)', border:'none', padding:'9px 16px', borderRadius:8, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily:'DM Sans', flexShrink:0 }}
+                        style={{ background:'var(--gold)', color:'var(--dark)', border:'none', padding:'9px 16px', borderRadius:8, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily: 'var(--font-body)', flexShrink:0 }}
                       >
                         RESERVAR →
                       </button>
@@ -199,7 +199,7 @@ export default function FindShop() {
                   <button
                     type="submit"
                     disabled={slugLoading || !!slugFieldError}
-                    style={{ background:'transparent', color:'var(--gold)', border:'1px solid rgba(201,168,76,0.4)', padding:'12px 0', borderRadius:10, cursor: (slugLoading || slugFieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.06em', fontFamily:'DM Sans', opacity: slugFieldError ? 0.6 : 1 }}
+                    style={{ background:'transparent', color:'var(--gold)', border:'1px solid rgba(201,168,76,0.4)', padding:'12px 0', borderRadius:10, cursor: (slugLoading || slugFieldError) ? 'not-allowed' : 'pointer', fontSize:12, fontWeight:700, letterSpacing:'0.06em', fontFamily: 'var(--font-body)', opacity: slugFieldError ? 0.6 : 1 }}
                   >
                     {slugLoading ? 'BUSCANDO...' : 'BUSCAR POR NOMBRE'}
                   </button>

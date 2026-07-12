@@ -128,7 +128,7 @@ export default function Settings() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              style={{ flex:1, padding:'9px 0', borderRadius:7, border:'none', background: tab === t.id ? 'var(--gold)' : 'transparent', color: tab === t.id ? 'var(--dark)' : 'var(--cream-dim)', fontSize:12, fontWeight:700, letterSpacing:'0.06em', cursor:'pointer', transition:'all 0.2s', fontFamily:'DM Sans' }}
+              style={{ flex:1, padding:'9px 0', borderRadius:7, border:'none', background: tab === t.id ? 'var(--gold)' : 'transparent', color: tab === t.id ? 'var(--dark)' : 'var(--cream-dim)', fontSize:12, fontWeight:700, letterSpacing:'0.06em', cursor:'pointer', transition:'all 0.2s', fontFamily: 'var(--font-body)' }}
             >
               {t.label.toUpperCase()}
             </button>
@@ -300,7 +300,7 @@ export default function Settings() {
               {status === 'trial' && (
                 <div>
                   <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
-                    <span style={{ fontFamily:'Playfair Display', fontSize:48, fontWeight:900, color:'var(--gold)', lineHeight:1 }}>{trialDaysLeft()}</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize:48, fontWeight:900, color:'var(--gold)', lineHeight:1 }}>{trialDaysLeft()}</span>
                     <span style={{ color:'var(--cream-dim)', fontSize:14 }}>días restantes de prueba</span>
                   </div>
                   <div style={{ height:4, background:'var(--dark-3)', borderRadius:2, marginBottom:12, overflow:'hidden' }}>
@@ -340,7 +340,7 @@ export default function Settings() {
                 <div key={plan.label} style={{ background:'var(--dark-2)', border:'1px solid ' + (plan.hot ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'), borderRadius:12, padding:24, position:'relative', overflow:'hidden' }}>
                   {plan.hot && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />}
                   <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:8 }}>{plan.label}</p>
-                  <p style={{ fontFamily:'Playfair Display', fontSize:32, fontWeight:900, color: plan.hot ? 'var(--gold)' : 'var(--cream)', marginBottom:2 }}>{plan.price}</p>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize:32, fontWeight:900, color: plan.hot ? 'var(--gold)' : 'var(--cream)', marginBottom:2 }}>{plan.price}</p>
                   <p style={{ color:'var(--cream-dim)', fontSize:11, marginBottom:16, opacity:0.6 }}>{plan.billing}</p>
                   <ul style={{ listStyle:'none', marginBottom:20 }}>
                     {plan.features.map(f => (

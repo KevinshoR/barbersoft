@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
@@ -7,7 +7,10 @@ import api from '../services/api'
 import { requiredError, lengthError, combine } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
 import ImageUpload, { resolveImageSrc } from '../components/ImageUpload'
-import { TrashIcon, PencilIcon } from '../components/Icons'
+import ModuleHeader from '../components/ModuleHeader'
+import IconButton from '../components/IconButton'
+import RecordDetailModal from '../components/RecordDetailModal'
+import InfoCard from '../components/InfoCard'
 
 const validateName = combine(
   v => requiredError(v, 'El nombre'),
@@ -39,8 +42,16 @@ export default function Barbers() {
   const [deleting, setDeleting] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [photoErrors, setPhotoErrors] = useState({})
+  const [search, setSearch] = useState('')
+  const [detail, setDetail] = useState(null)
 
   useEffect(() => { fetchBarbers() }, [])
+
+  const filteredBarbers = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return barbers
+    return barbers.filter(b => (b.name || '').toLowerCase().includes(q) || (b.specialty || '').toLowerCase().includes(q))
+  }, [barbers, search])
 
   const fetchBarbers = () => {
     setLoading(true)
@@ -169,21 +180,53 @@ export default function Barbers() {
         </div>
       )}
 
+      {/* Modal ver detalle */}
+      {detail && (
+        <RecordDetailModal
+          onClose={() => setDetail(null)}
+          kicker="Detalle del barbero"
+          title={detail.name}
+          image={resolveImageSrc(detail.photo_url) || null}
+          placeholderIcon={<span style={{ fontSize: 56, fontWeight: 900, fontFamily: 'var(--font-display)' }}>{detail.name.charAt(0).toUpperCase()}</span>}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+            <InfoCard label="Estado" value={detail.active ? 'Activo' : 'Inactivo'} />
+            <InfoCard label="Especialidad" value={detail.specialty || 'Sin especificar'} />
+          </div>
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--cream-dim)', textTransform: 'uppercase', marginBottom: 8 }}>Días que trabaja</p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {DAY_ABBR.map((label, day) => {
+                const works = parseWorkDays(detail.work_days).includes(day)
+                return (
+                  <span key={day} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', padding: '5px 10px', borderRadius: 10, background: works ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', color: works ? 'var(--gold)' : 'var(--cream-dim)', opacity: works ? 1 : 0.4 }}>
+                    {label}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        </RecordDetailModal>
+      )}
+
       <Navbar />
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px', flex: 1, width: '100%' }}>
 
-        <div className="animate-fade-up" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
-          <div>
-            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>EQUIPO</p>
-            <h1 style={{ fontSize: 36, fontWeight: 900, color: 'var(--cream)' }}>Barberos</h1>
-          </div>
-          <button
-            onClick={() => { if (showForm) { setShowForm(false); resetForm() } else { openCreateForm() } }}
-            className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}
-          >
-            {showForm ? 'CANCELAR' : '+ AGREGAR'}
-          </button>
-        </div>
+        <ModuleHeader
+          kicker="Equipo"
+          title="Barberos"
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Buscar barbero por nombre o especialidad..."
+          action={
+            <button
+              onClick={() => { if (showForm) { setShowForm(false); resetForm() } else { openCreateForm() } }}
+              className="btn-primary" style={{ opacity: showForm ? 0.6 : 1 }}
+            >
+              {showForm ? 'CANCELAR' : '+ AGREGAR'}
+            </button>
+          }
+        />
 
         {showForm && (
           <form onSubmit={handleSubmit} className="animate-fade-up" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
@@ -267,14 +310,16 @@ export default function Barbers() {
           <div className="animate-fade-up delay-2" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12 }}>
             <p style={{ color: 'var(--cream-dim)', textAlign: 'center', padding: '48px 0', fontSize: 14 }}>Cargando...</p>
           </div>
-        ) : barbers.length === 0 ? (
+        ) : filteredBarbers.length === 0 ? (
           <div className="animate-fade-up delay-2" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, textAlign: 'center', padding: '56px 0' }}>
             <p style={{ fontSize: 36, marginBottom: 12 }}>◈</p>
-            <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay barberos. Agrega el primero.</p>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>
+              {barbers.length === 0 ? 'No hay barberos. Agrega el primero.' : 'Sin resultados para esa búsqueda.'}
+            </p>
           </div>
         ) : (
           <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 14 }}>
-            {barbers.map(barber => {
+            {filteredBarbers.map(barber => {
               const photoSrc = resolveImageSrc(barber.photo_url)
               const barberWorkDays = parseWorkDays(barber.work_days)
               return (
@@ -289,7 +334,7 @@ export default function Barbers() {
                         style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--dark-4)' }}
                       />
                     ) : (
-                      <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: 'var(--dark)', fontFamily: 'Playfair Display', flexShrink: 0 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dim), var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: 'var(--dark)', fontFamily: 'var(--font-display)', flexShrink: 0 }}>
                         {barber.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -333,17 +378,9 @@ export default function Barbers() {
                   )}
 
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => openEditForm(barber)}
-                      title="Editar"
-                      aria-label={`Editar a ${barber.name}`}
-                      style={{ flex: 1, background: 'var(--dark-3)', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 0', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <PencilIcon size={14} />
-                    </button>
-                    <button onClick={() => handleDelete(barber)} className="btn-danger" title="Eliminar" aria-label={`Eliminar a ${barber.name}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <TrashIcon size={14} />
-                    </button>
+                    <IconButton variant="view" tooltip="Ver detalle" onClick={() => setDetail(barber)} />
+                    <IconButton variant="edit" tooltip="Editar" onClick={() => openEditForm(barber)} />
+                    <IconButton variant="delete" tooltip="Eliminar" onClick={() => handleDelete(barber)} />
                   </div>
                 </div>
               )

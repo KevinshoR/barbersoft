@@ -33,7 +33,7 @@ export default function HelpButton({ path }) {
         )}
         <button
           onClick={() => setOpen(prev => !prev)}
-          style={{ width:44, height:44, borderRadius:'50%', background: open ? 'var(--gold)' : 'var(--dark-2)', border:'1px solid ' + (open ? 'var(--gold)' : 'var(--dark-4)'), color: open ? 'var(--dark)' : 'var(--cream-dim)', fontSize:20, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(0,0,0,0.4)', transition:'all 0.2s', fontFamily:'Playfair Display', lineHeight:1 }}
+          style={{ width:44, height:44, borderRadius:'50%', background: open ? 'var(--gold)' : 'var(--dark-2)', border:'1px solid ' + (open ? 'var(--gold)' : 'var(--dark-4)'), color: open ? 'var(--dark)' : 'var(--cream-dim)', fontSize:20, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(0,0,0,0.4)', transition:'all 0.2s', fontFamily: 'var(--font-display)', lineHeight:1 }}
         >
           ?
         </button>

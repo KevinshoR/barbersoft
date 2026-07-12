@@ -76,13 +76,13 @@ export default function MyCitas() {
     color: 'var(--cream)',
     borderRadius: 10,
     fontSize: 16,
-    fontFamily: 'DM Sans',
+    fontFamily: 'var(--font-body)',
     outline: 'none',
     letterSpacing: '0.04em',
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--dark)', fontFamily: 'DM Sans' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--dark)', fontFamily: 'var(--font-body)' }}>
       <ThemeToggle floating />
 
       {/* Header */}
@@ -94,7 +94,7 @@ export default function MyCitas() {
           ← Volver a reservar
         </button>
         <p style={{ fontSize: 40, color: 'var(--gold)', marginBottom: 8 }}>✂</p>
-        <h1 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 4 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 4 }}>
           {shopName || 'Mis citas'}
         </h1>
         <p style={{ color: 'var(--cream-dim)', fontSize: 13 }}>
@@ -111,7 +111,7 @@ export default function MyCitas() {
               <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
                 📱
               </div>
-              <h2 style={{ fontFamily: 'Playfair Display', fontSize: 22, color: 'var(--cream)', marginBottom: 8 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)', marginBottom: 8 }}>
                 ¿Cuál es tu número?
               </h2>
               <p style={{ color: 'var(--cream-dim)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
@@ -134,7 +134,7 @@ export default function MyCitas() {
                 <button
                   type="submit"
                   disabled={loading || !!phoneFieldError}
-                  style={{ background: (loading || phoneFieldError) ? 'var(--gold-dim)' : 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: (loading || phoneFieldError) ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'DM Sans', transition: 'background 0.2s' }}
+                  style={{ background: (loading || phoneFieldError) ? 'var(--gold-dim)' : 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: (loading || phoneFieldError) ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'var(--font-body)', transition: 'background 0.2s' }}
                 >
                   {loading ? 'BUSCANDO...' : 'VER MIS CITAS'}
                 </button>
@@ -150,7 +150,7 @@ export default function MyCitas() {
           /* Sin citas */
           <div className="animate-fade-up" style={{ textAlign: 'center', padding: '48px 0' }}>
             <p style={{ fontSize: 48, marginBottom: 16 }}>🗓</p>
-            <h3 style={{ fontFamily: 'Playfair Display', fontSize: 22, color: 'var(--cream)', marginBottom: 8 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--cream)', marginBottom: 8 }}>
               Sin citas pendientes
             </h3>
             <p style={{ color: 'var(--cream-dim)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
@@ -159,13 +159,13 @@ export default function MyCitas() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
                 onClick={() => navigate(`/reservar/${slug}`)}
-                style={{ background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'DM Sans' }}
+                style={{ background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'var(--font-body)' }}
               >
                 RESERVAR UNA CITA
               </button>
               <button
                 onClick={() => { setSearched(false); setPhone('') }}
-                style={{ background: 'transparent', color: 'var(--cream-dim)', border: '1px solid var(--dark-3)', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontFamily: 'DM Sans' }}
+                style={{ background: 'transparent', color: 'var(--cream-dim)', border: '1px solid var(--dark-3)', padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}
               >
                 Buscar con otro número
               </button>
@@ -235,7 +235,7 @@ export default function MyCitas() {
                         <div style={{ height: 1, background: 'var(--dark-3)', margin: '4px 0' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: 'var(--cream-dim)', fontSize: 13 }}>Total</span>
-                          <span style={{ color: 'var(--gold)', fontSize: 16, fontWeight: 700, fontFamily: 'Playfair Display' }}>{formatPrice(a.price)}</span>
+                          <span style={{ color: 'var(--gold)', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{formatPrice(a.price)}</span>
                         </div>
                       </div>
 
@@ -244,7 +244,7 @@ export default function MyCitas() {
                         <button
                           onClick={() => handleCancel(a.id)}
                           disabled={cancelling === a.id}
-                          style={{ width: '100%', background: 'transparent', border: '1px solid rgba(232,201,122,0.2)', color: 'var(--danger)', padding: '10px 0', borderRadius: 8, cursor: cancelling === a.id ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', opacity: cancelling === a.id ? 0.6 : 1, transition: 'all 0.2s' }}
+                          style={{ width: '100%', background: 'transparent', border: '1px solid rgba(232,201,122,0.2)', color: 'var(--danger)', padding: '10px 0', borderRadius: 8, cursor: cancelling === a.id ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'var(--font-body)', opacity: cancelling === a.id ? 0.6 : 1, transition: 'all 0.2s' }}
                           onMouseEnter={e => { if (cancelling !== a.id) e.target.style.background = 'rgba(232,201,122,0.08)' }}
                           onMouseLeave={e => e.target.style.background = 'transparent'}
                         >
@@ -265,7 +265,7 @@ export default function MyCitas() {
 
             <button
               onClick={() => navigate(`/reservar/${slug}`)}
-              style={{ width: '100%', background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'DM Sans', marginTop: 20 }}
+              style={{ width: '100%', background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', fontFamily: 'var(--font-body)', marginTop: 20 }}
             >
               + RESERVAR OTRA CITA
             </button>

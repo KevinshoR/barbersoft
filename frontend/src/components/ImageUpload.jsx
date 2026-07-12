@@ -63,7 +63,7 @@ export default function ImageUpload({ value, onChange, label }) {
         flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
         background: mode === m ? 'var(--gold)' : 'transparent',
         color: mode === m ? 'var(--dark)' : 'var(--cream-dim)',
-        fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', fontFamily: 'DM Sans', transition: 'all 0.2s',
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', fontFamily: 'var(--font-body)', transition: 'all 0.2s',
       }}
     >
       {text}
@@ -94,7 +94,7 @@ export default function ImageUpload({ value, onChange, label }) {
             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
             onChange={handleFileChange}
             disabled={uploading}
-            style={{ fontSize: 12, color: 'var(--cream-dim)', fontFamily: 'DM Sans' }}
+            style={{ fontSize: 12, color: 'var(--cream-dim)', fontFamily: 'var(--font-body)' }}
           />
           {uploading && <p style={{ color: 'var(--gold)', fontSize: 12, marginTop: 6 }}>Subiendo...</p>}
           <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 4, opacity: 0.6 }}>JPG, PNG o WEBP · máximo 2MB</p>
@@ -105,7 +105,7 @@ export default function ImageUpload({ value, onChange, label }) {
             value={linkDraft}
             onChange={handleLinkChange}
             placeholder="https://ejemplo.com/foto.jpg"
-            style={{ width: '100%', padding: '12px 16px', background: 'var(--surface-1)', border: '1px solid ' + (linkInvalid ? 'var(--danger)' : 'var(--dark-4)'), color: 'var(--cream)', borderRadius: 10, fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }}
+            style={{ width: '100%', padding: '12px 16px', background: 'var(--surface-1)', border: '1px solid ' + (linkInvalid ? 'var(--danger)' : 'var(--dark-4)'), color: 'var(--cream)', borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-body)', outline: 'none' }}
           />
           {linkInvalid && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ El link debe empezar por http:// o https://</p>}
         </div>
@@ -122,7 +122,7 @@ export default function ImageUpload({ value, onChange, label }) {
           <button
             type="button"
             onClick={handleRemove}
-            style={{ background: 'none', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 14px', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', fontFamily: 'DM Sans' }}
+            style={{ background: 'none', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '7px 14px', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', fontFamily: 'var(--font-body)' }}
           >
             QUITAR
           </button>

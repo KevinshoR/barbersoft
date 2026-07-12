@@ -35,7 +35,7 @@ export default function ShopProfile() {
     <div style={{ minHeight:'100vh', background:'#0A0A0A', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <div style={{ textAlign:'center' }}>
         <p style={{ fontSize:48, color:'#C9A84C', marginBottom:16 }}>✂</p>
-        <h2 style={{ fontFamily:'Playfair Display', fontSize:28, color:'#F5F0E8', marginBottom:8 }}>Barbería no encontrada</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize:28, color:'#F5F0E8', marginBottom:8 }}>Barbería no encontrada</h2>
         <p style={{ color:'#B8B0A0', fontSize:14 }}>Verificá que el enlace sea correcto</p>
       </div>
     </div>
@@ -46,7 +46,7 @@ export default function ShopProfile() {
   const isOpenToday = todayHours?.is_open
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0A0A0A', fontFamily:'DM Sans', paddingBottom:80 }}>
+    <div style={{ minHeight:'100vh', background:'#0A0A0A', fontFamily: 'var(--font-body)', paddingBottom:80 }}>
 
       {/* Header */}
       <div style={{ background:'#111', borderBottom:'1px solid #1A1A1A', position:'relative', overflow:'hidden' }}>
@@ -55,7 +55,7 @@ export default function ShopProfile() {
           <div style={{ width:72, height:72, borderRadius:16, background:'rgba(201,168,76,0.1)', border:'1px solid rgba(201,168,76,0.25)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px', fontSize:32, color:'#C9A84C' }}>
             ✂
           </div>
-          <h1 style={{ fontFamily:'Playfair Display', fontSize:32, fontWeight:900, color:'#F5F0E8', marginBottom:10, letterSpacing:'-0.02em' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize:32, fontWeight:900, color:'#F5F0E8', marginBottom:10, letterSpacing:'-0.02em' }}>
             {shop.name}
           </h1>
           <div style={{ display:'flex', justifyContent:'center', gap:20, flexWrap:'wrap', marginBottom:16 }}>
@@ -77,7 +77,7 @@ export default function ShopProfile() {
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button
               onClick={() => navigate(`/reservar/${slug}/cita`)}
-              style={{ background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'13px 32px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:700, letterSpacing:'0.07em', fontFamily:'DM Sans', transition:'all 0.2s' }}
+              style={{ background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'13px 32px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:700, letterSpacing:'0.07em', fontFamily: 'var(--font-body)', transition:'all 0.2s' }}
               onMouseEnter={e => { e.target.style.background='#E8C97A'; e.target.style.transform='translateY(-1px)' }}
               onMouseLeave={e => { e.target.style.background='#C9A84C'; e.target.style.transform='translateY(0)' }}
             >
@@ -85,7 +85,7 @@ export default function ShopProfile() {
             </button>
             <button
               onClick={() => navigate(`/reservar/${slug}/mis-citas`)}
-              style={{ background:'transparent', color:'#B8B0A0', border:'1px solid #242424', padding:'13px 32px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:600, letterSpacing:'0.07em', fontFamily:'DM Sans', transition:'all 0.2s' }}
+              style={{ background:'transparent', color:'#B8B0A0', border:'1px solid #242424', padding:'13px 32px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:600, letterSpacing:'0.07em', fontFamily: 'var(--font-body)', transition:'all 0.2s' }}
               onMouseEnter={e => { e.target.style.borderColor='#C9A84C'; e.target.style.color='#C9A84C' }}
               onMouseLeave={e => { e.target.style.borderColor='#242424'; e.target.style.color='#B8B0A0' }}
             >
@@ -117,7 +117,7 @@ export default function ShopProfile() {
                     <p style={{ color:'#B8B0A0', fontSize:12, marginTop:2 }}>⏱ {s.duration_min} minutos</p>
                   </div>
                 </div>
-                <p style={{ color:'#C9A84C', fontFamily:'Playfair Display', fontWeight:700, fontSize:18 }}>
+                <p style={{ color:'#C9A84C', fontFamily: 'var(--font-display)', fontWeight:700, fontSize:18 }}>
                   {formatPrice(s.price)}
                 </p>
               </div>
@@ -137,7 +137,7 @@ export default function ShopProfile() {
                   onMouseEnter={e => e.currentTarget.style.borderColor='rgba(201,168,76,0.3)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor='#1A1A1A'}
                 >
-                  <div style={{ width:52, height:52, borderRadius:'50%', background:'linear-gradient(135deg, #8B6914, #C9A84C)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 10px', fontSize:22, fontFamily:'Playfair Display', fontWeight:900, color:'#0A0A0A' }}>
+                  <div style={{ width:52, height:52, borderRadius:'50%', background:'linear-gradient(135deg, #8B6914, #C9A84C)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 10px', fontSize:22, fontFamily: 'var(--font-display)', fontWeight:900, color:'#0A0A0A' }}>
                     {b.name.charAt(0).toUpperCase()}
                   </div>
                   <p style={{ color:'#F5F0E8', fontWeight:600, fontSize:14 }}>{b.name}</p>
@@ -185,7 +185,7 @@ export default function ShopProfile() {
         {/* CTA bottom */}
         <button
           onClick={() => navigate(`/reservar/${slug}/cita`)}
-          style={{ width:'100%', background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'16px 0', borderRadius:12, cursor:'pointer', fontSize:14, fontWeight:700, letterSpacing:'0.08em', fontFamily:'DM Sans', transition:'background 0.2s' }}
+          style={{ width:'100%', background:'#C9A84C', color:'#0A0A0A', border:'none', padding:'16px 0', borderRadius:12, cursor:'pointer', fontSize:14, fontWeight:700, letterSpacing:'0.08em', fontFamily: 'var(--font-body)', transition:'background 0.2s' }}
           onMouseEnter={e => e.target.style.background='#E8C97A'}
           onMouseLeave={e => e.target.style.background='#C9A84C'}
         >

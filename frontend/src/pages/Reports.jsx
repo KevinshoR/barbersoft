@@ -18,7 +18,7 @@ function StatCard({ label, value, sub, color }) {
     <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:'24px 20px', position:'relative', overflow:'hidden' }}>
       <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:color, opacity:0.6 }} />
       <p style={{ fontSize:11, letterSpacing:'0.08em', color:'var(--cream-dim)', fontWeight:600, marginBottom:10 }}>{label}</p>
-      <p style={{ fontSize:28, fontWeight:900, color:color, lineHeight:1, fontFamily:'Playfair Display', marginBottom:6, wordBreak:'break-word' }}>{value}</p>
+      <p style={{ fontSize:28, fontWeight:900, color:color, lineHeight:1, fontFamily: 'var(--font-display)', marginBottom:6, wordBreak:'break-word' }}>{value}</p>
       {sub && <p style={{ fontSize:12, color:'var(--cream-dim)', opacity:0.7 }}>{sub}</p>}
     </div>
   )

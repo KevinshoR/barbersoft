@@ -57,14 +57,20 @@ const BarbersController = {
 
   async remove(req, res) {
     try {
+      const barberCheck = await pool.query(
+        'SELECT id FROM barbers WHERE id = $1 AND barbershop_id = $2',
+        [req.params.id, req.barbershop.id]
+      )
+      if (!barberCheck.rows[0]) return res.status(404).json({ error: 'Barbero no encontrado' })
+
       const citas = await pool.query(
         `SELECT COUNT(*) as total FROM appointments
-         WHERE barber_id = $1 AND status NOT IN ('cancelled', 'done')`,
-        [req.params.id]
+         WHERE barber_id = $1 AND barbershop_id = $2`,
+        [req.params.id, req.barbershop.id]
       )
       if (parseInt(citas.rows[0].total) > 0) {
         return res.status(400).json({
-          error: `Este barbero tiene ${citas.rows[0].total} cita(s) activa(s). Cancelalas o completalas antes de eliminar.`
+          error: 'No puedes eliminar este barbero porque tiene citas asociadas. Cancela o reasigna sus citas primero.'
         })
       }
 

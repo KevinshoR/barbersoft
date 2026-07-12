@@ -187,7 +187,7 @@ const navigate = useNavigate()
   const s = { // estilos base
     card: { background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 20, cursor: 'pointer', transition: 'all 0.2s', marginBottom: 10 },
     cardSelected: { background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.5)', borderRadius: 14, padding: 20, cursor: 'pointer', transition: 'all 0.2s', marginBottom: 10 },
-    inp: (name) => ({ width: '100%', padding: '13px 16px', background: 'var(--surface-1)', border: '1px solid ' + (errors[name] ? 'var(--danger)' : 'var(--border-soft)'), color: 'var(--cream)', borderRadius: 10, fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }),
+    inp: (name) => ({ width: '100%', padding: '13px 16px', background: 'var(--surface-1)', border: '1px solid ' + (errors[name] ? 'var(--danger)' : 'var(--border-soft)'), color: 'var(--cream)', borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-body)', outline: 'none' }),
     label: { display: 'block', fontSize: 11, letterSpacing: '0.07em', color: 'var(--cream-dim)', marginBottom: 7, fontWeight: 600 },
   }
 
@@ -206,7 +206,7 @@ const navigate = useNavigate()
       <ThemeToggle floating />
       <div style={{ textAlign: 'center' }}>
         <p style={{ fontSize: 48, color: 'var(--gold)', marginBottom: 16 }}>✂</p>
-        <h2 style={{ color: 'var(--cream)', fontFamily: 'Playfair Display', fontSize: 28, marginBottom: 8 }}>Barbería no encontrada</h2>
+        <h2 style={{ color: 'var(--cream)', fontFamily: 'var(--font-display)', fontSize: 28, marginBottom: 8 }}>Barbería no encontrada</h2>
         <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>Verifica que el enlace sea correcto</p>
       </div>
     </div>
@@ -219,7 +219,7 @@ const navigate = useNavigate()
 
         <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', fontSize: 36, color: 'var(--success)' }}>✓</div>
 
-        <h2 style={{ fontFamily: 'Playfair Display', fontSize: 32, color: 'var(--cream)', marginBottom: 10 }}>¡Reserva confirmada!</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, color: 'var(--cream)', marginBottom: 10 }}>¡Reserva confirmada!</h2>
         <p style={{ color: 'var(--cream-dim)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
           Tu cita en <strong style={{ color: 'var(--cream)' }}>{shop.name}</strong> quedó reservada.{' '}
           {form.client_email
@@ -246,14 +246,14 @@ const navigate = useNavigate()
               <div style={{ height: 1, background: 'var(--dark-4)', margin: '4px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--cream-dim)', fontSize: 13 }}>Total</span>
-                <span style={{ color: 'var(--gold)', fontSize: 16, fontWeight: 700, fontFamily: 'Playfair Display' }}>{formatPrice(selectedService.price)}</span>
+                <span style={{ color: 'var(--gold)', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{formatPrice(selectedService.price)}</span>
               </div>
             </div>
           </div>
         )}
 <button
   onClick={() => navigate(`/reservar/${slug}/mis-citas`)}
-  style={{ background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '13px 28px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', marginBottom: 12, width: '100%' }}
+  style={{ background: 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '13px 28px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'var(--font-body)', marginBottom: 12, width: '100%' }}
 >
   VER MIS CITAS
 </button>
@@ -265,7 +265,7 @@ const navigate = useNavigate()
             setNotesOpen(false)
             setForm({ barber_id: '', service_id: '', client_name: '', client_phone: '', client_email: '', scheduled_at: '', notes: '' })
           }}
-          style={{ background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '11px 28px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans' }}
+          style={{ background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '11px 28px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}
         >
           HACER OTRA RESERVA
         </button>
@@ -274,7 +274,7 @@ const navigate = useNavigate()
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--dark)', fontFamily: 'DM Sans' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--dark)', fontFamily: 'var(--font-body)' }}>
       <ThemeToggle floating />
 
       {/* Modal detalle de servicio */}
@@ -289,7 +289,7 @@ const navigate = useNavigate()
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--dark-4)' }}>
             <span style={{ color: 'var(--cream-dim)', fontSize: 13 }}>⏱ {detailService.duration_min} minutos</span>
-            <span style={{ color: 'var(--gold)', fontFamily: 'Playfair Display', fontWeight: 700, fontSize: 24 }}>{formatPrice(detailService.price)}</span>
+            <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24 }}>{formatPrice(detailService.price)}</span>
           </div>
           {detailService.description && (
             <p style={{ color: 'var(--cream-dim)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>{detailService.description}</p>
@@ -302,7 +302,7 @@ const navigate = useNavigate()
         <DetailModal
           onClose={() => setDetailBarber(null)}
           image={resolveImg(detailBarber.photo_url)}
-          imageFallback={<span style={{ fontFamily: 'Playfair Display', fontSize: 56, fontWeight: 900, color: 'var(--dark)' }}>{detailBarber.name.charAt(0).toUpperCase()}</span>}
+          imageFallback={<span style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 900, color: 'var(--dark)' }}>{detailBarber.name.charAt(0).toUpperCase()}</span>}
           title={detailBarber.name}
           subtitle={detailBarber.specialty}
           selectLabel="ELEGIR ESTE BARBERO"
@@ -339,7 +339,7 @@ const navigate = useNavigate()
       <div style={{ background: 'var(--dark-2)', borderBottom: '1px solid var(--dark-3)', padding: '36px 24px 28px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ fontSize: 40, color: 'var(--gold)', marginBottom: 10 }}>✂</div>
-        <h1 style={{ fontFamily: 'Playfair Display', fontSize: 34, fontWeight: 900, color: 'var(--cream)', marginBottom: 8, letterSpacing: '-0.02em' }}>{shop.name}</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 900, color: 'var(--cream)', marginBottom: 8, letterSpacing: '-0.02em' }}>{shop.name}</h1>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
           {shop.address && <p style={{ color: 'var(--cream-dim)', fontSize: 13 }}>📍 {shop.address}</p>}
           {shop.phone   && <p style={{ color: 'var(--cream-dim)', fontSize: 13 }}>📞 {shop.phone}</p>}
@@ -378,7 +378,7 @@ const navigate = useNavigate()
         {/* PASO 0 — Elegir servicio */}
         {step === 0 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Qué servicio quieres?</h2>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Qué servicio quieres?</h2>
             <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el servicio que necesitas</p>
             {services.map(service => (
               <div
@@ -411,7 +411,7 @@ const navigate = useNavigate()
                     <EyeIcon size={14} />
                   </button>
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ color: 'var(--gold)', fontFamily: 'Playfair Display', fontWeight: 700, fontSize: 20 }}>{formatPrice(service.price)}</p>
+                    <p style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20 }}>{formatPrice(service.price)}</p>
                     {form.service_id === String(service.id) && (
                       <p style={{ color: 'var(--success)', fontSize: 11, fontWeight: 700, marginTop: 4 }}>✓ SELECCIONADO</p>
                     )}
@@ -428,7 +428,7 @@ const navigate = useNavigate()
         {/* PASO 1 — Elegir barbero */}
         {step === 1 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Con quién quieres?</h2>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Con quién quieres?</h2>
             <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige tu barbero de confianza</p>
             {barbers.map(barber => (
               <div
@@ -445,7 +445,7 @@ const navigate = useNavigate()
                       onError={(e) => { e.target.style.display = 'none' }}
                     />
                   ) : (
-                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.2)' : 'var(--dark-3)', border: '1px solid ' + (form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.4)' : 'var(--dark-4)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: 'Playfair Display', fontWeight: 900, color: 'var(--gold)', flexShrink: 0 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.2)' : 'var(--dark-3)', border: '1px solid ' + (form.barber_id === String(barber.id) ? 'rgba(201,168,76,0.4)' : 'var(--dark-4)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 900, color: 'var(--gold)', flexShrink: 0 }}>
                       {barber.name.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -479,7 +479,7 @@ const navigate = useNavigate()
         {/* PASO 2 — Elegir fecha y hora */}
         {step === 2 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo vienes?</h2>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo vienes?</h2>
             <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el día y hora que mejor te quede</p>
 
             {summarizeHours(hours) && (
@@ -560,7 +560,7 @@ const navigate = useNavigate()
         {/* PASO 3 — Datos personales */}
         {step === 3 && (
           <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'Playfair Display', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>Tus datos</h2>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>Tus datos</h2>
             <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Para confirmar y recordarte tu cita</p>
 
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -578,7 +578,7 @@ const navigate = useNavigate()
                 <button
                   type="button"
                   onClick={() => setEmailOpen(o => !o)}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 13, fontWeight: 700, fontFamily: 'DM Sans' }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-body)' }}
                 >
                   <span>{emailOpen ? '－' : '＋'}</span> Correo electrónico
                 </button>
@@ -594,7 +594,7 @@ const navigate = useNavigate()
                 <button
                   type="button"
                   onClick={() => setNotesOpen(o => !o)}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 13, fontWeight: 700, fontFamily: 'DM Sans' }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-body)' }}
                 >
                   <span>{notesOpen ? '－' : '＋'}</span> Notas / indicaciones
                 </button>
@@ -628,7 +628,7 @@ const navigate = useNavigate()
                   <div style={{ height: 1, background: 'var(--dark-4)', margin: '4px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--cream-dim)', fontSize: 13 }}>Total</span>
-                    <span style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, fontFamily: 'Playfair Display' }}>{formatPrice(selectedService.price)}</span>
+                    <span style={{ color: 'var(--gold)', fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{formatPrice(selectedService.price)}</span>
                   </div>
                 </div>
               </div>
@@ -641,7 +641,7 @@ const navigate = useNavigate()
           {step > 0 && (
             <button
               onClick={() => setStep(step - 1)}
-              style={{ flex: 1, background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '14px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'DM Sans' }}
+              style={{ flex: 1, background: 'transparent', border: '1px solid var(--dark-4)', color: 'var(--cream-dim)', padding: '14px 0', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}
             >
               ← ATRÁS
             </button>
@@ -651,7 +651,7 @@ const navigate = useNavigate()
             <button
               onClick={() => canNext() && setStep(step + 1)}
               disabled={!canNext()}
-              style={{ flex: 2, background: canNext() ? 'var(--gold)' : 'var(--dark-3)', color: canNext() ? 'var(--dark)' : 'var(--cream-dim)', border: '1px solid ' + (canNext() ? 'var(--gold)' : 'var(--dark-4)'), padding: '14px 0', borderRadius: 10, cursor: canNext() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', transition: 'all 0.2s' }}
+              style={{ flex: 2, background: canNext() ? 'var(--gold)' : 'var(--dark-3)', color: canNext() ? 'var(--dark)' : 'var(--cream-dim)', border: '1px solid ' + (canNext() ? 'var(--gold)' : 'var(--dark-4)'), padding: '14px 0', borderRadius: 10, cursor: canNext() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'var(--font-body)', transition: 'all 0.2s' }}
             >
               SIGUIENTE →
             </button>
@@ -659,7 +659,7 @@ const navigate = useNavigate()
             <button
               onClick={handleSubmit}
               disabled={saving}
-              style={{ flex: 2, background: saving ? 'var(--gold-dim)' : 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'DM Sans', transition: 'background 0.2s' }}
+              style={{ flex: 2, background: saving ? 'var(--gold-dim)' : 'var(--gold)', color: 'var(--dark)', border: 'none', padding: '14px 0', borderRadius: 10, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'var(--font-body)', transition: 'background 0.2s' }}
             >
               {saving ? 'RESERVANDO...' : 'CONFIRMAR RESERVA ✓'}
             </button>

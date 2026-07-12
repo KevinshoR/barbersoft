@@ -2,6 +2,14 @@ const AppointmentModel = require('../models/appointment.model')
 const pool              = require('../config/db')
 const { enviarConfirmacionCliente, enviarAvisoBarbero, enviarRecordatorioCita } = require('../utils/mailer')
 
+// Día de la semana en hora Colombia (0=Dom ... 6=Sáb), igual método que HoursModel.checkOpen
+function getColombiaDayOfWeek(scheduled_at) {
+  const date = new Date(scheduled_at)
+  const diaCol = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', weekday: 'short' }).format(date)
+  const mapaDias = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+  return mapaDias[diaCol]
+}
+
 const AppointmentsController = {
 
   async getAll(req, res) {
@@ -43,6 +51,20 @@ const AppointmentsController = {
     const hoursCheck = await HoursModel.checkOpen(req.barbershop.id, scheduled_at)
     if (!hoursCheck.open) {
       return res.status(400).json({ error: hoursCheck.reason })
+    }
+
+    // Verificar que el barbero trabaje ese día de la semana
+    const barberResult = await pool.query(
+      'SELECT work_days FROM barbers WHERE id = $1 AND barbershop_id = $2',
+      [barber_id, req.barbershop.id]
+    )
+    const workDaysRaw = barberResult.rows[0]?.work_days
+    if (workDaysRaw) {
+      const workDays = workDaysRaw.split(',').map(Number).filter(n => !Number.isNaN(n))
+      const dayOfWeek = getColombiaDayOfWeek(scheduled_at)
+      if (!workDays.includes(dayOfWeek)) {
+        return res.status(400).json({ error: 'El barbero seleccionado no atiende ese día. Elige otro día u otro barbero.' })
+      }
     }
 
     // Verificar disponibilidad del barbero

@@ -6,7 +6,10 @@ import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, emailError, phoneError, hasErrors } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
-import { TrashIcon } from '../components/Icons'
+import SearchBar from '../components/SearchBar'
+import IconButton from '../components/IconButton'
+import RecordDetailModal from '../components/RecordDetailModal'
+import InfoCard from '../components/InfoCard'
 import Hours from './Hours'
 
 const TABS = [
@@ -139,6 +142,8 @@ export default function Appointments() {
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [search, setSearch]             = useState('')
+  const [detail, setDetail]             = useState(null)
   const [page, setPage]                 = useState(1)
   const [form, setForm] = useState({
     barber_id:'', service_id:'', client_name:'',
@@ -169,9 +174,11 @@ export default function Appointments() {
 
   // Filtros en el frontend
   const filtered = appointments.filter(a => {
+    const q = search.trim().toLowerCase()
+    const matchSearch = q ? (a.client_name || '').toLowerCase().includes(q) || (a.client_phone || '').toLowerCase().includes(q) : true
     const matchDate   = filterDate   ? new Date(a.scheduled_at).toISOString().split('T')[0] === filterDate : true
     const matchStatus = filterStatus ? a.status === filterStatus : true
-    return matchDate && matchStatus
+    return matchSearch && matchDate && matchStatus
   })
 
   // Paginación
@@ -179,7 +186,7 @@ export default function Appointments() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Reset página cuando cambia filtro
-  useEffect(() => { setPage(1) }, [filterDate, filterStatus])
+  useEffect(() => { setPage(1) }, [filterDate, filterStatus, search])
 
   const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
 
@@ -282,6 +289,30 @@ export default function Appointments() {
         </div>
       )}
 
+      {/* Modal ver detalle */}
+      {detail && (
+        <RecordDetailModal
+          onClose={() => setDetail(null)}
+          kicker={STATUS_CONFIG[detail.status]?.label || 'Detalle de la cita'}
+          title={detail.client_name}
+        >
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+            <InfoCard label="Fecha" value={formatDate(detail.scheduled_at)} />
+            <InfoCard label="Hora" value={formatTime(detail.scheduled_at)} />
+            <InfoCard label="Barbero" value={detail.barber_name} />
+            <InfoCard label="Servicio" value={detail.service_name} />
+            <InfoCard label="Teléfono" value={detail.client_phone} />
+            <InfoCard label="Email" value={detail.client_email || 'Sin registrar'} />
+          </div>
+          {detail.notes && (
+            <div>
+              <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.08em', color:'var(--cream-dim)', textTransform:'uppercase', marginBottom:8 }}>Notas</p>
+              <p style={{ color:'var(--cream)', fontSize:14, lineHeight:1.6 }}>{detail.notes}</p>
+            </div>
+          )}
+        </RecordDetailModal>
+      )}
+
       <Navbar />
       <main style={{ maxWidth:900, margin:'0 auto', padding:'40px 24px', flex:1, width:'100%' }}>
 
@@ -297,7 +328,7 @@ export default function Appointments() {
             <button
               key={t.id}
               onClick={() => { setTab(t.id); setDeleting(null) }}
-              style={{ flex:1, padding:'9px 0', borderRadius:7, border:'none', background: tab === t.id ? 'var(--gold)' : 'transparent', color: tab === t.id ? 'var(--dark)' : 'var(--cream-dim)', fontSize:12, fontWeight:700, letterSpacing:'0.05em', cursor:'pointer', transition:'all 0.2s', fontFamily:'DM Sans' }}
+              style={{ flex:1, padding:'9px 0', borderRadius:7, border:'none', background: tab === t.id ? 'var(--gold)' : 'transparent', color: tab === t.id ? 'var(--dark)' : 'var(--cream-dim)', fontSize:12, fontWeight:700, letterSpacing:'0.05em', cursor:'pointer', transition:'all 0.2s', fontFamily:'var(--font-body)' }}
             >
               {t.label.toUpperCase()}
             </button>
@@ -307,11 +338,14 @@ export default function Appointments() {
       {tab === 'citas' ? (
       <div className="animate-fade-up" key="citas-tab">
 
-        {/* Contador + acción */}
-        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20 }}>
-          <p style={{ color:'var(--cream-dim)', fontSize:13 }}>
-            {appointments.length} en total · {filtered.length} con filtros
-          </p>
+        {/* Búsqueda + acción */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:12, alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, flexWrap:'wrap' }}>
+            <SearchBar value={search} onChange={setSearch} placeholder="Buscar por nombre o teléfono del cliente..." />
+            <p style={{ color:'var(--cream-dim)', fontSize:13, flexShrink:0 }}>
+              {appointments.length} en total · {filtered.length} con filtros
+            </p>
+          </div>
           <button
             onClick={() => { setShowForm(!showForm); setTouched({}) }}
             className="btn-primary"
@@ -359,7 +393,7 @@ export default function Appointments() {
           {(filterDate || filterStatus) && (
             <button
               onClick={() => { setFilterDate(''); setFilterStatus('') }}
-              style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:12, marginLeft:'auto', letterSpacing:'0.06em', fontFamily:'DM Sans' }}
+              style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:12, marginLeft:'auto', letterSpacing:'0.06em', fontFamily:'var(--font-body)' }}
             >
               LIMPIAR FILTROS
             </button>
@@ -415,7 +449,7 @@ export default function Appointments() {
             {selectedService && (
               <div style={{ background:'rgba(201,168,76,0.08)', border:'1px solid rgba(201,168,76,0.2)', borderRadius:8, padding:'10px 16px', marginTop:16, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <span style={{ color:'var(--cream-dim)', fontSize:13 }}>{selectedService.name} · {selectedService.duration_min} min</span>
-                <span style={{ color:'var(--gold)', fontWeight:700, fontFamily:'Playfair Display', fontSize:16 }}>{formatPrice(selectedService.price)}</span>
+                <span style={{ color:'var(--gold)', fontWeight:700, fontFamily:'var(--font-display)', fontSize:16 }}>{formatPrice(selectedService.price)}</span>
               </div>
             )}
             <button type="submit" disabled={saving || hasErrors(allErrors)} className="btn-primary" style={{ marginTop:20, opacity: (saving || hasErrors(allErrors)) ? 0.6 : 1 }}>
@@ -444,7 +478,7 @@ export default function Appointments() {
             >
               <div style={{ display:'flex', alignItems:'center', gap:16, flex:1, minWidth:0 }}>
                 <div style={{ background:'var(--dark-3)', borderRadius:8, padding:'6px 12px', textAlign:'center', flexShrink:0, minWidth:70 }}>
-                  <p style={{ color:'var(--gold)', fontSize:13, fontWeight:700, fontFamily:'Playfair Display' }}>{formatTime(a.scheduled_at)}</p>
+                  <p style={{ color:'var(--gold)', fontSize:13, fontWeight:700, fontFamily:'var(--font-display)' }}>{formatTime(a.scheduled_at)}</p>
                   <p style={{ color:'var(--cream-dim)', fontSize:10, marginTop:2 }}>{formatDate(a.scheduled_at)}</p>
                 </div>
                 <div style={{ minWidth:0 }}>
@@ -460,26 +494,11 @@ export default function Appointments() {
                   status={a.status}
                   onUpdate={(newStatus) => handleStatus(a.id, newStatus)}
                 />
+                <IconButton variant="view" tooltip="Ver detalle" onClick={() => setDetail(a)} />
                 {canRemind && (
-                  <button
-                    onClick={() => handleRemind(a.id)}
-                    disabled={reminding === a.id}
-                    title="Recordar al cliente"
-                    aria-label={`Enviar recordatorio a ${a.client_name}`}
-                    style={{ background:'transparent', border:'1px solid var(--dark-4)', color:'var(--gold)', padding:'6px 9px', borderRadius:8, cursor: reminding === a.id ? 'not-allowed' : 'pointer', display:'inline-flex', alignItems:'center', opacity: reminding === a.id ? 0.5 : 1, transition:'all 0.2s' }}
-                  >
-                    <BellIcon size={14} />
-                  </button>
+                  <IconButton icon={BellIcon} tooltip="Recordar al cliente" disabled={reminding === a.id} onClick={() => handleRemind(a.id)} />
                 )}
-                <button
-                  onClick={() => setDeleting(a.id)}
-                  className="btn-danger"
-                  title="Eliminar"
-                  aria-label={`Eliminar cita de ${a.client_name}`}
-                  style={{ padding:'6px 9px', display:'inline-flex', alignItems:'center' }}
-                >
-                  <TrashIcon size={14} />
-                </button>
+                <IconButton variant="delete" tooltip="Eliminar" onClick={() => setDeleting(a.id)} />
               </div>
             </div>
             )
@@ -492,7 +511,7 @@ export default function Appointments() {
             <button
               onClick={() => setPage(p => Math.max(1, p-1))}
               disabled={page === 1}
-              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', color: page === 1 ? 'var(--dark-4)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize:13, fontFamily:'DM Sans' }}
+              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', color: page === 1 ? 'var(--dark-4)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize:13, fontFamily:'var(--font-body)' }}
             >
               ←
             </button>
@@ -501,7 +520,7 @@ export default function Appointments() {
               <button
                 key={n}
                 onClick={() => setPage(n)}
-                style={{ background: n === page ? 'var(--gold)' : 'var(--dark-2)', border:'1px solid ' + (n === page ? 'var(--gold)' : 'var(--dark-4)'), color: n === page ? 'var(--dark)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight: n === page ? 700 : 400, fontFamily:'DM Sans', minWidth:38 }}
+                style={{ background: n === page ? 'var(--gold)' : 'var(--dark-2)', border:'1px solid ' + (n === page ? 'var(--gold)' : 'var(--dark-4)'), color: n === page ? 'var(--dark)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight: n === page ? 700 : 400, fontFamily:'var(--font-body)', minWidth:38 }}
               >
                 {n}
               </button>
@@ -510,7 +529,7 @@ export default function Appointments() {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p+1))}
               disabled={page === totalPages}
-              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', color: page === totalPages ? 'var(--dark-4)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize:13, fontFamily:'DM Sans' }}
+              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', color: page === totalPages ? 'var(--dark-4)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize:13, fontFamily:'var(--font-body)' }}
             >
               →
             </button>
