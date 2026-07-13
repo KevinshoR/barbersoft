@@ -8,6 +8,7 @@ import api from '../services/api'
 import { getDepartments, getMunicipalities } from '../data/colombia'
 import { requiredError, lengthError, phoneError, combine } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
+import ReferralCard from '../components/ReferralCard'
 
 const PAYMENT_METHODS = [
   { id:'nequi',    label:'Nequi',          icon:'📱', desc:'Pagos móviles Nequi' },
@@ -108,6 +109,7 @@ export default function Settings() {
     { id:'info',     label:'Mi barbería' },
     { id:'payments', label:'Métodos de pago' },
     { id:'sub',      label:'Suscripción' },
+    { id:'referrals', label:'Referidos' },
   ]
 
   const inp = { width:'100%', padding:'12px 16px' }
@@ -377,6 +379,13 @@ export default function Settings() {
             <p style={{ textAlign:'center', color:'var(--cream-dim)', fontSize:12, marginTop:16, opacity:0.5 }}>
               Pagos procesados de forma segura · PSE · Nequi · Tarjeta
             </p>
+          </div>
+        )}
+
+        {/* ── Tab: Referidos ── */}
+        {tab === 'referrals' && (
+          <div className="animate-fade-up">
+            <ReferralCard />
           </div>
         )}
 
