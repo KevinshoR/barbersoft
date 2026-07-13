@@ -9,6 +9,7 @@ const links = [
   { to: '/barbers',      label: 'Barberos',    icon: '◈' },
   { to: '/services',     label: 'Servicios',   icon: '✦' },
   { to: '/reports',      label: 'Reportes',    icon: '◎' },
+  { to: '/referrals',    label: 'Referidos',   icon: '❖' },
 ]
 
 export default function Navbar() {

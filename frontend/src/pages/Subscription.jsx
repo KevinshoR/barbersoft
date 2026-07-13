@@ -1,10 +1,9 @@
 ﻿import { useAuth } from '../context/AuthContext'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
-import ReferralCard from '../components/ReferralCard'
 import api from '../services/api'
 import { useToast } from '../context/ToastContext'
 
@@ -57,6 +56,7 @@ const PLANS = [
 export default function Subscription() {
 const { barbershop, refreshBarbershop } = useAuth()
   const { pathname }      = useLocation()
+  const navigate          = useNavigate()
   const [searchParams]    = useSearchParams()
   const toast = useToast()
   const [loading, setLoading] = useState(null)
@@ -233,9 +233,16 @@ const { barbershop, refreshBarbershop } = useAuth()
           </p>
         </div>
 
-        {/* Invita y gana */}
-        <div style={{ marginTop:32 }}>
-          <ReferralCard />
+        {/* Invita y gana → vista dedicada */}
+        <div
+          onClick={() => navigate('/referrals')}
+          style={{ marginTop:32, background:'var(--dark-2)', border:'1px solid rgba(201,168,76,0.3)', borderRadius:14, padding:'22px 26px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, cursor:'pointer' }}
+        >
+          <div>
+            <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>INVITA Y GANA</p>
+            <p style={{ color:'var(--cream)', fontSize:15, fontWeight:600 }}>Recomienda Barbersoft y gana 15 días gratis por cada barbería que active su plan</p>
+          </div>
+          <span style={{ color:'var(--gold)', fontSize:22, flexShrink:0 }}>→</span>
         </div>
 
       </main>

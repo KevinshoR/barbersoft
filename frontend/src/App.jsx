@@ -13,6 +13,7 @@ import ResetPassword  from './pages/ResetPassword'
 import Barbers      from './pages/Barbers'
 import Hours        from './pages/Hours'
 import Reports from './pages/Reports'
+import Referrals from './pages/Referrals'
 import MyCitas   from './pages/MyCitas'
 import FindShop  from './pages/FindShop'
 import Subscription from './pages/Subscription'
@@ -57,6 +58,9 @@ export default function App() {
 <Route path="/reservar" element={<FindShop />}/>
           <Route path="/reports" element={
   <PrivateRoute><Reports /></PrivateRoute>
+}/>
+          <Route path="/referrals" element={
+  <PrivateRoute><Referrals /></PrivateRoute>
 }/>
           <Route path="/barbers" element={
             <PrivateRoute><Barbers /></PrivateRoute>
