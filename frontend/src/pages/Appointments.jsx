@@ -44,6 +44,27 @@ const TRANSITIONS = {
 
 const PAGE_SIZE = 5
 
+const IcAppt = {
+  eye: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+  trash: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>,
+  x: (p) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>,
+}
+
+function IconBtn({ icon, tooltip, onClick, danger }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <div style={{ position:'relative', display:'inline-flex' }}>
+      <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        style={{ width:36, height:36, borderRadius:10, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background:'var(--surface-1)', border:'1px solid var(--dark-4)', color: danger ? '#C97A7A' : 'var(--cream-dim)', transition:'all 0.15s' }}
+        onMouseOver={(e) => { e.currentTarget.style.borderColor = danger ? '#C97A7A' : 'var(--gold)'; e.currentTarget.style.color = danger ? '#D89090' : 'var(--gold)' }}
+        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--dark-4)'; e.currentTarget.style.color = danger ? '#C97A7A' : 'var(--cream-dim)' }}>
+        {icon}
+      </button>
+      {hover && <span style={{ position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)', background:'var(--dark-4)', color:'var(--cream)', fontSize:11, fontWeight:600, padding:'4px 8px', borderRadius:6, whiteSpace:'nowrap', zIndex:20, pointerEvents:'none' }}>{tooltip}</span>}
+    </div>
+  )
+}
+
 function StatusSelector({ status, onUpdate }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -116,6 +137,7 @@ export default function Appointments() {
   const [showForm, setShowForm]         = useState(false)
   const [saving, setSaving]             = useState(false)
   const [deleting, setDeleting]         = useState(null)
+  const [detail, setDetail]             = useState(null)
   const [deleteBusy, setDeleteBusy]     = useState(false)
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
@@ -232,6 +254,41 @@ export default function Appointments() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)' }}>
+
+      {/* Modal ver detalle */}
+      {detail && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div className="animate-fade-up" style={{ background:'var(--dark-2)', borderRadius:18, width:'100%', maxWidth:460, overflow:'hidden', border:'1px solid var(--dark-4)', boxShadow:'0 20px 60px rgba(0,0,0,0.5)' }}>
+            <div style={{ background:'linear-gradient(135deg, var(--gold-dim) 0%, var(--dark) 130%)', padding:'26px 28px', position:'relative' }}>
+              <button onClick={() => setDetail(null)} style={{ position:'absolute', top:14, right:14, background:'rgba(0,0,0,0.4)', border:'none', color:'var(--cream)', cursor:'pointer', width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>{IcAppt.x()}</button>
+              <p style={{ color:'var(--gold-light)', fontSize:11, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase' }}>Detalle de la cita</p>
+              <h2 style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:24, fontWeight:800, color:'#fff', marginTop:4 }}>{detail.client_name}</h2>
+              <p style={{ color:'rgba(255,255,255,0.7)', fontSize:13, marginTop:4 }}>{formatDate(detail.scheduled_at)} · {formatTime(detail.scheduled_at)}</p>
+            </div>
+            <div style={{ padding:24 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+                {[
+                  { l:'Servicio', v:detail.service_name },
+                  { l:'Barbero', v:detail.barber_name },
+                  { l:'Teléfono', v:detail.client_phone || '—' },
+                  { l:'Correo', v:detail.client_email || '—' },
+                ].map((f, idx) => (
+                  <div key={idx} style={{ background:'var(--surface-1)', border:'1px solid var(--dark-4)', borderRadius:12, padding:14 }}>
+                    <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.08em', color:'var(--cream-dim)', textTransform:'uppercase', marginBottom:5 }}>{f.l}</p>
+                    <p style={{ color:'var(--cream)', fontSize:14, fontWeight:600, wordBreak:'break-word' }}>{f.v}</p>
+                  </div>
+                ))}
+              </div>
+              {detail.notes && (
+                <div style={{ marginBottom:4 }}>
+                  <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.08em', color:'var(--cream-dim)', textTransform:'uppercase', marginBottom:6 }}>Notas</p>
+                  <p style={{ color:'var(--cream)', fontSize:14, lineHeight:1.5, background:'var(--surface-1)', border:'1px solid var(--dark-4)', borderRadius:10, padding:14 }}>{detail.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal eliminar */}
       {deleting && (
@@ -409,46 +466,41 @@ export default function Appointments() {
         )}
 
         {/* Lista de citas */}
-        <div className="animate-fade-up delay-3" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, overflow:'visible' }}>
+        <div className="animate-fade-up delay-3" style={{ display:'flex', flexDirection:'column', gap:12 }}>
           {loading ? (
             <p style={{ color:'var(--cream-dim)', textAlign:'center', padding:'48px 0', fontSize:14 }}>Cargando...</p>
           ) : paginated.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'56px 0' }}>
-              <p style={{ fontSize:36, marginBottom:12 }}>◷</p>
+            <div style={{ textAlign:'center', padding:'56px 20px', border:'1px dashed var(--dark-4)', borderRadius:16 }}>
+              <p style={{ fontSize:36, marginBottom:12, opacity:0.4 }}>◷</p>
               <p style={{ color:'var(--cream-dim)', fontSize:14 }}>
                 {filtered.length === 0 && appointments.length > 0 ? 'No hay citas con esos filtros' : 'No hay citas todavía'}
               </p>
             </div>
-          ) : paginated.map((a, i) => (
+          ) : paginated.map((a) => (
             <div
               key={a.id}
-              style={{ padding:'16px 24px', borderBottom: i < paginated.length-1 ? '1px solid var(--dark-3)' : 'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative' }}
+              style={{ background:'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,0.25)' }}
             >
               <div style={{ display:'flex', alignItems:'center', gap:16, flex:1, minWidth:0 }}>
-                <div style={{ background:'var(--dark-3)', borderRadius:8, padding:'6px 12px', textAlign:'center', flexShrink:0, minWidth:70 }}>
-                  <p style={{ color:'var(--gold)', fontSize:13, fontWeight:700, fontFamily:'Playfair Display' }}>{formatTime(a.scheduled_at)}</p>
+                <div style={{ background:'linear-gradient(135deg, var(--gold-dim) 0%, var(--dark-3) 100%)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:12, padding:'10px 14px', textAlign:'center', flexShrink:0, minWidth:76 }}>
+                  <p style={{ color:'var(--gold-light)', fontSize:15, fontWeight:800, fontFamily:'var(--font-display, Georgia, serif)' }}>{formatTime(a.scheduled_at)}</p>
                   <p style={{ color:'var(--cream-dim)', fontSize:10, marginTop:2 }}>{formatDate(a.scheduled_at)}</p>
                 </div>
                 <div style={{ minWidth:0 }}>
-                  <p style={{ color:'var(--cream)', fontWeight:600, fontSize:14, marginBottom:3 }}>{a.client_name}</p>
-                  <p style={{ color:'var(--cream-dim)', fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  <p style={{ color:'var(--cream)', fontWeight:700, fontSize:15, marginBottom:3, fontFamily:'var(--font-display, Georgia, serif)' }}>{a.client_name}</p>
+                  <p style={{ color:'var(--cream-dim)', fontSize:12.5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                     {a.service_name} · {a.barber_name} · {a.client_phone}
                   </p>
                 </div>
               </div>
 
-              <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
                 <StatusSelector
                   status={a.status}
                   onUpdate={(newStatus) => handleStatus(a.id, newStatus)}
                 />
-                <button
-                  onClick={() => setDeleting(a.id)}
-                  className="btn-danger"
-                  style={{ padding:'5px 10px', fontSize:12 }}
-                >
-                  ✕
-                </button>
+                <IconBtn icon={IcAppt.eye()} tooltip="Ver detalle" onClick={() => setDetail(a)} />
+                <IconBtn icon={IcAppt.trash()} tooltip="Eliminar" danger onClick={() => setDeleting(a.id)} />
               </div>
             </div>
           ))}
