@@ -53,6 +53,7 @@ app.use('/api/public',       require('./routes/public.routes'))
 app.use('/api/hours', require('./routes/hours.routes'))
 app.use('/api/sync',  require('./routes/sync.routes'))
 app.use('/api/upload', require('./routes/upload.routes'))
+app.use('/api/referrals', require('./routes/referrals.routes'))
 
 // Ruta de prueba
 app.get('/', (req, res) => {

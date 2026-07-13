@@ -9,6 +9,36 @@ const crypto    = require('crypto')
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Sistema de referidos: código propio de 4 letras del nombre + 4 alfanuméricos
+// (ej. "KEVI-A7X9"), sin caracteres confusos (O/0, I/1/L).
+const REFERRAL_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
+function referralPrefix(name) {
+  // NFD descompone acentos en letra + marca combinada; [^A-Z] descarta
+  // la marca combinada junto con cualquier otro caracter no-letra.
+  const clean = name
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[^A-Z]/g, '')
+  return (clean.slice(0, 4) || 'BARB').padEnd(4, 'X')
+}
+
+function randomReferralSuffix() {
+  let s = ''
+  for (let i = 0; i < 4; i++) s += REFERRAL_ALPHABET[Math.floor(Math.random() * REFERRAL_ALPHABET.length)]
+  return s
+}
+
+async function generateUniqueReferralCode(name, db) {
+  const prefix = referralPrefix(name)
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const code = `${prefix}-${randomReferralSuffix()}`
+    const existing = await db.query('SELECT id FROM barbershops WHERE referral_code = $1', [code])
+    if (existing.rows.length === 0) return code
+  }
+  throw new Error('No se pudo generar un código de referido único')
+}
+
 // Convierte el nombre en slug: "Mi Barbería" → "mi-barberia"
 function generateSlug(name) {
   return name
@@ -49,7 +79,7 @@ const AuthController = {
 
   async register(req, res) {
     try {
-      const { name, email, password, phone, address, department, municipality } = req.body
+      const { name, email, password, phone, address, department, municipality, referral_code_usado } = req.body
 
       if (!name || !email || !password) {
         return res.status(400).json({ error: 'Nombre, email y contraseña son obligatorios' })
@@ -79,8 +109,25 @@ const AuthController = {
       // barbería a medias sin sus filas de servicios/horarios.
       const client = await pool.connect()
       let barbershop
+      let referralNotice = null
       try {
         await client.query('BEGIN')
+
+        const referralCode = await generateUniqueReferralCode(name, client)
+
+        let referredBy = null
+        if (referral_code_usado && referral_code_usado.trim()) {
+          const refCodeInput = referral_code_usado.trim().toUpperCase()
+          const referrer = await client.query(
+            'SELECT id FROM barbershops WHERE referral_code = $1',
+            [refCodeInput]
+          )
+          if (referrer.rows.length > 0 && refCodeInput !== referralCode) {
+            referredBy = refCodeInput
+          } else {
+            referralNotice = 'El código de referido no es válido. Tu cuenta se creó sin referido.'
+          }
+        }
 
         barbershop = await UserModel.create({
           name, email,
@@ -89,6 +136,14 @@ const AuthController = {
           department: department ?? null,
           municipality: municipality ?? null
         }, client)
+
+        const withReferral = await client.query(
+          `UPDATE barbershops SET referral_code = $1, referred_by = $2 WHERE id = $3
+           RETURNING id, name, email, slug, department, municipality,
+                     subscription_status, trial_ends_at, referral_code, referred_by`,
+          [referralCode, referredBy, barbershop.id]
+        )
+        barbershop = withReferral.rows[0]
 
         await ServiceModel.createDefaults(barbershop.id, client)
         await HoursModel.createDefaults(barbershop.id, client)
@@ -108,7 +163,7 @@ const AuthController = {
         { expiresIn: '7d' }
       )
 
-      res.status(201).json({ token, barbershop })
+      res.status(201).json({ token, barbershop, ...(referralNotice ? { referral_notice: referralNotice } : {}) })
 
     } catch (err) {
       console.error(err)

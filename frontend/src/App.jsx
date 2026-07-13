@@ -11,6 +11,7 @@ import Services     from './pages/Services'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword  from './pages/ResetPassword'
 import Barbers      from './pages/Barbers'
+import Hours        from './pages/Hours'
 import Reports from './pages/Reports'
 import MyCitas   from './pages/MyCitas'
 import FindShop  from './pages/FindShop'
@@ -44,7 +45,7 @@ export default function App() {
             <PrivateRoute><Dashboard /></PrivateRoute>
           }/>
           <Route path="/hours" element={
-            <Navigate to="/appointments" state={{ tab: 'horario' }} replace />
+            <PrivateRoute><Hours /></PrivateRoute>
           }/>
           <Route path="/appointments" element={
             <PrivateRoute><Appointments /></PrivateRoute>

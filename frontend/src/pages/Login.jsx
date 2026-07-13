@@ -26,7 +26,7 @@ export default function Login() {
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', department:'', municipality:'' })
+  const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', department:'', municipality:'', referral_code_usado:'' })
   const [touched, setTouched] = useState({})
 
   const { login } = useAuth()
@@ -78,6 +78,7 @@ export default function Login() {
         email: form.email.trim(),
         phone: form.phone.trim(),
         municipality: form.municipality.trim(),
+        referral_code_usado: form.referral_code_usado.trim().toUpperCase() || undefined,
       }
       const res = await api.post(endpoint, payload)
       login(res.data.token, res.data.barbershop)
@@ -159,6 +160,24 @@ export default function Login() {
                     </datalist>
                     {touched.municipality && registerErrors.municipality && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {registerErrors.municipality}</p>}
                   </div>
+                </div>
+
+                {/* Código de referido (opcional) */}
+                <div>
+                  <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>
+                    CÓDIGO DE REFERIDO <span style={{ color:'var(--cream-dim)', fontWeight:400, letterSpacing:0 }}>(opcional)</span>
+                  </label>
+                  <input
+                    name="referral_code_usado"
+                    value={form.referral_code_usado}
+                    onChange={(e) => setForm(f => ({ ...f, referral_code_usado: e.target.value.toUpperCase() }))}
+                    placeholder="Ej: KEVI-A7X9"
+                    autoComplete="off"
+                    style={{ width:'100%', padding:'12px 16px', border:'1px solid var(--dark-4)', letterSpacing:'0.05em' }}
+                  />
+                  <p style={{ color:'var(--cream-dim)', fontSize:11.5, marginTop:6, lineHeight:1.4 }}>
+                    ¿Un amigo te recomendó Barbersoft? Pon su código y ambos ganan 15 días gratis cuando actives tu plan.
+                  </p>
                 </div>
               </>
             )}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
+import ReferralCard from '../components/ReferralCard'
 import api from '../services/api'
 import { useToast } from '../context/ToastContext'
 
@@ -230,6 +231,11 @@ const { barbershop, refreshBarbershop } = useAuth()
             Los datos de tu tarjeta nunca se almacenan en nuestros servidores.
             Puedes cancelar tu suscripción en cualquier momento.
           </p>
+        </div>
+
+        {/* Invita y gana */}
+        <div style={{ marginTop:32 }}>
+          <ReferralCard />
         </div>
 
       </main>

@@ -12,6 +12,13 @@ function getColombiaDayOfWeek(scheduled_at) {
   return mapaDias[diaCol]
 }
 
+// Validación básica de entrada para los endpoints públicos: no confiamos
+// solo en el frontend. Los límites de longitud coinciden con las columnas
+// de la tabla `appointments` (client_name VARCHAR(100), client_phone VARCHAR(20),
+// client_email VARCHAR(100)) para evitar un 500 por truncamiento en la DB.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const isPositiveIntId = (v) => /^\d+$/.test(String(v))
+
 // Limita reservas seguidas desde una misma IP para frenar spam de citas basura
 const reservaPublicaLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
@@ -110,6 +117,12 @@ router.get('/:slug/availability', async (req, res) => {
     if (!barber_id || !date) {
       return res.status(400).json({ error: 'Faltan parámetros' })
     }
+    if (!isPositiveIntId(barber_id)) {
+      return res.status(400).json({ error: 'barber_id inválido' })
+    }
+    if (isNaN(new Date(date).getTime())) {
+      return res.status(400).json({ error: 'date inválido' })
+    }
 
     const shopResult = await pool.query(
       'SELECT id FROM barbershops WHERE slug = $1',
@@ -166,6 +179,23 @@ router.post('/:slug/book', reservaPublicaLimiter, async (req, res) => {
       if (!client_phone)  faltantes.push('teléfono')
       if (!scheduled_at)  faltantes.push('fecha y hora')
       return res.status(400).json({ error: `Faltan datos: por favor completa ${faltantes.join(', ')}.` })
+    }
+
+    if (!isPositiveIntId(barber_id) || !isPositiveIntId(service_id)) {
+      return res.status(400).json({ error: 'Barbero o servicio inválido.' })
+    }
+
+    if (client_name.length > 100) {
+      return res.status(400).json({ error: 'El nombre no puede tener más de 100 caracteres.' })
+    }
+    if (client_phone.length > 20) {
+      return res.status(400).json({ error: 'El teléfono no puede tener más de 20 caracteres.' })
+    }
+    if (client_email && (client_email.length > 100 || !EMAIL_RE.test(client_email))) {
+      return res.status(400).json({ error: 'El email no tiene un formato válido.' })
+    }
+    if (notes && notes.length > 1000) {
+      return res.status(400).json({ error: 'Las notas no pueden tener más de 1000 caracteres.' })
     }
 
     if (new Date(scheduled_at) < new Date()) {
@@ -295,6 +325,9 @@ router.patch('/:slug/mis-citas/:id/cancel', async (req, res) => {
   try {
     const { phone } = req.body
     if (!phone) return res.status(400).json({ error: 'Teléfono requerido' })
+    if (!isPositiveIntId(req.params.id)) {
+      return res.status(400).json({ error: 'Cita no encontrada o no se puede cancelar' })
+    }
 
     const shopResult = await pool.query(
       'SELECT id FROM barbershops WHERE slug = $1',

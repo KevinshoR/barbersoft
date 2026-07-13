@@ -13,11 +13,17 @@ CREATE TABLE barbershops (
   subscription_status  VARCHAR(20) DEFAULT 'trial', -- trial | active | blocked
   trial_ends_at        TIMESTAMP DEFAULT (NOW() + INTERVAL '14 days'),
   subscription_ends_at TIMESTAMP,
+  -- Sistema de referidos
+  referral_code         VARCHAR(12) UNIQUE, -- código propio de esta barbería para referir a otras
+  referred_by            VARCHAR(12),        -- referral_code de quien la refirió al registrarse (null si ninguno)
+  referral_bonus_given   BOOLEAN DEFAULT false, -- true una vez que se dio el beneficio de 15 días por SU primer pago
   created_at  TIMESTAMP DEFAULT NOW()
 );
 
 -- Migración para bases ya existentes (la tabla barbershops ya tenía datos):
 -- ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS department VARCHAR(100), ADD COLUMN IF NOT EXISTS municipality VARCHAR(100);
+-- ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12) UNIQUE, ADD COLUMN IF NOT EXISTS referred_by VARCHAR(12), ADD COLUMN IF NOT EXISTS referral_bonus_given BOOLEAN DEFAULT false;
+-- CREATE UNIQUE INDEX IF NOT EXISTS idx_barbershops_referral_code ON barbershops(referral_code);
 
 -- Tabla de barberos (empleados del local)
 CREATE TABLE barbers (
