@@ -8,7 +8,6 @@ const links = [
   { to: '/appointments', label: 'Agenda',      icon: '◷' },
   { to: '/barbers',      label: 'Barberos',    icon: '◈' },
   { to: '/services',     label: 'Servicios',   icon: '✦' },
-  { to: '/reports',      label: 'Reportes',    icon: '◎' },
 ]
 
 export default function Navbar() {

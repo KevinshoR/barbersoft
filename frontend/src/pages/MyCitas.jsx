@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { phoneError } from '../utils/validators'
 import ThemeToggle from '../components/ThemeToggle'
+import ChatbotWidget from '../components/ChatbotWidget'
 import { useToast } from '../context/ToastContext'
 
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', {
@@ -272,6 +273,7 @@ export default function MyCitas() {
           </div>
         )}
       </main>
+      <ChatbotWidget slug={slug} shopName={shopName || undefined} />
     </div>
   )
 }

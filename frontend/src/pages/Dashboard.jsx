@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [weekAppointments, setWeekAppointments] = useState([])
   const [loaded, setLoaded]   = useState(false)
 const [copied, setCopied]   = useState(false)
+  const [monthly, setMonthly] = useState(null)
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
@@ -79,6 +80,12 @@ const [copied, setCopied]   = useState(false)
     api.get('/appointments')
       .then(res => setWeekAppointments(res.data.appointments))
       .catch(() => setWeekAppointments([]))
+  }, [])
+
+  useEffect(() => {
+    api.get('/reports/monthly')
+      .then(res => setMonthly(res.data))
+      .catch(() => setMonthly(null))
   }, [])
 
   const pending   = appointments.filter(a => a.status === 'pending').length
@@ -177,6 +184,42 @@ const [copied, setCopied]   = useState(false)
             </div>
           ))}
         </div>
+
+        {/* Resumen del mes (3 métricas rescatadas del extinto módulo Reportes) */}
+        {monthly && (
+          <div className="animate-fade-up delay-2" style={{ marginBottom: 32 }}>
+            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12, fontFamily: 'var(--font-body)' }}>
+              RESUMEN DEL MES
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--gold)', opacity: 0.6 }} />
+                <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 10 }}>INGRESOS DEL MES</p>
+                <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>{formatPrice(monthly.revenue)}</p>
+              </div>
+              <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--gold)', opacity: 0.6 }} />
+                <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 10 }}>BARBERO DEL MES</p>
+                <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {monthly.topBarber?.name || '—'}
+                </p>
+                {monthly.topBarber && (
+                  <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginTop: 4 }}>{monthly.topBarber.count} citas</p>
+                )}
+              </div>
+              <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--gold)', opacity: 0.6 }} />
+                <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 10 }}>SERVICIO TOP</p>
+                <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {monthly.topService?.name || '—'}
+                </p>
+                {monthly.topService && (
+                  <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginTop: 4 }}>{monthly.topService.count} veces</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Gráficas */}
         <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: hasWeekRevenue ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16, marginBottom: 32 }}>
