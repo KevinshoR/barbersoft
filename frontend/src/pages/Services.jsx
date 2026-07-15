@@ -7,6 +7,9 @@ import api from '../services/api'
 import { requiredError, lengthError, numberRangeError, hasErrors } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
 import ImageUpload, { resolveImageSrc } from '../components/ImageUpload'
+import Pagination from '../components/Pagination'
+
+const PAGE_SIZE = 8
 
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p)
 
@@ -75,6 +78,7 @@ export default function Services() {
   const [form, setForm] = useState({ name: '', duration_min: '', price: '', image_url: '', description: '' })
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('recientes')
+  const [page, setPage] = useState(1)
 
   const allErrors = validate(form)
   const errors = Object.keys(allErrors).reduce((a, k) => { if (touched[k]) a[k] = allErrors[k]; return a }, {})
@@ -119,6 +123,10 @@ export default function Services() {
     else if (sort === 'nombre') arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     return arr
   }, [services, search, sort])
+
+  useEffect(() => { setPage(1) }, [search, sort])
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   if (view === 'form') {
     return (
@@ -207,7 +215,7 @@ export default function Services() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {filtered.map(s => (
+            {paginated.map(s => (
               <div key={s.id} style={{ background: 'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
                 <Thumb src={resolveImageSrc(s.image_url)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -225,6 +233,7 @@ export default function Services() {
             ))}
           </div>
         )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </main>
 
       {detail && (

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ChatbotWidget from '../components/ChatbotWidget'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -516,6 +517,7 @@ export default function Landing() {
           </div>
         </footer>
       </div>
+      <ChatbotWidget />
     </>
   )
 }

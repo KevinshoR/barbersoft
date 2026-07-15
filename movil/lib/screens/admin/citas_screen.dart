@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../models/appointment.dart';
@@ -17,7 +18,11 @@ const _transitions = {
   'cancelled': <String>[],
 };
 
-final _priceFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0);
+final _priceFormat = NumberFormat.currency(
+  locale: 'es_CO',
+  symbol: '\$',
+  decimalDigits: 0,
+);
 
 class CitasScreen extends StatefulWidget {
   const CitasScreen({super.key});
@@ -53,7 +58,8 @@ class _CitasScreenState extends State<CitasScreen> {
   List<Appointment> get _filtered {
     final all = _appointments ?? [];
     return all.where((a) {
-      final matchDate = _filterDate == null ||
+      final matchDate =
+          _filterDate == null ||
           (a.scheduledAt.year == _filterDate!.year &&
               a.scheduledAt.month == _filterDate!.month &&
               a.scheduledAt.day == _filterDate!.day);
@@ -87,11 +93,19 @@ class _CitasScreenState extends State<CitasScreen> {
         content: const Text('Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar', style: TextStyle(color: AppColors.creamDim))),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.creamDim),
+            ),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sí, eliminar', style: TextStyle(color: AppColors.danger))),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Sí, eliminar',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
         ],
       ),
     );
@@ -105,6 +119,105 @@ class _CitasScreenState extends State<CitasScreen> {
       if (!mounted) return;
       showErrorSnack(context, errorMessage(e));
     }
+  }
+
+  bool _canRemind(Appointment a) =>
+      a.status != 'cancelled' &&
+      (a.clientEmail != null && a.clientEmail!.isNotEmpty) &&
+      a.scheduledAt.isAfter(DateTime.now());
+
+  Future<void> _remind(Appointment a) async {
+    try {
+      await AppointmentService.remind(a.id!);
+      if (!mounted) return;
+      showSuccessSnack(context, 'Recordatorio enviado al cliente');
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnack(context, errorMessage(e));
+    }
+  }
+
+  void _showDetail(Appointment a) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.dark2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.dark4,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Text(
+                'DETALLE DE LA CITA',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      a.clientName,
+                      style: GoogleFonts.playfairDisplay(
+                        color: AppColors.cream,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  StatusBadge(status: a.status),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _DetailRow(
+                label: 'Fecha',
+                value: DateFormat('d MMM yyyy', 'es').format(a.scheduledAt),
+              ),
+              _DetailRow(
+                label: 'Hora',
+                value: DateFormat('HH:mm').format(a.scheduledAt),
+              ),
+              _DetailRow(label: 'Barbero', value: a.barberName ?? '—'),
+              _DetailRow(label: 'Servicio', value: a.serviceName ?? '—'),
+              if (a.price != null)
+                _DetailRow(
+                  label: 'Precio',
+                  value: _priceFormat.format(a.price),
+                ),
+              _DetailRow(label: 'Teléfono', value: a.clientPhone),
+              _DetailRow(
+                label: 'Email',
+                value: (a.clientEmail?.isNotEmpty ?? false)
+                    ? a.clientEmail!
+                    : 'Sin registrar',
+              ),
+              if (a.notes != null && a.notes!.isNotEmpty)
+                _DetailRow(label: 'Notas', value: a.notes!),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showStatusSheet(Appointment a) {
@@ -121,20 +234,32 @@ class _CitasScreenState extends State<CitasScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
-            const Text('Cambiar estado',
-                style: TextStyle(
-                    color: AppColors.cream, fontWeight: FontWeight.w700, fontSize: 15)),
+            const Text(
+              'Cambiar estado',
+              style: TextStyle(
+                color: AppColors.cream,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
             const SizedBox(height: 8),
-            ...options.map((opt) => ListTile(
-                  leading: Icon(Icons.circle,
-                      size: 10, color: AppColors.statusColor[opt] ?? AppColors.creamDim),
-                  title: Text(AppColors.statusLabel[opt] ?? opt,
-                      style: const TextStyle(color: AppColors.cream)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _updateStatus(a, opt);
-                  },
-                )),
+            ...options.map(
+              (opt) => ListTile(
+                leading: Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: AppColors.statusColor[opt] ?? AppColors.creamDim,
+                ),
+                title: Text(
+                  AppColors.statusLabel[opt] ?? opt,
+                  style: const TextStyle(color: AppColors.cream),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _updateStatus(a, opt);
+                },
+              ),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -202,25 +327,50 @@ class _CitasScreenState extends State<CitasScreen> {
                     value: _filterStatus,
                     isExpanded: true,
                     dropdownColor: AppColors.dark3,
-                    style: const TextStyle(color: AppColors.cream, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppColors.cream,
+                      fontSize: 13,
+                    ),
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
-                    hint: const Text('Estado', style: TextStyle(color: AppColors.creamDim)),
+                    hint: const Text(
+                      'Estado',
+                      style: TextStyle(color: AppColors.creamDim),
+                    ),
                     items: const [
                       DropdownMenuItem(value: null, child: Text('Todos')),
-                      DropdownMenuItem(value: 'pending', child: Text('Pendiente')),
-                      DropdownMenuItem(value: 'confirmed', child: Text('Confirmada')),
-                      DropdownMenuItem(value: 'done', child: Text('Completada')),
-                      DropdownMenuItem(value: 'cancelled', child: Text('Cancelada')),
+                      DropdownMenuItem(
+                        value: 'pending',
+                        child: Text('Pendiente'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'confirmed',
+                        child: Text('Confirmada'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'done',
+                        child: Text('Completada'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'cancelled',
+                        child: Text('Cancelada'),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _filterStatus = v),
                   ),
                 ),
                 if (_filterDate != null || _filterStatus != null)
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.creamDim, size: 18),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.creamDim,
+                      size: 18,
+                    ),
                     onPressed: () => setState(() {
                       _filterDate = null;
                       _filterStatus = null;
@@ -250,23 +400,35 @@ class _CitasScreenState extends State<CitasScreen> {
           const Icon(Icons.cloud_off, color: AppColors.creamDim, size: 36),
           const SizedBox(height: 12),
           const Center(
-              child: Text('No se pudo conectar con el servidor',
-                  style: TextStyle(color: AppColors.creamDim))),
+            child: Text(
+              'No se pudo conectar con el servidor',
+              style: TextStyle(color: AppColors.creamDim),
+            ),
+          ),
           const SizedBox(height: 12),
-          Center(child: TextButton(onPressed: _load, child: const Text('Reintentar'))),
+          Center(
+            child: TextButton(
+              onPressed: _load,
+              child: const Text('Reintentar'),
+            ),
+          ),
         ],
       );
     }
     if (_appointments == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.gold),
+      );
     }
     if (filtered.isEmpty) {
       return ListView(
         children: [
           const SizedBox(height: 100),
           const Center(
-            child: Text('Aún no tenés citas',
-                style: TextStyle(color: AppColors.creamDim, fontSize: 14)),
+            child: Text(
+              'Aún no tenés citas',
+              style: TextStyle(color: AppColors.creamDim, fontSize: 14),
+            ),
           ),
         ],
       );
@@ -276,69 +438,149 @@ class _CitasScreenState extends State<CitasScreen> {
       itemCount: filtered.length,
       itemBuilder: (ctx, i) {
         final a = filtered[i];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.dark2,
-            border: Border.all(color: AppColors.dark4),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.dark3,
-                  borderRadius: BorderRadius.circular(8),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Slidable(
+            key: ValueKey(a.id),
+            startActionPane: ActionPane(
+              motion: const ScrollMotion(),
+              extentRatio: _canRemind(a) ? 0.5 : 0.28,
+              children: [
+                SlidableAction(
+                  onPressed: (_) => _showDetail(a),
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: AppColors.dark,
+                  icon: Icons.visibility_outlined,
+                  label: 'Ver',
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
-                constraints: const BoxConstraints(minWidth: 64),
-                child: Column(
-                  children: [
-                    Text(DateFormat('HH:mm').format(a.scheduledAt),
-                        style: GoogleFonts.playfairDisplay(
-                            color: AppColors.gold, fontSize: 14, fontWeight: FontWeight.w700)),
-                    Text(DateFormat('d MMM', 'es').format(a.scheduledAt),
-                        style: const TextStyle(color: AppColors.creamDim, fontSize: 10)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(a.clientName,
-                        style: const TextStyle(
-                            color: AppColors.cream, fontWeight: FontWeight.w600, fontSize: 14)),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${a.serviceName ?? ''} · ${a.barberName ?? ''}',
-                      style: const TextStyle(color: AppColors.creamDim, fontSize: 11),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(a.clientPhone,
-                        style: const TextStyle(color: AppColors.creamDim, fontSize: 11)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => _showStatusSheet(a),
-                    child: StatusBadge(status: a.status),
+                if (_canRemind(a))
+                  SlidableAction(
+                    onPressed: (_) => _remind(a),
+                    backgroundColor: AppColors.goldDim,
+                    foregroundColor: AppColors.cream,
+                    icon: Icons.notifications_outlined,
+                    label: 'Recordar',
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => _delete(a),
-                    child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 18),
+              ],
+            ),
+            endActionPane: ActionPane(
+              motion: const ScrollMotion(),
+              extentRatio: 0.5,
+              children: [
+                SlidableAction(
+                  onPressed: (_) => _showStatusSheet(a),
+                  backgroundColor: AppColors.goldDim,
+                  foregroundColor: AppColors.cream,
+                  icon: Icons.label_outline,
+                  label: 'Estado',
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                SlidableAction(
+                  onPressed: (_) => _delete(a),
+                  backgroundColor: AppColors.danger,
+                  foregroundColor: AppColors.cream,
+                  icon: Icons.delete_outline,
+                  label: 'Eliminar',
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+              ],
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.dark2,
+                border: Border.all(color: AppColors.dark4),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.dark3,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 64),
+                    child: Column(
+                      children: [
+                        Text(
+                          DateFormat('HH:mm').format(a.scheduledAt),
+                          style: GoogleFonts.playfairDisplay(
+                            color: AppColors.gold,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('d MMM', 'es').format(a.scheduledAt),
+                          style: const TextStyle(
+                            color: AppColors.creamDim,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          a.clientName,
+                          style: const TextStyle(
+                            color: AppColors.cream,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${a.serviceName ?? ''} · ${a.barberName ?? ''}',
+                          style: const TextStyle(
+                            color: AppColors.creamDim,
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          a.clientPhone,
+                          style: const TextStyle(
+                            color: AppColors.creamDim,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _showStatusSheet(a),
+                        child: StatusBadge(status: a.status),
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _delete(a),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: AppColors.danger,
+                          size: 18,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -350,7 +592,8 @@ class _CreateAppointmentSheet extends StatefulWidget {
   const _CreateAppointmentSheet();
 
   @override
-  State<_CreateAppointmentSheet> createState() => _CreateAppointmentSheetState();
+  State<_CreateAppointmentSheet> createState() =>
+      _CreateAppointmentSheetState();
 }
 
 class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
@@ -377,11 +620,16 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
 
   Future<void> _loadOptions() async {
     try {
-      final results = await Future.wait([BarberService.getAll(), ServiceService.getAll()]);
+      final results = await Future.wait([
+        BarberService.getAll(),
+        ServiceService.getAll(),
+      ]);
       if (!mounted) return;
       setState(() {
         _barbers = (results[0] as List<Barber>).where((b) => b.active).toList();
-        _services = (results[1] as List<Service>).where((s) => s.active).toList();
+        _services = (results[1] as List<Service>)
+            .where((s) => s.active)
+            .toList();
       });
     } catch (e) {
       if (!mounted) return;
@@ -409,7 +657,10 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
     if (picked != null) setState(() => _time = picked);
   }
 
@@ -425,15 +676,24 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
       return;
     }
     final scheduledAt = DateTime(
-        _date!.year, _date!.month, _date!.day, _time!.hour, _time!.minute);
+      _date!.year,
+      _date!.month,
+      _date!.day,
+      _time!.hour,
+      _time!.minute,
+    );
     final minDate = DateTime.now().add(const Duration(minutes: 30));
     final maxDate = DateTime.now().add(const Duration(days: 30));
     if (scheduledAt.isBefore(minDate)) {
-      setState(() => _error = 'La cita debe ser al menos 30 minutos desde ahora');
+      setState(
+        () => _error = 'La cita debe ser al menos 30 minutos desde ahora',
+      );
       return;
     }
     if (scheduledAt.isAfter(maxDate)) {
-      setState(() => _error = 'La cita no puede ser a más de 1 mes de distancia');
+      setState(
+        () => _error = 'La cita no puede ser a más de 1 mes de distancia',
+      );
       return;
     }
 
@@ -459,11 +719,15 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedService =
-        _services?.where((s) => s.id == _serviceId).cast<Service?>().firstOrNull;
+    final selectedService = _services
+        ?.where((s) => s.id == _serviceId)
+        .cast<Service?>()
+        .firstOrNull;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.85,
         minChildSize: 0.5,
@@ -490,64 +754,103 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('NUEVA CITA',
-                      style: TextStyle(
-                          color: AppColors.gold,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1)),
+                  const Text(
+                    'NUEVA CITA',
+                    style: TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
                   const SizedBox(height: 18),
                   if (_barbers == null || _services == null)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.gold),
+                      ),
                     )
                   else ...[
                     const _FieldLabel('BARBERO'),
                     DropdownButtonFormField<int>(
                       value: _barberId,
                       dropdownColor: AppColors.dark3,
-                      style: const TextStyle(color: AppColors.cream, fontSize: 14),
-                      decoration: const InputDecoration(hintText: 'Seleccioná un barbero'),
+                      style: const TextStyle(
+                        color: AppColors.cream,
+                        fontSize: 14,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Seleccioná un barbero',
+                      ),
                       items: _barbers!
-                          .map((b) => DropdownMenuItem(value: b.id, child: Text(b.name)))
+                          .map(
+                            (b) => DropdownMenuItem(
+                              value: b.id,
+                              child: Text(b.name),
+                            ),
+                          )
                           .toList(),
                       onChanged: (v) => setState(() => _barberId = v),
-                      validator: (v) => v == null ? 'Seleccioná un barbero' : null,
+                      validator: (v) =>
+                          v == null ? 'Seleccioná un barbero' : null,
                     ),
                     const SizedBox(height: 14),
                     const _FieldLabel('SERVICIO'),
                     DropdownButtonFormField<int>(
                       value: _serviceId,
                       dropdownColor: AppColors.dark3,
-                      style: const TextStyle(color: AppColors.cream, fontSize: 14),
-                      decoration: const InputDecoration(hintText: 'Seleccioná un servicio'),
+                      style: const TextStyle(
+                        color: AppColors.cream,
+                        fontSize: 14,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Seleccioná un servicio',
+                      ),
                       items: _services!
-                          .map((s) => DropdownMenuItem(
-                              value: s.id, child: Text('${s.name} — ${s.durationMin}min')))
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s.id,
+                              child: Text('${s.name} — ${s.durationMin}min'),
+                            ),
+                          )
                           .toList(),
                       onChanged: (v) => setState(() => _serviceId = v),
-                      validator: (v) => v == null ? 'Seleccioná un servicio' : null,
+                      validator: (v) =>
+                          v == null ? 'Seleccioná un servicio' : null,
                     ),
                     if (selectedService != null) ...[
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.gold.withValues(alpha: 0.08),
-                          border: Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
+                          border: Border.all(
+                            color: AppColors.gold.withValues(alpha: 0.2),
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('${selectedService.name} · ${selectedService.durationMin} min',
-                                style: const TextStyle(color: AppColors.creamDim, fontSize: 12)),
-                            Text(_priceFormat.format(selectedService.price),
-                                style: GoogleFonts.playfairDisplay(
-                                    color: AppColors.gold,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14)),
+                            Text(
+                              '${selectedService.name} · ${selectedService.durationMin} min',
+                              style: const TextStyle(
+                                color: AppColors.creamDim,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              _priceFormat.format(selectedService.price),
+                              style: GoogleFonts.playfairDisplay(
+                                color: AppColors.gold,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -558,8 +861,9 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                       controller: _nameCtrl,
                       style: const TextStyle(color: AppColors.cream),
                       decoration: const InputDecoration(hintText: 'Juan Pérez'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Ingresá el nombre' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Ingresá el nombre'
+                          : null,
                     ),
                     const SizedBox(height: 14),
                     const _FieldLabel('TELÉFONO'),
@@ -568,8 +872,9 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                       keyboardType: TextInputType.phone,
                       style: const TextStyle(color: AppColors.cream),
                       decoration: const InputDecoration(hintText: '3001234567'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Ingresá el teléfono' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Ingresá el teléfono'
+                          : null,
                     ),
                     const SizedBox(height: 14),
                     const _FieldLabel('EMAIL (OPCIONAL)'),
@@ -577,7 +882,9 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
                       style: const TextStyle(color: AppColors.cream),
-                      decoration: const InputDecoration(hintText: 'cliente@email.com'),
+                      decoration: const InputDecoration(
+                        hintText: 'cliente@email.com',
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -589,9 +896,14 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                               const _FieldLabel('FECHA'),
                               OutlinedButton(
                                 onPressed: _pickDate,
-                                child: Text(_date == null
-                                    ? 'Elegir'
-                                    : DateFormat('d MMM yyyy', 'es').format(_date!)),
+                                child: Text(
+                                  _date == null
+                                      ? 'Elegir'
+                                      : DateFormat(
+                                          'd MMM yyyy',
+                                          'es',
+                                        ).format(_date!),
+                                ),
                               ),
                             ],
                           ),
@@ -604,7 +916,11 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                               const _FieldLabel('HORA'),
                               OutlinedButton(
                                 onPressed: _pickTime,
-                                child: Text(_time == null ? 'Elegir' : _time!.format(context)),
+                                child: Text(
+                                  _time == null
+                                      ? 'Elegir'
+                                      : _time!.format(context),
+                                ),
                               ),
                             ],
                           ),
@@ -616,11 +932,19 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                     TextFormField(
                       controller: _notesCtrl,
                       style: const TextStyle(color: AppColors.cream),
-                      decoration: const InputDecoration(hintText: 'Indicaciones especiales...'),
+                      decoration: const InputDecoration(
+                        hintText: 'Indicaciones especiales...',
+                      ),
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 14),
-                      Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
+                      Text(
+                        _error!,
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 22),
                     ElevatedButton(
@@ -630,7 +954,10 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                               height: 18,
                               width: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.dark))
+                                strokeWidth: 2,
+                                color: AppColors.dark,
+                              ),
+                            )
                           : const Text('CREAR CITA'),
                     ),
                   ],
@@ -644,6 +971,42 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
   }
 }
 
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.creamDim,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: AppColors.cream, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FieldLabel extends StatelessWidget {
   final String text;
   const _FieldLabel(this.text);
@@ -652,12 +1015,15 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6, top: 2),
-      child: Text(text,
-          style: const TextStyle(
-              color: AppColors.creamDim,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.creamDim,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 }

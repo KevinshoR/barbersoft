@@ -12,12 +12,20 @@ class ServiceService {
     required String name,
     required int durationMin,
     required num price,
+    String? imageUrl,
+    String? description,
   }) async {
-    final res = await Api.dio.post('/services', data: {
-      'name': name,
-      'duration_min': durationMin,
-      'price': price,
-    });
+    final res = await Api.dio.post(
+      '/services',
+      data: {
+        'name': name,
+        'duration_min': durationMin,
+        'price': price,
+        if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+        if (description != null && description.isNotEmpty)
+          'description': description,
+      },
+    );
     return Service.fromJson(res.data['service'] as Map<String, dynamic>);
   }
 
@@ -27,13 +35,20 @@ class ServiceService {
     int? durationMin,
     num? price,
     bool? active,
+    String? imageUrl,
+    String? description,
   }) async {
-    final res = await Api.dio.put('/services/$id', data: {
-      if (name != null) 'name': name,
-      if (durationMin != null) 'duration_min': durationMin,
-      if (price != null) 'price': price,
-      if (active != null) 'active': active,
-    });
+    final res = await Api.dio.put(
+      '/services/$id',
+      data: {
+        if (name != null) 'name': name,
+        if (durationMin != null) 'duration_min': durationMin,
+        if (price != null) 'price': price,
+        if (active != null) 'active': active,
+        if (imageUrl != null) 'image_url': imageUrl,
+        if (description != null) 'description': description,
+      },
+    );
     return Service.fromJson(res.data['service'] as Map<String, dynamic>);
   }
 

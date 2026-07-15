@@ -10,6 +10,8 @@ class Service {
   final int durationMin;
   final num price;
   final bool active;
+  final String? imageUrl;
+  final String? description;
 
   Service({
     required this.id,
@@ -17,6 +19,8 @@ class Service {
     required this.durationMin,
     required this.price,
     this.active = true,
+    this.imageUrl,
+    this.description,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
@@ -26,13 +30,17 @@ class Service {
       durationMin: _toNum(json['duration_min']).toInt(),
       price: _toNum(json['price']),
       active: json['active'] ?? true,
+      imageUrl: json['image_url'],
+      description: json['description'],
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'duration_min': durationMin,
-        'price': price,
-        'active': active,
-      };
+    'name': name,
+    'duration_min': durationMin,
+    'price': price,
+    'active': active,
+    'image_url': imageUrl,
+    'description': description,
+  };
 }

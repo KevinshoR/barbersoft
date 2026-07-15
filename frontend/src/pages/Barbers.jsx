@@ -6,6 +6,9 @@ import HelpButton from '../components/HelpButton'
 import api from '../services/api'
 import { useToast } from '../context/ToastContext'
 import ImageUpload, { resolveImageSrc } from '../components/ImageUpload'
+import Pagination from '../components/Pagination'
+
+const PAGE_SIZE = 8
 
 const DIAS = [
   { n: 1, corto: 'Lun' }, { n: 2, corto: 'Mar' }, { n: 3, corto: 'Mié' },
@@ -73,6 +76,7 @@ export default function Barbers() {
   const [toggling, setToggling] = useState(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [name, setName] = useState('')
   const [photoUrl, setPhotoUrl] = useState('')
   const [specialty, setSpecialty] = useState('')
@@ -120,6 +124,10 @@ export default function Barbers() {
     if (!q) return barbers
     return barbers.filter(b => (b.name || '').toLowerCase().includes(q) || (b.specialty || '').toLowerCase().includes(q))
   }, [barbers, search])
+
+  useEffect(() => { setPage(1) }, [search])
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   if (view === 'form') {
     return (
@@ -193,7 +201,7 @@ export default function Barbers() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {filtered.map(b => {
+            {paginated.map(b => {
               const dias = parseDays(b.work_days)
               return (
                 <div key={b.id} style={{ background: 'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.25)', opacity: b.active ? 1 : 0.6, transition: 'all 0.2s' }}>
@@ -221,6 +229,7 @@ export default function Barbers() {
             })}
           </div>
         )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </main>
 
       {detail && (

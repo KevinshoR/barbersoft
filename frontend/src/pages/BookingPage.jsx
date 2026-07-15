@@ -6,6 +6,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import { useToast } from '../context/ToastContext'
 import { EyeIcon } from '../components/Icons'
 import DetailModal from '../components/DetailModal'
+import ChatbotWidget from '../components/ChatbotWidget'
 
 const DAY_ABBR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -671,6 +672,7 @@ const navigate = useNavigate()
         </p>
 
       </main>
+      {shop && <ChatbotWidget slug={slug} shopName={shop.name} />}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
 import AgendaTabs from '../components/AgendaTabs'
+import Pagination from '../components/Pagination'
 import { useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { requiredError, emailError, phoneError, hasErrors } from '../utils/validators'
@@ -90,7 +91,7 @@ function StatusSelector({ status, onUpdate }) {
   }
 
   return (
-    <div ref={ref} style={{ position:'relative', display:'inline-block', zIndex:50 }}>
+    <div ref={ref} style={{ position:'relative', display:'inline-block', zIndex: open ? 200 : 50 }}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(prev => !prev) }}
         style={{ display:'inline-flex', alignItems:'center', gap:6, background:current.bg, border:'none', borderRadius:20, padding:'6px 13px', cursor:'pointer', transition:'all 0.2s' }}
@@ -142,6 +143,7 @@ export default function Appointments() {
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [search, setSearch]             = useState('')
   const [page, setPage]                 = useState(1)
   const [form, setForm] = useState({
     barber_id:'', service_id:'', client_name:'',
@@ -174,7 +176,9 @@ export default function Appointments() {
   const filtered = appointments.filter(a => {
     const matchDate   = filterDate   ? new Date(a.scheduled_at).toISOString().split('T')[0] === filterDate : true
     const matchStatus = filterStatus ? a.status === filterStatus : true
-    return matchDate && matchStatus
+    const q = search.trim().toLowerCase()
+    const matchSearch = !q || (a.client_name || '').toLowerCase().includes(q) || (a.client_phone || '').includes(q) || (a.barber_name || '').toLowerCase().includes(q) || (a.service_name || '').toLowerCase().includes(q)
+    return matchDate && matchStatus && matchSearch
   })
 
   // Paginación
@@ -182,7 +186,7 @@ export default function Appointments() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Reset página cuando cambia filtro
-  useEffect(() => { setPage(1) }, [filterDate, filterStatus])
+  useEffect(() => { setPage(1) }, [filterDate, filterStatus, search])
 
   const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
 
@@ -328,6 +332,15 @@ export default function Appointments() {
           >
             {showForm ? 'CANCELAR' : '+ NUEVA CITA'}
           </button>
+        </div>
+
+        {/* Búsqueda */}
+        <div className="animate-fade-up" style={{ position:'relative', marginBottom:16 }}>
+          <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'var(--cream-dim)', display:'flex' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por cliente, teléfono, barbero o servicio..."
+            style={{ width:'100%', padding:'12px 14px 12px 42px', background:'var(--surface-1)', color:'var(--cream)', border:'1px solid var(--dark-4)', borderRadius:12, outline:'none', fontSize:14 }} />
         </div>
 
         {/* Filtros */}
@@ -476,10 +489,10 @@ export default function Appointments() {
                 {filtered.length === 0 && appointments.length > 0 ? 'No hay citas con esos filtros' : 'No hay citas todavía'}
               </p>
             </div>
-          ) : paginated.map((a) => (
+          ) : paginated.map((a, idx) => (
             <div
               key={a.id}
-              style={{ background:'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,0.25)' }}
+              style={{ background:'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,0.25)', zIndex: paginated.length - idx }}
             >
               <div style={{ display:'flex', alignItems:'center', gap:16, flex:1, minWidth:0 }}>
                 <div style={{ background:'linear-gradient(135deg, var(--gold-dim) 0%, var(--dark-3) 100%)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:12, padding:'10px 14px', textAlign:'center', flexShrink:0, minWidth:76 }}>
@@ -507,38 +520,11 @@ export default function Appointments() {
         </div>
 
         {/* Paginación */}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         {totalPages > 1 && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:20 }}>
-            <button
-              onClick={() => setPage(p => Math.max(1, p-1))}
-              disabled={page === 1}
-              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', color: page === 1 ? 'var(--dark-4)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize:13, fontFamily:'DM Sans' }}
-            >
-              ←
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i+1).map(n => (
-              <button
-                key={n}
-                onClick={() => setPage(n)}
-                style={{ background: n === page ? 'var(--gold)' : 'var(--dark-2)', border:'1px solid ' + (n === page ? 'var(--gold)' : 'var(--dark-4)'), color: n === page ? 'var(--dark)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight: n === page ? 700 : 400, fontFamily:'DM Sans', minWidth:38 }}
-              >
-                {n}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p+1))}
-              disabled={page === totalPages}
-              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', color: page === totalPages ? 'var(--dark-4)' : 'var(--cream-dim)', padding:'8px 14px', borderRadius:8, cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize:13, fontFamily:'DM Sans' }}
-            >
-              →
-            </button>
-
-            <span style={{ color:'var(--cream-dim)', fontSize:12, marginLeft:8 }}>
-              {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} de {filtered.length}
-            </span>
-          </div>
+          <p style={{ color:'var(--cream-dim)', fontSize:12, textAlign:'center', marginTop:10 }}>
+            {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} de {filtered.length}
+          </p>
         )}
 
       <Footer />
