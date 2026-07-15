@@ -41,7 +41,7 @@ const PLANS = [
     label:    'ANUAL',
     price:    '$69.900',
     period:   'mes',
-    billing:  'Facturado anualmente · ahorrás $240.000',
+    billing:  'Facturado anualmente · ahorras $240.000',
     popular:  true,
     features: [
       'Todo lo del plan mensual',

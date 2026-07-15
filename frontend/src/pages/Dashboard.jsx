@@ -137,7 +137,7 @@ const [copied, setCopied]   = useState(false)
                 ◆ Período de prueba — {daysLeft} días restantes
               </p>
               <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2 }}>
-                Activá tu suscripción para mantener el acceso a todas las funciones
+                Activa tu suscripción para mantener el acceso a todas las funciones
               </p>
             </div>
             <a href="/subscription" style={{ background: 'var(--gold)', color: 'var(--dark)', padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textDecoration: 'none' }}>

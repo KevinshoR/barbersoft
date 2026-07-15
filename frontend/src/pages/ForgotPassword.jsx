@@ -48,7 +48,7 @@ export default function ForgotPassword() {
           Email enviado
         </h2>
         <p style={{ color:'#B8B0A0', fontSize:14, textAlign:'center', lineHeight:1.7, marginBottom:28 }}>
-          Si ese email está registrado, vas a recibir un enlace para restablecer tu contraseña en los próximos minutos. Revisá también el spam.
+          Si ese email está registrado, vas a recibir un enlace para restablecer tu contraseña en los próximos minutos. Revisa también el spam.
         </p>
         <button
           onClick={() => navigate('/login')}
@@ -71,7 +71,7 @@ export default function ForgotPassword() {
             Recuperar contraseña
           </h1>
           <p style={{ color:'#B8B0A0', fontSize:13 }}>
-            Ingresá tu email y te mandamos un enlace
+            Ingresa tu email y te mandamos un enlace
           </p>
         </div>
 

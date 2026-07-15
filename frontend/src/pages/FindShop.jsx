@@ -23,7 +23,7 @@ export default function FindShop() {
 
   const departmentFieldError = requiredError(department, 'El departamento')
   const municipalityFieldError = (municipality && department && !getMunicipalities(department).includes(municipality))
-    ? 'Ese municipio no pertenece al departamento seleccionado. Elegilo de la lista.'
+    ? 'Ese municipio no pertenece al departamento seleccionado. Elígelo de la lista.'
     : null
   const slugFieldError = requiredError(slug, 'El nombre de la barbería')
 
@@ -45,7 +45,7 @@ export default function FindShop() {
       const res = await api.get('/public/search', { params: { department, municipality: municipality.trim() || undefined } })
       setResults(res.data.barbershops)
     } catch {
-      setError('No pudimos buscar barberías. Intentá de nuevo.')
+      setError('No pudimos buscar barberías. Intenta de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -62,7 +62,7 @@ export default function FindShop() {
       await api.get('/public/' + clean)
       navigate('/reservar/' + clean)
     } catch {
-      setSlugError('No encontramos esa barbería. Verificá el nombre e intentá de nuevo.')
+      setSlugError('No encontramos esa barbería. Verifica el nombre e intenta de nuevo.')
     } finally {
       setSlugLoading(false)
     }
@@ -84,7 +84,7 @@ export default function FindShop() {
             Barber<span style={{ color:'var(--gold)' }}>soft</span>
           </h1>
           <p style={{ color:'var(--cream-dim)', fontSize:14 }}>
-            Reservá tu cita en tu barbería favorita
+            Reserva tu cita en tu barbería favorita
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export default function FindShop() {
         <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:16, padding:32 }}>
           <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.1em', fontWeight:700, marginBottom:6 }}>BUSCAR BARBERÍA POR UBICACIÓN</p>
           <p style={{ color:'var(--cream-dim)', fontSize:13, marginBottom:24, lineHeight:1.6 }}>
-            Elegí el departamento y, si querés, el municipio para encontrar barberías cerca de vos.
+            Elige el departamento y, si quieres, el municipio para encontrar barberías cerca de ti.
           </p>
 
           {error && (
@@ -107,7 +107,7 @@ export default function FindShop() {
                 DEPARTAMENTO
               </label>
               <select value={department} onChange={handleDepartmentChange} onBlur={() => setTouched(t => ({ ...t, department: true }))} style={{ ...inputStyle, border: '1px solid ' + (touched.department && departmentFieldError ? 'var(--danger)' : 'var(--border-soft)') }}>
-                <option value="">Seleccioná un departamento...</option>
+                <option value="">Selecciona un departamento...</option>
                 {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
               </select>
               {touched.department && departmentFieldError && <p style={{ color:'var(--danger)', fontSize:12, marginTop:6 }}>⚠ {departmentFieldError}</p>}
@@ -123,7 +123,7 @@ export default function FindShop() {
                 onChange={e => { setMunicipality(e.target.value); setError(''); setTouched(t => ({ ...t, municipality: true })) }}
                 onBlur={() => setTouched(t => ({ ...t, municipality: true }))}
                 disabled={!department}
-                placeholder={department ? 'Escribí para buscar...' : 'Elegí un departamento primero'}
+                placeholder={department ? 'Escribe para buscar...' : 'Elige un departamento primero'}
                 autoComplete="off"
                 style={{ ...inputStyle, opacity: department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && municipalityFieldError ? 'var(--danger)' : 'var(--border-soft)') }}
               />
@@ -177,7 +177,7 @@ export default function FindShop() {
               onClick={() => setShowSlugFallback(prev => !prev)}
               style={{ background:'none', border:'none', color:'var(--cream-dim)', fontSize:12, cursor:'pointer', padding:0, textDecoration:'underline' }}
             >
-              {showSlugFallback ? '← Buscar por ubicación' : '¿Ya conocés el nombre o código de la barbería? Buscar por nombre'}
+              {showSlugFallback ? '← Buscar por ubicación' : '¿Ya conoces el nombre o código de la barbería? Buscar por nombre'}
             </button>
 
             {showSlugFallback && (
@@ -210,12 +210,12 @@ export default function FindShop() {
         </div>
 
         <p style={{ textAlign:'center', color:'var(--cream-dim)', fontSize:12, marginTop:20, opacity:0.7 }}>
-          ¿Sos dueño de una barbería?{' '}
+          ¿Eres dueño de una barbería?{' '}
           <span
             onClick={() => window.location.href='/login'}
             style={{ color:'var(--gold)', cursor:'pointer', fontWeight:600 }}
           >
-            Accedé al panel
+            Accede al panel
           </span>
         </p>
       </div>

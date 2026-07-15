@@ -36,7 +36,7 @@ export default function ShopProfile() {
       <div style={{ textAlign:'center' }}>
         <p style={{ fontSize:48, color:'#C9A84C', marginBottom:16 }}>✂</p>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize:28, color:'#F5F0E8', marginBottom:8 }}>Barbería no encontrada</h2>
-        <p style={{ color:'#B8B0A0', fontSize:14 }}>Verificá que el enlace sea correcto</p>
+        <p style={{ color:'#B8B0A0', fontSize:14 }}>Verifica que el enlace sea correcto</p>
       </div>
     </div>
   )

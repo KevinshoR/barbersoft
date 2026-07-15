@@ -2,16 +2,16 @@ import { useState } from 'react'
 
 const HELP = {
   '/dashboard':    { title:'Panel principal',   text:'Resumen del día: citas programadas, pendientes y confirmadas. El banner dorado te avisa cuántos días quedan de prueba gratuita.' },
-  '/appointments': { title:'Agenda',            text:'En la pestaña "Citas" gestioná todas las citas: filtrá por fecha o estado, creá nuevas y cambiá el estado con el selector de colores. En "Horario de atención" configurá los días y horas en que tu barbería recibe clientes.' },
-  '/barbers':      { title:'Barberos',          text:'Administrá tu equipo. Podés activar o desactivar barberos sin eliminarlos. No se pueden eliminar si tienen citas activas.' },
-  '/services':     { title:'Servicios',         text:'Configurá los servicios con precio y duración. Los clientes los verán al momento de reservar su cita.' },
-  '/subscription': { title:'Suscripción',       text:'Gestioná tu plan. Con 14 días de prueba gratis podés probar todas las funciones sin necesitar tarjeta.' },
-  '/settings':     { title:'Configuración',     text:'Editá la información de tu barbería, métodos de pago aceptados y datos de contacto que ven tus clientes.' },
+  '/appointments': { title:'Agenda',            text:'En la pestaña "Citas" gestiona todas las citas: filtra por fecha o estado, crea nuevas y cambia el estado con el selector de colores. En "Horario de atención" configura los días y horas en que tu barbería recibe clientes.' },
+  '/barbers':      { title:'Barberos',          text:'Administra tu equipo. Puedes activar o desactivar barberos sin eliminarlos. No se pueden eliminar si tienen citas activas.' },
+  '/services':     { title:'Servicios',         text:'Configura los servicios con precio y duración. Los clientes los verán al momento de reservar su cita.' },
+  '/subscription': { title:'Suscripción',       text:'Gestiona tu plan. Con 14 días de prueba gratis puedes probar todas las funciones sin necesitar tarjeta.' },
+  '/settings':     { title:'Configuración',     text:'Edita la información de tu barbería, métodos de pago aceptados y datos de contacto que ven tus clientes.' },
 }
 
 export default function HelpButton({ path }) {
   const [open, setOpen] = useState(false)
-  const content = HELP[path] || { title:'Ayuda', text:'Navegá por el menú para gestionar tu barbería.' }
+  const content = HELP[path] || { title:'Ayuda', text:'Navega por el menú para gestionar tu barbería.' }
 
   return (
     <>

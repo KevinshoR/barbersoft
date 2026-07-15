@@ -314,7 +314,7 @@ export default function Landing() {
               SOFTWARE PARA BARBERÍAS EN COLOMBIA
             </div>
             <h1>Más citas.<br/><span className="hero-line2">Menos caos.</span></h1>
-            <p className="hero-sub">Agendá, recordá y gestioná tu barbería desde un solo lugar. Tus clientes reservan solos — vos solo cortás.</p>
+            <p className="hero-sub">Agenda, recuerda y gestiona tu barbería desde un solo lugar. Tus clientes reservan solos — tú solo cortas.</p>
             <div className="hero-cta">
               <button className="btn-hero btn-hero-gold" onClick={goToRegister}>
                 PROBAR GRATIS 14 DÍAS <span style={{fontSize:16}}>→</span>
@@ -366,7 +366,7 @@ export default function Landing() {
           <div style={{maxWidth:900,margin:'0 auto'}}>
             <div className="section-header fade-up">
               <span className="section-eyebrow">EL PROBLEMA</span>
-              <h2 className="section-title">¿Seguís manejando todo por WhatsApp?</h2>
+              <h2 className="section-title">¿Sigues manejando todo por WhatsApp?</h2>
             </div>
             <div className="contrast-grid">
               <div className="contrast-col bad fade-up">
@@ -391,10 +391,10 @@ export default function Landing() {
         <section id="features" style={{padding:'100px 24px'}}>
           <div className="section-header fade-up">
             <span className="section-eyebrow">FUNCIONES</span>
-            <h2 className="section-title">Todo lo que necesitás</h2>
+            <h2 className="section-title">Todo lo que necesitas</h2>
           </div>
           <div className="features-grid fade-up delay-1">
-            <div className="feat"><span className="feat-icon">📅</span><h3>Agenda inteligente</h3><p>Gestioná citas con un clic. Sin conflictos de horario.</p></div>
+            <div className="feat"><span className="feat-icon">📅</span><h3>Agenda inteligente</h3><p>Gestiona citas con un clic. Sin conflictos de horario.</p></div>
             <div className="feat"><span className="feat-icon">🔗</span><h3>Reservas públicas</h3><p>Link propio. Los clientes reservan solos, 24/7.</p></div>
             <div className="feat"><span className="feat-icon">💬</span><h3>WhatsApp automático</h3><p>Recordatorio 24h antes. Menos ausencias.</p></div>
             <div className="feat"><span className="feat-icon">✂</span><h3>Gestión de equipo</h3><p>Barberos, servicios y agendas separadas.</p></div>
@@ -410,10 +410,10 @@ export default function Landing() {
             <h2 className="section-title">Listo en 10 minutos</h2>
           </div>
           <div className="steps-row">
-            <div className="step fade-up"><div className="step-num">1</div><h3>Creás tu cuenta</h3><p>Nombre, dirección y listo. Sin tarjeta.</p></div>
-            <div className="step fade-up delay-1"><div className="step-num">2</div><h3>Configurás el local</h3><p>Barberos, servicios y horarios.</p></div>
-            <div className="step fade-up delay-2"><div className="step-num">3</div><h3>Compartís el link</h3><p>Los clientes reservan solos.</p></div>
-            <div className="step fade-up delay-3"><div className="step-num">4</div><h3>Solo cortás</h3><p>El sistema hace el resto.</p></div>
+            <div className="step fade-up"><div className="step-num">1</div><h3>Creas tu cuenta</h3><p>Nombre, dirección y listo. Sin tarjeta.</p></div>
+            <div className="step fade-up delay-1"><div className="step-num">2</div><h3>Configuras el local</h3><p>Barberos, servicios y horarios.</p></div>
+            <div className="step fade-up delay-2"><div className="step-num">3</div><h3>Compartes el link</h3><p>Los clientes reservan solos.</p></div>
+            <div className="step fade-up delay-3"><div className="step-num">4</div><h3>Solo cortas</h3><p>El sistema hace el resto.</p></div>
           </div>
         </section>
 
@@ -443,7 +443,7 @@ export default function Landing() {
               <p className="price-title">ANUAL</p>
               <div className="price-amount">$69.900</div>
               <p className="price-cop">COP / mes</p>
-              <p className="price-billing">Facturado anualmente · ahorrás $240.000</p>
+              <p className="price-billing">Facturado anualmente · ahorras $240.000</p>
               <ul className="price-list">
                 <li>Todo lo del mensual</li>
                 <li>2 meses gratis</li>
@@ -455,7 +455,7 @@ export default function Landing() {
             </div>
           </div>
           <p style={{textAlign:'center',color:'var(--cream-dim)',fontSize:12,marginTop:20,opacity:0.5}}>
-            14 días gratis · Sin tarjeta · Cancelás cuando querás
+            14 días gratis · Sin tarjeta · Cancelas cuando quieras
           </p>
         </section>
 
@@ -467,10 +467,10 @@ export default function Landing() {
           </div>
           <div className="faq-list">
             {[
-              ['¿Necesito saber de tecnología para usarlo?', 'No. Si podés usar WhatsApp, podés usar Barbersoft. La configuración inicial toma menos de 10 minutos.'],
-              ['¿Qué pasa cuando termina el período de prueba?', 'Podés elegir un plan y seguir usando todo normalmente. Tus datos se mantienen siempre.'],
-              ['¿Los clientes tienen que descargarse algo?', 'No. Reservan desde cualquier navegador en su celular. Solo abrís el link.'],
-              ['¿Funciona para barberías con varios barberos?', 'Sí. Podés agregar todos los barberos que quieras, cada uno con su propia agenda.'],
+              ['¿Necesito saber de tecnología para usarlo?', 'No. Si puedes usar WhatsApp, puedes usar Barbersoft. La configuración inicial toma menos de 10 minutos.'],
+              ['¿Qué pasa cuando termina el período de prueba?', 'Puedes elegir un plan y seguir usando todo normalmente. Tus datos se mantienen siempre.'],
+              ['¿Los clientes tienen que descargarse algo?', 'No. Reservan desde cualquier navegador en su celular. Solo abres el link.'],
+              ['¿Funciona para barberías con varios barberos?', 'Sí. Puedes agregar todos los barberos que quieras, cada uno con su propia agenda.'],
             ].map(([q, a], i) => (
               <div className="faq-item fade-up" key={i}>
                 <button className="faq-q">{q}<span className="faq-icon">+</span></button>
@@ -485,7 +485,7 @@ export default function Landing() {
           <div className="cta-bg"></div>
           <div className="cta-grid-bg"></div>
           <div className="fade-up">
-            <span className="section-eyebrow">EMPEZÁ HOY</span>
+            <span className="section-eyebrow">EMPIEZA HOY</span>
             <h2>Tu barbería,<br/><span style={{color:'var(--gold)'}}>al siguiente nivel.</span></h2>
             <p>14 días gratis. Sin tarjeta. Sin complicaciones.</p>
             <div className="lnav">
@@ -495,12 +495,12 @@ export default function Landing() {
             </div>
             <p className="cta-note">✂ Barberías en Medellín, Bogotá y Cali ya lo están usando</p>
 <p style={{marginTop:12, position:'relative', zIndex:1}}>
-  <span style={{color:'var(--cream-dim)', fontSize:13}}>¿Sos cliente de una barbería? </span>
+  <span style={{color:'var(--cream-dim)', fontSize:13}}>¿Eres cliente de una barbería? </span>
   <span
     onClick={() => window.location.href='/reservar'}
     style={{color:'var(--gold)', fontSize:13, fontWeight:700, cursor:'pointer', textDecoration:'underline'}}
   >
-    Reservá tu cita aquí →
+    Reserva tu cita aquí →
   </span>
 </p>
           </div>

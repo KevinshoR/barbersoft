@@ -12,8 +12,8 @@ const registerSchema = {
   phone: v => phoneError(v),
   department: v => requiredError(v, 'El departamento'),
   municipality: (v, form) => {
-    if (!isRequired(v)) return 'Seleccioná el municipio'
-    if (form.department && !getMunicipalities(form.department).includes(v)) return 'Seleccioná un municipio válido de la lista'
+    if (!isRequired(v)) return 'Selecciona el municipio'
+    if (form.department && !getMunicipalities(form.department).includes(v)) return 'Selecciona un municipio válido de la lista'
     return null
   },
 }
@@ -84,7 +84,7 @@ export default function Login() {
       login(res.data.token, res.data.barbershop)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.error || 'Ocurrió un error. Intentá de nuevo.')
+      setError(err.response?.data?.error || 'Ocurrió un error. Intenta de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -136,7 +136,7 @@ export default function Login() {
                   <div>
                     <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:6, fontWeight:600 }}>DEPARTAMENTO</label>
                     <select name="department" value={form.department} onChange={handleChange} onBlur={() => markTouched('department')} required style={{ width:'100%', padding:'12px 16px', border: '1px solid ' + (touched.department && registerErrors.department ? '#E8C97A' : 'var(--dark-4)') }}>
-                      <option value="">Seleccioná...</option>
+                      <option value="">Selecciona...</option>
                       {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                     {touched.department && registerErrors.department && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {registerErrors.department}</p>}
@@ -150,7 +150,7 @@ export default function Login() {
                       onChange={handleChange}
                       onBlur={() => markTouched('municipality')}
                       disabled={!form.department}
-                      placeholder={form.department ? 'Escribí para buscar...' : 'Elegí un departamento'}
+                      placeholder={form.department ? 'Escribe para buscar...' : 'Elige un departamento'}
                       autoComplete="off"
                       required
                       style={{ width:'100%', padding:'12px 16px', opacity: form.department ? 1 : 0.5, border: '1px solid ' + (touched.municipality && registerErrors.municipality ? '#E8C97A' : 'var(--dark-4)') }}
@@ -232,13 +232,13 @@ export default function Login() {
 
           <div style={{ borderTop:'1px solid var(--dark-4)', marginTop:24, paddingTop:24, textAlign:'center' }}>
             <span style={{ color:'var(--cream-dim)', fontSize:13 }}>
-              {isRegister ? '¿Ya tenés cuenta? ' : '¿No tenés cuenta? '}
+              {isRegister ? '¿Ya tienes cuenta? ' : '¿No tienes cuenta? '}
             </span>
             <button
               onClick={() => { setIsRegister(!isRegister); setError(''); setTouched({}) }}
               style={{ background:'none', border:'none', color:'var(--gold)', fontSize:13, fontWeight:600, cursor:'pointer', textDecoration:'underline' }}
             >
-              {isRegister ? 'Iniciá sesión' : 'Registrate gratis'}
+              {isRegister ? 'Inicia sesión' : 'Regístrate gratis'}
             </button>
           </div>
         </div>
