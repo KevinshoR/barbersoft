@@ -17,12 +17,15 @@ CREATE TABLE barbershops (
   referral_code         VARCHAR(12) UNIQUE, -- código propio de esta barbería para referir a otras
   referred_by            VARCHAR(12),        -- referral_code de quien la refirió al registrarse (null si ninguno)
   referral_bonus_given   BOOLEAN DEFAULT false, -- true una vez que se dio el beneficio de 15 días por SU primer pago
+  -- Super admin: acceso al panel de control interno (/api/admin/*), no relacionado con la suscripción propia
+  is_super_admin BOOLEAN DEFAULT false,
   created_at  TIMESTAMP DEFAULT NOW()
 );
 
 -- Migración para bases ya existentes (la tabla barbershops ya tenía datos):
 -- ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS department VARCHAR(100), ADD COLUMN IF NOT EXISTS municipality VARCHAR(100);
 -- ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12) UNIQUE, ADD COLUMN IF NOT EXISTS referred_by VARCHAR(12), ADD COLUMN IF NOT EXISTS referral_bonus_given BOOLEAN DEFAULT false;
+-- ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT false;
 -- CREATE UNIQUE INDEX IF NOT EXISTS idx_barbershops_referral_code ON barbershops(referral_code);
 
 -- Tabla de barberos (empleados del local)

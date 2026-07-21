@@ -46,7 +46,7 @@ const { barbershop, refreshBarbershop } = useAuth()
   const navigate          = useNavigate()
   const [searchParams]    = useSearchParams()
   const toast = useToast()
-  const [loading, setLoading] = useState(null)
+  // loading eliminado: la suscripción ahora abre WhatsApp directo (sin llamada asíncrona a Mercado Pago)
 
   // Detectar retorno de Mercado Pago
   useEffect(() => {
@@ -59,16 +59,13 @@ const { barbershop, refreshBarbershop } = useAuth()
   if (blocked === 'true')    toast.error('Tu suscripción venció. Elige un plan para continuar.')
 }, [])
 
-  const handleSubscribe = async (planId) => {
-    setLoading(planId)
-    try {
-      const res = await api.post('/subscription/create-preference', { plan: planId })
-      window.location.href = res.data.sandbox_point
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'No se pudo iniciar el pago. Intenta de nuevo.')
-    } finally {
-      setLoading(null)
-    }
+  // TODO: cuando la pasarela (Wompi) esté lista, restaurar el flujo automático:
+  // const handleSubscribe = async (planId) => { ... api.post('/subscription/create-preference', ...) }
+  const WHATSAPP_NUMBER = '573116735081'
+  const handleSubscribe = () => {
+    const nombre = barbershop?.name || 'mi barbería'
+    const mensaje = `Hola, quiero activar mi suscripción de Barbersoft ($50.000/mes) para "${nombre}". Ya hice/voy a hacer la transferencia.`
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer')
   }
 
   const status    = barbershop?.subscription_status || 'trial'
@@ -179,36 +176,30 @@ const { barbershop, refreshBarbershop } = useAuth()
               </ul>
 
               <button
-                onClick={() => handleSubscribe(plan.id)}
-                disabled={loading === plan.id || status === 'active'}
+                onClick={handleSubscribe}
+                disabled={status === 'active'}
                 className={plan.popular ? 'btn-primary' : 'btn-secondary'}
-                style={{ width:'100%', padding:'13px 0', opacity: loading === plan.id ? 0.6 : 1, fontSize:12 }}
+                style={{ width:'100%', padding:'13px 0', display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:12 }}
               >
-                {loading === plan.id
-                  ? 'REDIRIGIENDO...'
-                  : status === 'active'
+                {status === 'active'
                   ? '✓ PLAN ACTUAL'
-                  : 'SUSCRIBIRME CON MERCADO PAGO'}
+                  : (<>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.4c1.5.8 3.1 1.2 4.8 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2Zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.7-1.2-4.5-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.1.3-.3.5-.1.2-.3.4-.4.5-.1.1-.3.3-.1.6.2.3.9 1.4 1.9 2.3 1.3 1.1 2.3 1.5 2.7 1.7.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1.2.1 1.5.7 1.8.8.3.1.4.2.5.3.1.2.1.7-.1 1.3Z"/></svg>
+                      SUSCRIBIRME POR WHATSAPP
+                    </>)}
               </button>
             </div>
           ))}
         </div>
 
-        {/* Métodos de pago */}
+        {/* Cómo pagar (temporal, mientras se activa el pago automático) */}
         <div className="animate-fade-up delay-4" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:24 }}>
-          <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:16 }}>MÉTODOS DE PAGO ACEPTADOS</p>
-          <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:14 }}>
-            {['PSE', 'Nequi', 'Daviplata', 'Tarjeta débito', 'Tarjeta crédito'].map(m => (
-              <span key={m} style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', color:'var(--cream)', fontSize:12, padding:'6px 14px', borderRadius:6, fontWeight:500 }}>
-                {m}
-              </span>
-            ))}
-          </div>
-          <p style={{ color:'var(--cream-dim)', fontSize:12, lineHeight:1.6, opacity:0.7 }}>
-            Procesado de forma segura a través de{' '}
-            <span style={{ color:'var(--gold)' }}>Mercado Pago</span>.
-            Los datos de tu tarjeta nunca se almacenan en nuestros servidores.
-            Puedes cancelar tu suscripción en cualquier momento.
+          <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:16 }}>¿CÓMO FUNCIONA EL PAGO?</p>
+          <p style={{ color:'var(--cream-dim)', fontSize:13, lineHeight:1.7 }}>
+            Por ahora, la suscripción se activa de forma manual: escríbenos por{' '}
+            <span style={{ color:'var(--gold)' }}>WhatsApp</span>, te compartimos los datos para
+            transferir (Nequi o Bancolombia), y en cuanto confirmamos el pago activamos tu cuenta
+            — normalmente en minutos. Muy pronto vas a poder pagar automáticamente desde aquí.
           </p>
         </div>
 

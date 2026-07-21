@@ -10,14 +10,6 @@ import { requiredError, lengthError, phoneError, combine } from '../utils/valida
 import { useToast } from '../context/ToastContext'
 import ReferralCard from '../components/ReferralCard'
 
-const PAYMENT_METHODS = [
-  { id:'nequi',    label:'Nequi',          icon:'📱', desc:'Pagos móviles Nequi' },
-  { id:'pse',      label:'PSE',            icon:'🏦', desc:'Débito bancario en línea' },
-  { id:'efectivo', label:'Efectivo',       icon:'💵', desc:'Pago en el local' },
-  { id:'tarjeta',  label:'Tarjeta débito', icon:'💳', desc:'Débito o crédito' },
-  { id:'transfer', label:'Transferencia',  icon:'🔄', desc:'Transferencia bancaria' },
-]
-
 const infoSchema = {
   name: combine(v => requiredError(v, 'El nombre'), v => lengthError(v, { min: 2, max: 100, label: 'El nombre' })),
   phone: v => phoneError(v),
@@ -42,13 +34,7 @@ export default function Settings() {
     department:   barbershop?.department   || '',
     municipality: barbershop?.municipality || '',
   })
-  const [payments, setPayments] = useState({
-    nequi: false, pse: false, efectivo: true,
-    tarjeta: false, transfer: false,
-    nequi_number: '', account_name: ''
-  })
   const [touched, setTouched] = useState({})
-  const [paymentsTouched, setPaymentsTouched] = useState({})
 
   const infoErrors = Object.keys(infoSchema).reduce((acc, field) => {
     const err = infoSchema[field](form[field], form)
@@ -56,10 +42,6 @@ export default function Settings() {
     return acc
   }, {})
   const hasInfoErrors = Object.values(infoErrors).some(Boolean)
-
-  const nequiNumberError = payments.nequi ? phoneError(payments.nequi_number, { required: true }) : null
-  const nequiNameError   = payments.nequi ? requiredError(payments.account_name, 'El nombre de la cuenta') : null
-  const hasPaymentErrors = !!(nequiNumberError || nequiNameError)
 
   const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
 
@@ -86,10 +68,6 @@ export default function Settings() {
     }
   }
 
-  const togglePayment = (id) => {
-    setPayments(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
   const trialDaysLeft = () => {
     if (!barbershop?.trial_ends_at) return 0
     const diff = new Date(barbershop.trial_ends_at) - new Date()
@@ -107,7 +85,6 @@ export default function Settings() {
 
   const tabs = [
     { id:'info',     label:'Mi barbería' },
-    { id:'payments', label:'Métodos de pago' },
     { id:'sub',      label:'Suscripción' },
     { id:'referrals', label:'Referidos' },
   ]
@@ -212,82 +189,6 @@ export default function Settings() {
           </div>
         )}
 
-        {/* ── Tab: Métodos de pago ── */}
-        {tab === 'payments' && (
-          <div className="animate-fade-up">
-            <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:28, marginBottom:16 }}>
-              <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:6 }}>MÉTODOS DE PAGO ACEPTADOS</p>
-              <p style={{ color:'var(--cream-dim)', fontSize:13, marginBottom:20, lineHeight:1.6 }}>
-                Activa los métodos que aceptas. Tus clientes los verán en la página de reservas.
-              </p>
-
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                {PAYMENT_METHODS.map(method => (
-                  <div
-                    key={method.id}
-                    onClick={() => togglePayment(method.id)}
-                    style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', background: payments[method.id] ? 'rgba(201,168,76,0.06)' : 'var(--dark-3)', border:'1px solid ' + (payments[method.id] ? 'rgba(201,168,76,0.25)' : 'var(--dark-4)'), borderRadius:10, cursor:'pointer', transition:'all 0.2s' }}
-                  >
-                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                      <span style={{ fontSize:22 }}>{method.icon}</span>
-                      <div>
-                        <p style={{ color:'var(--cream)', fontSize:14, fontWeight:600 }}>{method.label}</p>
-                        <p style={{ color:'var(--cream-dim)', fontSize:12, marginTop:2 }}>{method.desc}</p>
-                      </div>
-                    </div>
-                    <div style={{ width:44, height:24, borderRadius:12, background: payments[method.id] ? 'var(--gold)' : 'var(--dark-4)', position:'relative', transition:'background 0.2s', flexShrink:0 }}>
-                      <div style={{ position:'absolute', top:3, left: payments[method.id] ? 23 : 3, width:18, height:18, borderRadius:'50%', background: payments[method.id] ? 'var(--dark)' : 'var(--cream-dim)', transition:'left 0.2s' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {payments.nequi && (
-              <div className="animate-fade-up" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:24 }}>
-                <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, marginBottom:16 }}>DATOS DE NEQUI</p>
-                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                  <div>
-                    <label style={{ display:'block', fontSize:11, color:'var(--cream-dim)', marginBottom:6, fontWeight:600, letterSpacing:'0.07em' }}>NÚMERO NEQUI</label>
-                    <input
-                      value={payments.nequi_number}
-                      onChange={e => setPayments(p => ({ ...p, nequi_number: e.target.value }))}
-                      onBlur={() => setPaymentsTouched(t => ({ ...t, nequi_number: true }))}
-                      placeholder="3001234567"
-                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.nequi_number && nequiNumberError ? '#E8C97A' : 'var(--dark-4)') }}
-                    />
-                    {paymentsTouched.nequi_number && nequiNumberError && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {nequiNumberError}</p>}
-                  </div>
-                  <div>
-                    <label style={{ display:'block', fontSize:11, color:'var(--cream-dim)', marginBottom:6, fontWeight:600, letterSpacing:'0.07em' }}>NOMBRE DE LA CUENTA</label>
-                    <input
-                      value={payments.account_name}
-                      onChange={e => setPayments(p => ({ ...p, account_name: e.target.value }))}
-                      onBlur={() => setPaymentsTouched(t => ({ ...t, account_name: true }))}
-                      placeholder="Tu nombre completo"
-                      style={{ ...inp, border: '1px solid ' + (paymentsTouched.account_name && nequiNameError ? '#E8C97A' : 'var(--dark-4)') }}
-                    />
-                    {paymentsTouched.account_name && nequiNameError && <p style={{ color:'#E8C97A', fontSize:12, marginTop:6 }}>⚠ {nequiNameError}</p>}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button
-              className="btn-primary"
-              style={{ marginTop:16, opacity: hasPaymentErrors ? 0.6 : 1 }}
-              disabled={hasPaymentErrors}
-              onClick={() => {
-                setPaymentsTouched({ nequi_number: true, account_name: true })
-                if (hasPaymentErrors) return
-                toast.success('Métodos de pago guardados')
-              }}
-            >
-              GUARDAR MÉTODOS
-            </button>
-          </div>
-        )}
-
         {/* ── Tab: Suscripción ── */}
         {tab === 'sub' && (
           <div className="animate-fade-up">
@@ -333,16 +234,15 @@ export default function Settings() {
               )}
             </div>
 
-            {/* Planes */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            {/* Plan */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr', maxWidth:360, gap:16 }}>
               {[
-                { label:'MENSUAL', price:'$89.900', billing:'Facturado mensualmente', features:['Citas ilimitadas','Barberos ilimitados','Reservas públicas','Recordatorios WhatsApp'] },
-                { label:'ANUAL',   price:'$69.900', billing:'Facturado anualmente · 2 meses gratis', features:['Todo lo del mensual','Soporte prioritario','Funciones anticipadas','Reportes avanzados'], hot:true },
+                { label:'PLAN BARBERSOFT', price:'$50.000', billing:'Facturado mensualmente · cancela cuando quieras', features:['Citas ilimitadas','Barberos ilimitados','Página de reservas pública','Recordatorios automáticos por correo','Panel con estadísticas del negocio','Asistente con IA para tus clientes','Soporte por WhatsApp'] },
               ].map(plan => (
-                <div key={plan.label} style={{ background:'var(--dark-2)', border:'1px solid ' + (plan.hot ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'), borderRadius:12, padding:24, position:'relative', overflow:'hidden' }}>
-                  {plan.hot && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />}
+                <div key={plan.label} style={{ background:'var(--dark-2)', border:'1px solid rgba(201,168,76,0.35)', borderRadius:12, padding:24, position:'relative', overflow:'hidden' }}>
+                  <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
                   <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:8 }}>{plan.label}</p>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize:32, fontWeight:900, color: plan.hot ? 'var(--gold)' : 'var(--cream)', marginBottom:2 }}>{plan.price}</p>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize:32, fontWeight:900, color:'var(--gold)', marginBottom:2 }}>{plan.price}</p>
                   <p style={{ color:'var(--cream-dim)', fontSize:11, marginBottom:16, opacity:0.6 }}>{plan.billing}</p>
                   <ul style={{ listStyle:'none', marginBottom:20 }}>
                     {plan.features.map(f => (
@@ -353,20 +253,19 @@ export default function Settings() {
                   </ul>
                   <button
                     onClick={() => {
-  const planId = plan.label === 'MENSUAL' ? 'monthly' : 'annual'
-  setSubscribing(planId)
-  api.post('/subscription/create-preference', { plan: planId })
+  setSubscribing('monthly')
+  api.post('/subscription/create-preference', { plan: 'monthly' })
     .then(res => { window.location.href = res.data.sandbox_point })
     .catch(err => {
       toast.error(err.response?.data?.error || 'No se pudo iniciar el pago. Intenta de nuevo.')
       setSubscribing(null)
     })
 }}
-                    disabled={subscribing === (plan.label === 'MENSUAL' ? 'monthly' : 'annual') || status === 'active'}
-                    className={plan.hot ? 'btn-primary' : 'btn-secondary'}
-                    style={{ width:'100%', padding:'11px 0', fontSize:11, opacity: subscribing === (plan.label === 'MENSUAL' ? 'monthly' : 'annual') ? 0.6 : 1 }}
+                    disabled={subscribing === 'monthly' || status === 'active'}
+                    className="btn-primary"
+                    style={{ width:'100%', padding:'11px 0', fontSize:11, opacity: subscribing === 'monthly' ? 0.6 : 1 }}
                   >
-                    {subscribing === (plan.label === 'MENSUAL' ? 'monthly' : 'annual')
+                    {subscribing === 'monthly'
                       ? 'REDIRIGIENDO...'
                       : status === 'active'
                       ? 'PLAN ACTUAL'
