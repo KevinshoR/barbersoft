@@ -10,6 +10,31 @@ function getColombiaDayOfWeek(scheduled_at) {
   return mapaDias[diaCol]
 }
 
+// Valida que scheduled_at caiga dentro del horario de atención (día no
+// cerrado) y que el barbero trabaje ese día de la semana. La usan tanto
+// create() como update() para no duplicar (ni desincronizar) esta lógica.
+// Devuelve null si es válido, o el mensaje de error a devolver al cliente.
+async function validateSchedule(barbershop_id, barber_id, scheduled_at) {
+  const HoursModel = require('../models/hours.model')
+  const hoursCheck = await HoursModel.checkOpen(barbershop_id, scheduled_at)
+  if (!hoursCheck.open) return hoursCheck.reason
+
+  const barberResult = await pool.query(
+    'SELECT work_days FROM barbers WHERE id = $1 AND barbershop_id = $2',
+    [barber_id, barbershop_id]
+  )
+  const workDaysRaw = barberResult.rows[0]?.work_days
+  if (workDaysRaw) {
+    const workDays = workDaysRaw.split(',').map(Number).filter(n => !Number.isNaN(n))
+    const dayOfWeek = getColombiaDayOfWeek(scheduled_at)
+    if (!workDays.includes(dayOfWeek)) {
+      return 'El barbero seleccionado no atiende ese día. Elige otro día u otro barbero.'
+    }
+  }
+
+  return null
+}
+
 const AppointmentsController = {
 
   async getAll(req, res) {
@@ -46,25 +71,10 @@ const AppointmentsController = {
       return res.status(400).json({ error: 'La fecha de la cita no puede ser en el pasado' })
     }
 
-    // Verificar horario de atención
-    const HoursModel = require('../models/hours.model')
-    const hoursCheck = await HoursModel.checkOpen(req.barbershop.id, scheduled_at)
-    if (!hoursCheck.open) {
-      return res.status(400).json({ error: hoursCheck.reason })
-    }
-
-    // Verificar que el barbero trabaje ese día de la semana
-    const barberResult = await pool.query(
-      'SELECT work_days FROM barbers WHERE id = $1 AND barbershop_id = $2',
-      [barber_id, req.barbershop.id]
-    )
-    const workDaysRaw = barberResult.rows[0]?.work_days
-    if (workDaysRaw) {
-      const workDays = workDaysRaw.split(',').map(Number).filter(n => !Number.isNaN(n))
-      const dayOfWeek = getColombiaDayOfWeek(scheduled_at)
-      if (!workDays.includes(dayOfWeek)) {
-        return res.status(400).json({ error: 'El barbero seleccionado no atiende ese día. Elige otro día u otro barbero.' })
-      }
+    // Verificar horario de atención y que el barbero trabaje ese día
+    const scheduleError = await validateSchedule(req.barbershop.id, barber_id, scheduled_at)
+    if (scheduleError) {
+      return res.status(400).json({ error: scheduleError })
     }
 
     // Verificar disponibilidad del barbero
@@ -122,6 +132,65 @@ const AppointmentsController = {
     res.status(500).json({ error: 'Error creando cita' })
   }
 },
+
+  async update(req, res) {
+    try {
+      const { id } = req.params
+      const {
+        barber_id, service_id,
+        client_name, client_phone, client_email,
+        scheduled_at, notes,
+        // status NO se toca acá: eso ya lo maneja updateStatus() vía PATCH.
+      } = req.body
+
+      const existing = await pool.query(
+        'SELECT id FROM appointments WHERE id = $1 AND barbershop_id = $2',
+        [id, req.barbershop.id]
+      )
+      if (!existing.rows[0]) {
+        return res.status(404).json({ error: 'Cita no encontrada' })
+      }
+
+      if (!barber_id || !service_id || !client_name || !client_phone || !scheduled_at) {
+        return res.status(400).json({ error: 'Faltan campos obligatorios' })
+      }
+
+      if (new Date(scheduled_at) < new Date()) {
+        return res.status(400).json({ error: 'La fecha de la cita no puede ser en el pasado' })
+      }
+
+      // Mismas validaciones que create(): horario de atención + día que trabaja el barbero
+      const scheduleError = await validateSchedule(req.barbershop.id, barber_id, scheduled_at)
+      if (scheduleError) {
+        return res.status(400).json({ error: scheduleError })
+      }
+
+      // Disponibilidad del barbero, excluyendo esta misma cita del choque de horario
+      const available = await AppointmentModel.checkAvailability({
+        barbershop_id: req.barbershop.id,
+        barber_id, service_id, scheduled_at,
+        exclude_id: id,
+      })
+      if (!available) {
+        return res.status(409).json({ error: 'El barbero ya tiene una cita en ese horario. Elegí otro horario.' })
+      }
+
+      const result = await pool.query(
+        `UPDATE appointments
+         SET barber_id = $1, service_id = $2, client_name = $3, client_phone = $4,
+             client_email = $5, scheduled_at = $6, notes = $7
+         WHERE id = $8 AND barbershop_id = $9
+         RETURNING *`,
+        [barber_id, service_id, client_name, client_phone, client_email, scheduled_at, notes, id, req.barbershop.id]
+      )
+
+      res.json({ appointment: result.rows[0] })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Error actualizando cita' })
+    }
+  },
+
   async updateStatus(req, res) {
     try {
       const { status } = req.body

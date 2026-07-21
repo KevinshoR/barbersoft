@@ -6,8 +6,7 @@ const client = new MercadoPagoConfig({
 })
 
 const plans = {
-  monthly: { title:'Barbersoft — Plan Mensual', price:89900, days:30  },
-  annual:  { title:'Barbersoft — Plan Anual',   price:69900*12, days:365 },
+  monthly: { title:'Barbersoft — Suscripción mensual', price:50000, days:30 },
 }
 
 const SubscriptionController = {
@@ -95,69 +94,19 @@ notification_url: `${process.env.BACKEND_URL}/api/subscription/webhook`,
       const newEndDate = new Date()
       newEndDate.setDate(newEndDate.getDate() + daysToAdd)
 
-      const dbClient = await pool.connect()
-      try {
-        await dbClient.query('BEGIN')
+      await pool.query(
+  `UPDATE barbershops
+   SET subscription_status = 'active',
+       subscription_ends_at = $1,
+       current_plan = $2
+   WHERE id = $3`,
+  [newEndDate, plan, barbershop_id]
+)
 
-        await dbClient.query(
-          `UPDATE barbershops
-           SET subscription_status = 'active',
-               subscription_ends_at = $1,
-               current_plan = $2
-           WHERE id = $3`,
-          [newEndDate, plan, barbershop_id]
-        )
-
-        await dbClient.query(
-          `UPDATE payment_attempts SET status = 'approved' WHERE reference = $1`,
-          [reference]
-        )
-
-        // ── Bonus de referidos: +15 días para AMBAS barberías, solo en el
-        // primer pago de la barbería referida (controlado por referral_bonus_given). ──
-        const referredResult = await dbClient.query(
-          'SELECT referred_by, referral_bonus_given FROM barbershops WHERE id = $1',
-          [barbershop_id]
-        )
-        const referredRow = referredResult.rows[0]
-
-        if (referredRow?.referred_by && !referredRow.referral_bonus_given) {
-          const referrerResult = await dbClient.query(
-            'SELECT id FROM barbershops WHERE referral_code = $1',
-            [referredRow.referred_by]
-          )
-          const referrer = referrerResult.rows[0]
-
-          if (referrer) {
-            await dbClient.query(
-              `UPDATE barbershops
-               SET subscription_ends_at = COALESCE(subscription_ends_at, NOW()) + INTERVAL '15 days'
-               WHERE id = $1`,
-              [barbershop_id]
-            )
-            await dbClient.query(
-              `UPDATE barbershops
-               SET subscription_ends_at = COALESCE(subscription_ends_at, NOW()) + INTERVAL '15 days'
-               WHERE id = $1`,
-              [referrer.id]
-            )
-            await dbClient.query(
-              `UPDATE barbershops SET referral_bonus_given = true WHERE id = $1`,
-              [barbershop_id]
-            )
-            console.log(`✓ Bonus de referido: +15 días para barbershop_id ${barbershop_id} (referida) y ${referrer.id} (referidora, código ${referredRow.referred_by})`)
-          } else {
-            console.warn(`Referido: barbershop_id ${barbershop_id} tiene referred_by="${referredRow.referred_by}" pero no existe ninguna barbería con ese referral_code`)
-          }
-        }
-
-        await dbClient.query('COMMIT')
-      } catch (err) {
-        await dbClient.query('ROLLBACK')
-        throw err
-      } finally {
-        dbClient.release()
-      }
+      await pool.query(
+        `UPDATE payment_attempts SET status = 'approved' WHERE reference = $1`,
+        [reference]
+      )
 
       console.log('✓ Suscripción activada para barbershop_id:', barbershop_id)
       res.sendStatus(200)

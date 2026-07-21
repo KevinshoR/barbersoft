@@ -47,6 +47,7 @@ const PAGE_SIZE = 5
 
 const IcAppt = {
   eye: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+  pencil: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
   trash: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>,
   x: (p) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>,
 }
@@ -128,6 +129,14 @@ const formatTime  = (d) => new Date(d).toLocaleTimeString('es-CO', { hour:'2-dig
 const formatDate  = (d) => new Date(d).toLocaleDateString('es-CO', { weekday:'short', day:'numeric', month:'short' })
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(p)
 
+// Convierte un ISO string a formato "YYYY-MM-DDTHH:mm" (hora LOCAL del navegador),
+// que es lo que espera un <input type="datetime-local"> para precargar la edición.
+const toLocalInputValue = (iso) => {
+  const d = new Date(iso)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export default function Appointments() {
   const { pathname } = useLocation()
   const toast = useToast()
@@ -136,6 +145,7 @@ export default function Appointments() {
   const [services, setServices]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [showForm, setShowForm]         = useState(false)
+  const [editingId, setEditingId]       = useState(null)
   const [saving, setSaving]             = useState(false)
   const [deleting, setDeleting]         = useState(null)
   const [detail, setDetail]             = useState(null)
@@ -195,13 +205,28 @@ export default function Appointments() {
     markTouched(e.target.name)
   }
 
+  const openEdit = (a) => {
+    setEditingId(a.id)
+    setForm({
+      barber_id:    String(a.barber_id || ''),
+      service_id:   String(a.service_id || ''),
+      client_name:  a.client_name || '',
+      client_phone: a.client_phone || '',
+      client_email: a.client_email || '',
+      scheduled_at: toLocalInputValue(a.scheduled_at),
+      notes:        a.notes || '',
+    })
+    setTouched({})
+    setShowForm(true)
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault()
     setTouched({ barber_id: true, service_id: true, client_name: true, client_phone: true, client_email: true, scheduled_at: true })
     if (hasErrors(allErrors)) return
     setSaving(true)
     try {
-      await api.post('/appointments', {
+      const payload = {
         ...form,
         client_name:  form.client_name.trim(),
         client_phone: form.client_phone.trim(),
@@ -209,14 +234,21 @@ export default function Appointments() {
         notes:        form.notes.trim(),
         barber_id:  parseInt(form.barber_id),
         service_id: parseInt(form.service_id),
-      })
+      }
+      if (editingId) {
+        await api.put('/appointments/' + editingId, payload)
+        toast.success('Cita actualizada correctamente')
+      } else {
+        await api.post('/appointments', payload)
+        toast.success('Cita creada correctamente')
+      }
       setForm({ barber_id:'', service_id:'', client_name:'', client_phone:'', client_email:'', scheduled_at:'', notes:'' })
+      setEditingId(null)
       setTouched({})
       setShowForm(false)
       fetchAppointments()
-      toast.success('Cita creada correctamente')
     } catch (err) {
-      toast.error(err.response?.data?.error || 'No se pudo crear la cita. Intenta de nuevo.')
+      toast.error(err.response?.data?.error || (editingId ? 'No se pudo actualizar la cita. Intenta de nuevo.' : 'No se pudo crear la cita. Intenta de nuevo.'))
     } finally {
       setSaving(false)
     }
@@ -326,7 +358,11 @@ export default function Appointments() {
             </p>
           </div>
           <button
-            onClick={() => { setShowForm(!showForm); setTouched({}) }}
+            onClick={() => {
+              if (showForm) { setShowForm(false); setEditingId(null) }
+              else { setForm({ barber_id:'', service_id:'', client_name:'', client_phone:'', client_email:'', scheduled_at:'', notes:'' }); setEditingId(null); setShowForm(true) }
+              setTouched({})
+            }}
             className="btn-primary"
             style={{ opacity: showForm ? 0.7 : 1 }}
           >
@@ -395,10 +431,10 @@ export default function Appointments() {
               {/* Header */}
               <div style={{ background:'var(--dark)', padding:'20px 28px', borderBottom:'1px solid var(--border-soft)', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
                 <div>
-                  <p style={{ color:'var(--gold)', fontSize:11, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase' }}>Agendar</p>
-                  <h2 style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:22, fontWeight:700, color:'var(--cream)', marginTop:2 }}>Nueva cita</h2>
+                  <p style={{ color:'var(--gold)', fontSize:11, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase' }}>{editingId ? 'Editar' : 'Agendar'}</p>
+                  <h2 style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:22, fontWeight:700, color:'var(--cream)', marginTop:2 }}>{editingId ? 'Editar cita' : 'Nueva cita'}</h2>
                 </div>
-                <button type="button" onClick={() => { setShowForm(false); setTouched({}) }} style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:24, lineHeight:1 }}>✕</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setTouched({}) }} style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:24, lineHeight:1 }}>✕</button>
               </div>
 
               {/* Cuerpo */}
@@ -469,9 +505,9 @@ export default function Appointments() {
 
               {/* Footer con acciones */}
               <div style={{ padding:'18px 28px', borderTop:'1px solid var(--border-soft)', display:'flex', gap:12, flexShrink:0, background:'var(--dark-2)' }}>
-                <button type="button" onClick={() => { setShowForm(false); setTouched({}) }} style={{ flex:1, padding:'13px', borderRadius:10, border:'1px solid var(--border-soft)', background:'transparent', color:'var(--cream-dim)', fontWeight:600, cursor:'pointer' }}>Cancelar</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setTouched({}) }} style={{ flex:1, padding:'13px', borderRadius:10, border:'1px solid var(--border-soft)', background:'transparent', color:'var(--cream-dim)', fontWeight:600, cursor:'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={saving || hasErrors(allErrors)} style={{ flex:2, padding:'13px', borderRadius:10, border:'none', background:'var(--gold)', color:'var(--dark)', fontWeight:700, cursor:(saving || hasErrors(allErrors)) ? 'default' : 'pointer', opacity:(saving || hasErrors(allErrors)) ? 0.5 : 1 }}>
-                  {saving ? 'Guardando...' : 'Crear cita'}
+                  {saving ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Crear cita')}
                 </button>
               </div>
             </form>
@@ -513,6 +549,7 @@ export default function Appointments() {
                   onUpdate={(newStatus) => handleStatus(a.id, newStatus)}
                 />
                 <IconBtn icon={IcAppt.eye()} tooltip="Ver detalle" onClick={() => setDetail(a)} />
+                <IconBtn icon={IcAppt.pencil()} tooltip="Editar" onClick={() => openEdit(a)} />
                 <IconBtn icon={IcAppt.trash()} tooltip="Eliminar" danger onClick={() => setDeleting(a.id)} />
               </div>
             </div>

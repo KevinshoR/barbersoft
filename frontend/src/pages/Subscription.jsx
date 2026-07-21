@@ -23,32 +23,19 @@ function formatDate(dateStr) {
 const PLANS = [
   {
     id:       'monthly',
-    label:    'MENSUAL',
-    price:    '$89.900',
+    label:    'PLAN BARBERSOFT',
+    price:    '$50.000',
     period:   'mes',
-    billing:  'Facturado mensualmente',
-    popular:  false,
+    billing:  'Facturado mensualmente · cancela cuando quieras',
+    popular:  true,
     features: [
       'Citas ilimitadas',
       'Barberos ilimitados',
       'Página de reservas pública',
-      'Recordatorios automáticos WhatsApp',
-      'Reportes mensuales',
-    ],
-  },
-  {
-    id:       'annual',
-    label:    'ANUAL',
-    price:    '$69.900',
-    period:   'mes',
-    billing:  'Facturado anualmente · ahorras $240.000',
-    popular:  true,
-    features: [
-      'Todo lo del plan mensual',
-      '2 meses gratis',
-      'Soporte prioritario',
-      'Acceso anticipado a funciones',
-      'Reportes avanzados',
+      'Recordatorios automáticos por correo',
+      'Panel con estadísticas del negocio',
+      'Asistente con IA para tus clientes',
+      'Soporte por WhatsApp',
     ],
   },
 ]
@@ -159,26 +146,18 @@ const { barbershop, refreshBarbershop } = useAuth()
 
         {/* Planes */}
         <p className="animate-fade-up delay-2" style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:16 }}>
-          ELIGE TU PLAN
+          TU PLAN
         </p>
 
-        <div className="animate-fade-up delay-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:32 }}>
+        <div className="animate-fade-up delay-3" style={{ display:'grid', gridTemplateColumns:'1fr', maxWidth:420, gap:16, marginBottom:32 }}>
           {PLANS.map(plan => (
             <div
               key={plan.id}
-              style={{ background:'var(--dark-2)', border:'1px solid '+(plan.popular ? 'rgba(201,168,76,0.4)' : 'var(--dark-4)'), borderRadius:14, padding:28, position:'relative', overflow:'hidden', transition:'transform 0.2s' }}
+              style={{ background:'var(--dark-2)', border:'1px solid rgba(201,168,76,0.4)', borderRadius:14, padding:28, position:'relative', overflow:'hidden', transition:'transform 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.transform='translateY(-3px)'}
               onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
             >
-              {plan.popular && (
-                <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
-              )}
-
-              {plan.popular && (
-                <div style={{ display:'inline-block', background:'rgba(201,168,76,0.12)', border:'1px solid rgba(201,168,76,0.25)', color:'var(--gold)', fontSize:10, fontWeight:700, padding:'3px 12px', borderRadius:20, letterSpacing:'0.08em', marginBottom:14 }}>
-                  ★ MÁS POPULAR
-                </div>
-              )}
+              <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
 
               <p style={{ color:'var(--cream-dim)', fontSize:11, letterSpacing:'0.1em', fontWeight:600, marginBottom:10 }}>{plan.label}</p>
 

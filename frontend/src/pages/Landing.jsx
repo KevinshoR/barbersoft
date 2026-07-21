@@ -228,7 +228,7 @@ export default function Landing() {
         .step:hover .step-num{background:rgba(201,168,76,0.1);border-color:var(--gold);box-shadow:0 0 20px var(--gold-glow)}
         .step h3{font-family:var(--font-body),sans-serif;font-size:14px;font-weight:700;color:var(--cream);margin-bottom:8px}
         .step p{font-size:12px;color:var(--cream-dim);line-height:1.6}
-        .pricing-cards{max-width:680px;margin:64px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+        .pricing-cards{max-width:400px;margin:64px auto 0;display:grid;grid-template-columns:1fr;gap:20px}
         .price-card{background:var(--dark-3);border:1px solid var(--dark-4);border-radius:16px;padding:32px 28px;position:relative;overflow:hidden;transition:transform 0.3s,box-shadow 0.3s}
         .price-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,0.4)}
         .price-card.hot{border-color:rgba(201,168,76,0.35);background:linear-gradient(160deg,#161616 0%,#111 100%)}
@@ -424,32 +424,20 @@ export default function Landing() {
             <h2 className="section-title">Simple y transparente</h2>
           </div>
           <div className="pricing-cards">
-            <div className="price-card fade-up">
+            <div className="price-card hot fade-up">
+              <div className="hot-label">★ PLAN BARBERSOFT</div>
               <p className="price-title">MENSUAL</p>
-              <div className="price-amount">$89.900</div>
+              <div className="price-amount">$50.000</div>
               <p className="price-cop">COP / mes</p>
-              <p className="price-billing">Facturado mensualmente</p>
+              <p className="price-billing">Facturado mensualmente · cancela cuando quieras</p>
               <ul className="price-list">
                 <li>Citas ilimitadas</li>
                 <li>Barberos ilimitados</li>
-                <li>Reservas públicas</li>
-                <li>Recordatorios WhatsApp</li>
-                <li>Reportes mensuales</li>
-              </ul>
-              <button className="btn-price btn-price-outline" onClick={goToRegister}>EMPEZAR GRATIS</button>
-            </div>
-            <div className="price-card hot fade-up delay-2">
-              <div className="hot-label">★ MÁS POPULAR</div>
-              <p className="price-title">ANUAL</p>
-              <div className="price-amount">$69.900</div>
-              <p className="price-cop">COP / mes</p>
-              <p className="price-billing">Facturado anualmente · ahorras $240.000</p>
-              <ul className="price-list">
-                <li>Todo lo del mensual</li>
-                <li>2 meses gratis</li>
-                <li>Soporte prioritario</li>
-                <li>Funciones anticipadas</li>
-                <li>Reportes avanzados</li>
+                <li>Página de reservas pública</li>
+                <li>Recordatorios automáticos por correo</li>
+                <li>Panel con estadísticas del negocio</li>
+                <li>Asistente con IA para tus clientes</li>
+                <li>Soporte por WhatsApp</li>
               </ul>
               <button className="btn-price btn-price-gold" onClick={goToRegister}>EMPEZAR GRATIS</button>
             </div>

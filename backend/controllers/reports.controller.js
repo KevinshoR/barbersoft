@@ -4,9 +4,18 @@ const ReportsController = {
   async monthly(req, res) {
     try {
       const id    = req.barbershop.id
-      const month = req.query.month || new Date().toISOString().slice(0, 7)
-      const start = month + '-01'
-      const end   = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 1).toISOString().slice(0, 10)
+      const month = req.query.month || new Date().toISOString().slice(0, 7)  // 'YYYY-MM'
+
+      // Rango del mes calculado con aritmética de STRINGS/enteros, sin pasar por
+      // new Date('YYYY-MM-01') — esa forma se interpreta como medianoche UTC y,
+      // en zona horaria Colombia (UTC-5), getFullYear()/getMonth() la leen como
+      // el día anterior => el mes calculado quedaba mal y el rango salía vacío
+      // (mismo tipo de bug de huso horario que ya se corrigió en hours.model.js).
+      const [y, m] = month.split('-').map(Number)          // ej. 2026, 7
+      const start  = month + '-01'                          // '2026-07-01'
+      const nextY  = m === 12 ? y + 1 : y
+      const nextM  = m === 12 ? 1 : m + 1
+      const end    = `${nextY}-${String(nextM).padStart(2, '0')}-01`  // '2026-08-01'
 
       // Total de citas por estado
       const statusResult = await pool.query(

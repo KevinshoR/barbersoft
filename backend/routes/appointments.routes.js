@@ -8,6 +8,7 @@ router.use(subscriptionMiddleware)
 
 router.get('/',          AppointmentsController.getAll)
 router.post('/',         AppointmentsController.create)
+router.put('/:id',       AppointmentsController.update)
 router.patch('/:id',     AppointmentsController.updateStatus)
 router.delete('/:id',    AppointmentsController.remove)
 router.post('/:id/remind', AppointmentsController.remind)
