@@ -3,12 +3,15 @@ const pool = require('../config/db')
 module.exports = async (req, res, next) => {
   try {
     const result = await pool.query(
-      'SELECT subscription_status, trial_ends_at, subscription_ends_at FROM barbershops WHERE id = $1',
+      'SELECT subscription_status, trial_ends_at, subscription_ends_at, is_super_admin FROM barbershops WHERE id = $1',
       [req.barbershop.id]
     )
 
     const shop = result.rows[0]
     if (!shop) return res.status(404).json({ error: 'Barbería no encontrada' })
+
+    // Un super admin nunca queda bloqueado por su propia suscripción.
+    if (shop.is_super_admin === true) return next()
 
     const now = new Date()
 

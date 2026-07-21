@@ -5,7 +5,7 @@ const AdminController = {
     try {
       const result = await pool.query(
         `SELECT id, name, email, phone, subscription_status, trial_ends_at,
-                subscription_ends_at, created_at, current_plan,
+                subscription_ends_at, created_at, current_plan, is_super_admin,
                 (
                   (subscription_status = 'active' AND subscription_ends_at > NOW())
                   OR (subscription_status = 'trial' AND trial_ends_at > NOW())
@@ -28,6 +28,14 @@ const AdminController = {
 
       if (!Number.isInteger(daysInt) || daysInt <= 0) {
         return res.status(400).json({ error: 'days debe ser un entero positivo' })
+      }
+
+      const targetCheck = await pool.query(
+        'SELECT is_super_admin FROM barbershops WHERE id = $1',
+        [id]
+      )
+      if (targetCheck.rows[0]?.is_super_admin === true) {
+        return res.status(400).json({ error: 'No puedes modificar la suscripción de una cuenta super admin.' })
       }
 
       const result = await pool.query(
@@ -56,6 +64,15 @@ const AdminController = {
   async block(req, res) {
     try {
       const { id } = req.params
+
+      const targetCheck = await pool.query(
+        'SELECT is_super_admin FROM barbershops WHERE id = $1',
+        [id]
+      )
+      if (targetCheck.rows[0]?.is_super_admin === true) {
+        return res.status(400).json({ error: 'No puedes modificar la suscripción de una cuenta super admin.' })
+      }
+
       const result = await pool.query(
         `UPDATE barbershops SET subscription_status = 'blocked' WHERE id = $1 RETURNING *`,
         [id]

@@ -22,7 +22,7 @@ const UserModel = {
   async findById(id) {
     const result = await pool.query(
       `SELECT id, name, email, phone, address, slug, department, municipality,
-              subscription_status, trial_ends_at, subscription_ends_at
+              subscription_status, trial_ends_at, subscription_ends_at, is_super_admin
        FROM barbershops WHERE id = $1`,
       [id]
     )

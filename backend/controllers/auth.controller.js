@@ -140,7 +140,7 @@ const AuthController = {
         const withReferral = await client.query(
           `UPDATE barbershops SET referral_code = $1, referred_by = $2 WHERE id = $3
            RETURNING id, name, email, slug, department, municipality,
-                     subscription_status, trial_ends_at, referral_code, referred_by`,
+                     subscription_status, trial_ends_at, referral_code, referred_by, is_super_admin`,
           [referralCode, referredBy, barbershop.id]
         )
         barbershop = withReferral.rows[0]
