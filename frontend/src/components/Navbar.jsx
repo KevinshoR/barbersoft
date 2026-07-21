@@ -48,7 +48,7 @@ export default function Navbar() {
     <nav style={{ background:'var(--dark-2)', borderBottom:'1px solid var(--dark-4)', padding:'0 24px', display:'flex', alignItems:'center', justifyContent:'space-between', height:64, position:'sticky', top:0, zIndex:100 }}>
 
       {/* Logo */}
-      <Link to="/dashboard" style={{ display:'flex', alignItems:'center', gap:8, textDecoration:'none' }}>
+      <Link to="/" style={{ display:'flex', alignItems:'center', gap:8, textDecoration:'none' }} title="Ir al sitio de Barbersoft">
         <span style={{ color:'var(--gold)', fontSize:20 }}>✂</span>
         <span style={{ fontFamily:'Playfair Display', fontWeight:900, fontSize:18, color:'var(--cream)', letterSpacing:'0.02em' }}>
           Barber<span style={{ color:'var(--gold)' }}>soft</span>

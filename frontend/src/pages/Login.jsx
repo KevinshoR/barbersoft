@@ -102,10 +102,16 @@ export default function Login() {
       <div className="animate-fade-up" style={{ width:'100%', maxWidth:420, position:'relative', zIndex:1 }}>
 
         <div style={{ textAlign:'center', marginBottom:40 }}>
-          <div style={{ fontSize:48, marginBottom:12, color:'var(--gold)' }}>✂</div>
-          <h1 style={{ fontSize:36, fontWeight:900, color:'var(--cream)', marginBottom:6, letterSpacing:'-0.02em' }}>
-            Barber<span style={{ color:'var(--gold)' }}>soft</span>
-          </h1>
+          <button
+            onClick={() => navigate('/')}
+            title="Ir al sitio de Barbersoft"
+            style={{ background:'none', border:'none', cursor:'pointer', padding:0, display:'inline-block' }}
+          >
+            <div style={{ fontSize:48, marginBottom:12, color:'var(--gold)' }}>✂</div>
+            <h1 style={{ fontSize:36, fontWeight:900, color:'var(--cream)', marginBottom:6, letterSpacing:'-0.02em' }}>
+              Barber<span style={{ color:'var(--gold)' }}>soft</span>
+            </h1>
+          </button>
           <p style={{ color:'var(--cream-dim)', fontSize:14, letterSpacing:'0.06em' }}>
             {isRegister ? 'CREAR CUENTA — 14 DÍAS GRATIS' : 'BIENVENIDO DE NUEVO'}
           </p>

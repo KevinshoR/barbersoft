@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:4000/api',
+  // En producción, define VITE_API_URL en las variables de entorno del hosting
+  // (ej. https://tuapi.onrender.com/api). En local, si no existe, usa localhost.
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
 })
 
 // Agrega el token automáticamente a cada petición
