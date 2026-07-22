@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useState, useRef, useEffect } from 'react'
 import ThemeToggle from './ThemeToggle'
 
-const links = [
+const baseLinks = [
   { to: '/dashboard',    label: 'Inicio',     icon: '⌂' },
   { to: '/appointments', label: 'Agenda',      icon: '◷' },
   { to: '/barbers',      label: 'Barberos',    icon: '◈' },
@@ -16,6 +16,10 @@ export default function Navbar() {
   const navigate  = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+
+  const links = barbershop?.is_super_admin
+    ? [...baseLinks, { to: '/admin', label: 'Panel', icon: '👑' }]
+    : baseLinks
 
   useEffect(() => {
     const handler = (e) => {

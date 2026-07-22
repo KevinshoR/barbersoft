@@ -76,6 +76,8 @@ export default function Barbers() {
   const [toggling, setToggling] = useState(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [filterActive, setFilterActive] = useState('')
+  const [filterDay, setFilterDay] = useState('')
   const [page, setPage] = useState(1)
   const [name, setName] = useState('')
   const [photoUrl, setPhotoUrl] = useState('')
@@ -121,11 +123,15 @@ export default function Barbers() {
   }
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return barbers
-    return barbers.filter(b => (b.name || '').toLowerCase().includes(q) || (b.specialty || '').toLowerCase().includes(q))
-  }, [barbers, search])
+    return barbers.filter(b => {
+      const matchSearch = !q || (b.name || '').toLowerCase().includes(q) || (b.specialty || '').toLowerCase().includes(q)
+      const matchActive = !filterActive || (filterActive === 'active' ? b.active : !b.active)
+      const matchDay = !filterDay || parseDays(b.work_days).includes(Number(filterDay))
+      return matchSearch && matchActive && matchDay
+    })
+  }, [barbers, search, filterActive, filterDay])
 
-  useEffect(() => { setPage(1) }, [search])
+  useEffect(() => { setPage(1) }, [search, filterActive, filterDay])
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -191,6 +197,34 @@ export default function Barbers() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre o especialidad..." style={{ width: '100%', padding: '12px 14px 12px 42px', background: 'var(--surface-1)', color: 'var(--cream)', border: '1px solid var(--dark-4)', borderRadius: 12, outline: 'none', fontSize: 14 }} />
           </div>
           <button onClick={openCreate} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--gold)', color: 'var(--dark)', fontWeight: 700, fontSize: 14, padding: '12px 22px', border: 'none', borderRadius: 12, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(201,168,76,0.25)' }}>{Ic.plus()} Nuevo barbero</button>
+        </div>
+
+        {/* Filtros */}
+        <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '16px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 600, flexShrink: 0 }}>FILTROS</p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ color: 'var(--cream-dim)', fontSize: 12 }}>Estado:</label>
+            <select value={filterActive} onChange={(e) => setFilterActive(e.target.value)} style={{ padding: '7px 12px', width: 'auto', fontSize: 13 }}>
+              <option value="">Todos</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ color: 'var(--cream-dim)', fontSize: 12 }}>Día:</label>
+            <select value={filterDay} onChange={(e) => setFilterDay(e.target.value)} style={{ padding: '7px 12px', width: 'auto', fontSize: 13 }}>
+              <option value="">Cualquiera</option>
+              {DIAS.map(d => <option key={d.n} value={d.n}>{d.corto}</option>)}
+            </select>
+          </div>
+
+          {(filterActive || filterDay) && (
+            <button onClick={() => { setFilterActive(''); setFilterDay('') }} style={{ background: 'none', border: 'none', color: 'var(--cream-dim)', cursor: 'pointer', fontSize: 12, marginLeft: 'auto', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
+              LIMPIAR FILTROS
+            </button>
+          )}
         </div>
         {loading ? (
           <p style={{ color: 'var(--cream-dim)', textAlign: 'center', padding: 50 }}>Cargando...</p>

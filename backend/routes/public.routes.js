@@ -3,14 +3,7 @@ const rateLimit        = require('express-rate-limit')
 const pool             = require('../config/db')
 const AppointmentModel = require('../models/appointment.model')
 const { enviarConfirmacionCliente, enviarAvisoBarbero } = require('../utils/mailer')
-
-// Día de la semana en hora Colombia (0=Dom ... 6=Sáb), igual método que HoursModel.checkOpen
-function getColombiaDayOfWeek(scheduled_at) {
-  const date = new Date(scheduled_at)
-  const diaCol = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', weekday: 'short' }).format(date)
-  const mapaDias = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-  return mapaDias[diaCol]
-}
+const { getColombiaDayOfWeek, toColombiaDate } = require('../utils/timezone')
 
 // Validación básica de entrada para los endpoints públicos: no confiamos
 // solo en el frontend. Los límites de longitud coinciden con las columnas
@@ -198,7 +191,7 @@ router.post('/:slug/book', reservaPublicaLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Las notas no pueden tener más de 1000 caracteres.' })
     }
 
-    if (new Date(scheduled_at) < new Date()) {
+    if (toColombiaDate(scheduled_at) < new Date()) {
       return res.status(400).json({ error: 'No puedes reservar en una fecha u hora que ya pasó.' })
     }
 

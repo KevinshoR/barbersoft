@@ -49,6 +49,7 @@ const IcAppt = {
   eye: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
   pencil: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
   trash: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>,
+  bell: (p) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
   x: (p) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>,
 }
 
@@ -150,6 +151,7 @@ export default function Appointments() {
   const [deleting, setDeleting]         = useState(null)
   const [detail, setDetail]             = useState(null)
   const [deleteBusy, setDeleteBusy]     = useState(false)
+  const [reminding, setReminding]       = useState(null)
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -279,6 +281,22 @@ export default function Appointments() {
       setDeleting(null)
     }
   }
+
+  const handleRemind = async (a) => {
+    if (reminding) return
+    setReminding(a.id)
+    try {
+      await api.post('/appointments/' + a.id + '/remind')
+      toast.success('Recordatorio enviado a ' + a.client_name)
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo enviar el recordatorio.')
+    } finally {
+      setReminding(null)
+    }
+  }
+
+  // Solo se puede recordar: cita futura, no cancelada, y con correo del cliente
+  const canRemind = (a) => a.status !== 'cancelled' && !!a.client_email && new Date(a.scheduled_at) > new Date()
 
   const inp = (name) => ({
     width:'100%', padding:'12px 16px',
@@ -549,6 +567,13 @@ export default function Appointments() {
                   onUpdate={(newStatus) => handleStatus(a.id, newStatus)}
                 />
                 <IconBtn icon={IcAppt.eye()} tooltip="Ver detalle" onClick={() => setDetail(a)} />
+                {canRemind(a) && (
+                  <IconBtn
+                    icon={IcAppt.bell()}
+                    tooltip={reminding === a.id ? 'Enviando...' : 'Recordar al cliente'}
+                    onClick={() => handleRemind(a)}
+                  />
+                )}
                 <IconBtn icon={IcAppt.pencil()} tooltip="Editar" onClick={() => openEdit(a)} />
                 <IconBtn icon={IcAppt.trash()} tooltip="Eliminar" danger onClick={() => setDeleting(a.id)} />
               </div>

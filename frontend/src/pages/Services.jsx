@@ -78,6 +78,7 @@ export default function Services() {
   const [form, setForm] = useState({ name: '', duration_min: '', price: '', image_url: '', description: '' })
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('recientes')
+  const [filterPrice, setFilterPrice] = useState('')
   const [page, setPage] = useState(1)
 
   const allErrors = validate(form)
@@ -118,13 +119,16 @@ export default function Services() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     let arr = !q ? [...services] : services.filter(s => (s.name || '').toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q))
+    if (filterPrice === 'low') arr = arr.filter(s => Number(s.price) < 30000)
+    else if (filterPrice === 'mid') arr = arr.filter(s => Number(s.price) >= 30000 && Number(s.price) <= 60000)
+    else if (filterPrice === 'high') arr = arr.filter(s => Number(s.price) > 60000)
     if (sort === 'precio_asc') arr.sort((a, b) => Number(a.price) - Number(b.price))
     else if (sort === 'precio_desc') arr.sort((a, b) => Number(b.price) - Number(a.price))
     else if (sort === 'nombre') arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     return arr
-  }, [services, search, sort])
+  }, [services, search, sort, filterPrice])
 
-  useEffect(() => { setPage(1) }, [search, sort])
+  useEffect(() => { setPage(1) }, [search, sort, filterPrice])
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -197,13 +201,38 @@ export default function Services() {
             <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--cream-dim)', display: 'flex' }}>{Ic.search()}</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar servicio..." style={{ width: '100%', padding: '12px 14px 12px 42px', background: 'var(--surface-1)', color: 'var(--cream)', border: '1px solid var(--dark-4)', borderRadius: 12, outline: 'none', fontSize: 14 }} />
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ padding: '12px 14px', background: 'var(--surface-1)', color: 'var(--cream)', border: '1px solid var(--dark-4)', borderRadius: 12, outline: 'none', cursor: 'pointer', fontSize: 14 }}>
-            <option value="recientes">Más recientes</option>
-            <option value="precio_asc">Precio: menor a mayor</option>
-            <option value="precio_desc">Precio: mayor a menor</option>
-            <option value="nombre">Nombre (A-Z)</option>
-          </select>
           <button onClick={openCreate} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--gold)', color: 'var(--dark)', fontWeight: 700, fontSize: 14, padding: '12px 22px', border: 'none', borderRadius: 12, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(201,168,76,0.25)' }}>{Ic.plus()} Nuevo servicio</button>
+        </div>
+
+        {/* Filtros */}
+        <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '16px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 600, flexShrink: 0 }}>FILTROS</p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ color: 'var(--cream-dim)', fontSize: 12 }}>Ordenar:</label>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ padding: '7px 12px', width: 'auto', fontSize: 13 }}>
+              <option value="recientes">Más recientes</option>
+              <option value="precio_asc">Precio: menor a mayor</option>
+              <option value="precio_desc">Precio: mayor a menor</option>
+              <option value="nombre">Nombre (A-Z)</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ color: 'var(--cream-dim)', fontSize: 12 }}>Precio:</label>
+            <select value={filterPrice} onChange={(e) => setFilterPrice(e.target.value)} style={{ padding: '7px 12px', width: 'auto', fontSize: 13 }}>
+              <option value="">Cualquiera</option>
+              <option value="low">Menos de $30.000</option>
+              <option value="mid">$30.000 – $60.000</option>
+              <option value="high">Más de $60.000</option>
+            </select>
+          </div>
+
+          {filterPrice && (
+            <button onClick={() => setFilterPrice('')} style={{ background: 'none', border: 'none', color: 'var(--cream-dim)', cursor: 'pointer', fontSize: 12, marginLeft: 'auto', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
+              LIMPIAR FILTROS
+            </button>
+          )}
         </div>
 
         {loading ? (

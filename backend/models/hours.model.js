@@ -1,4 +1,5 @@
 const pool = require('../config/db')
+const { toColombiaDate } = require('../utils/timezone')
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -70,7 +71,7 @@ const HoursModel = {
     // (America/Bogota), sin importar la zona del servidor (Render corre en UTC).
     // Sin esto, una cita de la noche/madrugada colombiana se corría de día en UTC
     // y el sistema decía "cerrado ese día" por error.
-    const date = new Date(scheduled_at)
+    const date = toColombiaDate(scheduled_at)
 
     // Día de la semana en hora Colombia (0=Dom ... 6=Sáb)
     const diaCol = new Intl.DateTimeFormat('en-US', {
