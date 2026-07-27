@@ -7,11 +7,11 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user:     process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-})
-
-// Establecer zona horaria de Colombia en cada conexión
-pool.on('connect', (client) => {
-  client.query("SET TIME ZONE 'America/Bogota'")
+  // Fija la zona horaria a nivel de conexión de forma confiable, sin disparar
+  // un client.query() suelto en 'connect' (que causaba el DeprecationWarning
+  // "client is already executing a query" y hacía que el SET TIME ZONE no se
+  // aplicara de forma consistente). Esto se envía en el arranque de cada conexión.
+  options: '-c timezone=America/Bogota',
 })
 
 pool.connect((err) => {

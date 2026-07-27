@@ -27,7 +27,7 @@ const AppointmentModel = {
      LEFT JOIN barbers  b ON a.barber_id  = b.id
      LEFT JOIN services s ON a.service_id = s.id
      WHERE a.barbershop_id = $1
-       AND DATE(a.scheduled_at AT TIME ZONE 'America/Bogota') = $2
+       AND DATE(a.scheduled_at) = $2
      ORDER BY a.scheduled_at ASC`,
     [barbershop_id, date]
   )
