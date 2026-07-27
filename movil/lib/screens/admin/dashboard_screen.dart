@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../models/appointment.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/appointment_service.dart';
+import '../../services/reports_service.dart';
 import '../../theme/app_theme.dart';
 import '../role_select_screen.dart';
 import 'suscripcion_screen.dart';
+
+final _priceFormat = NumberFormat.currency(
+  locale: 'es_CO',
+  symbol: '\$',
+  decimalDigits: 0,
+);
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,11 +28,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Appointment>? _today;
   bool _loadError = false;
   bool _copied = false;
+  MonthlyReport? _monthly;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadMonthly();
   }
 
   Future<void> _load() async {
@@ -36,6 +46,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadError = true);
+    }
+  }
+
+  // El resumen mensual es una sección secundaria del dashboard: si falla, se
+  // oculta en silencio sin bloquear ni romper el resto de la pantalla (igual
+  // que en la versión web).
+  Future<void> _loadMonthly() async {
+    try {
+      final report = await ReportsService.getMonthly();
+      if (!mounted) return;
+      setState(() => _monthly = report);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _monthly = null);
     }
   }
 
@@ -55,11 +79,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _capitalizedDate() {
     const months = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
-      'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
     ];
     const weekdays = [
-      'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'
+      'lunes',
+      'martes',
+      'miércoles',
+      'jueves',
+      'viernes',
+      'sábado',
+      'domingo',
     ];
     final now = DateTime.now();
     return '${weekdays[now.weekday - 1]}, ${now.day} de ${months[now.month - 1]} de ${now.year}';
@@ -96,7 +136,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => Future.wait([_load(), _loadMonthly()]),
         color: AppColors.gold,
         backgroundColor: AppColors.dark2,
         child: ListView(
@@ -127,7 +167,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.dark2,
                     border: Border.all(color: AppColors.dark4),
@@ -136,32 +179,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.link, size: 14, color: AppColors.creamDim),
+                      const Icon(
+                        Icons.link,
+                        size: 14,
+                        color: AppColors.creamDim,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '/reservar/${shop!.slug}',
                         style: const TextStyle(
-                            color: AppColors.creamDim, fontSize: 12, fontFamily: 'monospace'),
+                          color: AppColors.creamDim,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
                       ),
                       const SizedBox(width: 10),
                       GestureDetector(
                         onTap: () => _copyLink(shop.slug!),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: _copied
                                 ? AppColors.success.withValues(alpha: 0.15)
                                 : AppColors.dark3,
                             border: Border.all(
-                                color: _copied
-                                    ? AppColors.success.withValues(alpha: 0.3)
-                                    : AppColors.dark4),
+                              color: _copied
+                                  ? AppColors.success.withValues(alpha: 0.3)
+                                  : AppColors.dark4,
+                            ),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             _copied ? '✓ COPIADO' : 'COPIAR',
                             style: TextStyle(
-                              color: _copied ? AppColors.success : AppColors.creamDim,
+                              color: _copied
+                                  ? AppColors.success
+                                  : AppColors.creamDim,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.6,
@@ -177,18 +233,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               children: [
                 Expanded(
-                    child: _StatCard(
-                        label: 'CITAS HOY', value: total, color: AppColors.gold)),
+                  child: _StatCard(
+                    label: 'CITAS HOY',
+                    value: total,
+                    color: AppColors.gold,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                    child: _StatCard(
-                        label: 'PENDIENTES', value: pending, color: AppColors.goldLight)),
+                  child: _StatCard(
+                    label: 'PENDIENTES',
+                    value: pending,
+                    color: AppColors.goldLight,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                    child: _StatCard(
-                        label: 'CONFIRMADAS', value: confirmed, color: AppColors.success)),
+                  child: _StatCard(
+                    label: 'CONFIRMADAS',
+                    value: confirmed,
+                    color: AppColors.success,
+                  ),
+                ),
               ],
             ),
+            if (_monthly != null) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'RESUMEN DEL MES',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _MonthlyStatCard(
+                      label: 'INGRESOS DEL MES',
+                      mainValue: _priceFormat.format(_monthly!.revenue),
+                      color: AppColors.gold,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MonthlyStatCard(
+                      label: 'BARBERO DEL MES',
+                      mainValue: _monthly!.topBarber?.name ?? '—',
+                      subtitle: _monthly!.topBarber != null
+                          ? '${_monthly!.topBarber!.count} citas'
+                          : null,
+                      color: AppColors.cream,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MonthlyStatCard(
+                      label: 'SERVICIO TOP',
+                      mainValue: _monthly!.topService?.name ?? '—',
+                      subtitle: _monthly!.topService != null
+                          ? '${_monthly!.topService!.count} veces'
+                          : null,
+                      color: AppColors.cream,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 24),
             Container(
               decoration: BoxDecoration(
@@ -201,11 +316,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-                    child: Text('Citas de hoy',
-                        style: GoogleFonts.dmSans(
-                            color: AppColors.cream,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      'Citas de hoy',
+                      style: GoogleFonts.dmSans(
+                        color: AppColors.cream,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                   const Divider(height: 1),
                   if (_loadError)
@@ -213,12 +331,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.all(32),
                       child: Column(
                         children: [
-                          const Icon(Icons.cloud_off, color: AppColors.creamDim, size: 32),
+                          const Icon(
+                            Icons.cloud_off,
+                            color: AppColors.creamDim,
+                            size: 32,
+                          ),
                           const SizedBox(height: 10),
-                          const Text('No se pudo conectar con el servidor',
-                              style: TextStyle(color: AppColors.creamDim, fontSize: 13)),
+                          const Text(
+                            'No se pudo conectar con el servidor',
+                            style: TextStyle(
+                              color: AppColors.creamDim,
+                              fontSize: 13,
+                            ),
+                          ),
                           const SizedBox(height: 12),
-                          TextButton(onPressed: _load, child: const Text('Reintentar')),
+                          TextButton(
+                            onPressed: _load,
+                            child: const Text('Reintentar'),
+                          ),
                         ],
                       ),
                     )
@@ -226,15 +356,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const Padding(
                       padding: EdgeInsets.all(40),
                       child: Center(
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.gold)),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.gold,
+                        ),
+                      ),
                     )
                   else if (_today!.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(40),
                       child: Center(
-                        child: Text('No hay citas para hoy',
-                            style: TextStyle(color: AppColors.creamDim, fontSize: 14)),
+                        child: Text(
+                          'No hay citas para hoy',
+                          style: TextStyle(
+                            color: AppColors.creamDim,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                     )
                   else
@@ -242,17 +380,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final i = entry.key;
                       final a = entry.value;
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           border: i < _today!.length - 1
-                              ? const Border(bottom: BorderSide(color: AppColors.dark3))
+                              ? const Border(
+                                  bottom: BorderSide(color: AppColors.dark3),
+                                )
                               : null,
                         ),
                         child: Row(
                           children: [
                             Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.dark3,
                                 borderRadius: BorderRadius.circular(8),
@@ -262,9 +407,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 _formatTime(a.scheduledAt),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                    color: AppColors.gold,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14),
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -272,16 +418,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(a.clientName,
-                                      style: const TextStyle(
-                                          color: AppColors.cream,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14)),
+                                  Text(
+                                    a.clientName,
+                                    style: const TextStyle(
+                                      color: AppColors.cream,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                   const SizedBox(height: 2),
                                   Text(
                                     '${a.serviceName ?? ''} · ${a.barberName ?? ''}',
                                     style: const TextStyle(
-                                        color: AppColors.creamDim, fontSize: 12),
+                                      color: AppColors.creamDim,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -308,9 +459,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         content: const Text('¿Seguro que querés salir de tu cuenta?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar',
-                  style: TextStyle(color: AppColors.creamDim))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.creamDim),
+            ),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -322,7 +476,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 (route) => false,
               );
             },
-            child: const Text('Salir', style: TextStyle(color: AppColors.danger)),
+            child: const Text(
+              'Salir',
+              style: TextStyle(color: AppColors.danger),
+            ),
           ),
         ],
       ),
@@ -340,7 +497,10 @@ class _TrialBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.gold.withValues(alpha: 0.15), AppColors.gold.withValues(alpha: 0.05)],
+          colors: [
+            AppColors.gold.withValues(alpha: 0.15),
+            AppColors.gold.withValues(alpha: 0.05),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -353,12 +513,19 @@ class _TrialBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('◆ Período de prueba — $daysLeft días restantes',
-                    style: const TextStyle(
-                        color: AppColors.gold, fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(
+                  '◆ Período de prueba — $daysLeft días restantes',
+                  style: const TextStyle(
+                    color: AppColors.gold,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                const Text('Activá tu suscripción para mantener el acceso',
-                    style: TextStyle(color: AppColors.creamDim, fontSize: 11)),
+                const Text(
+                  'Activá tu suscripción para mantener el acceso',
+                  style: TextStyle(color: AppColors.creamDim, fontSize: 11),
+                ),
               ],
             ),
           ),
@@ -367,7 +534,9 @@ class _TrialBanner extends StatelessWidget {
               backgroundColor: AppColors.gold,
               foregroundColor: AppColors.dark,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.push(
               context,
@@ -385,7 +554,11 @@ class _StatCard extends StatelessWidget {
   final String label;
   final int value;
   final Color color;
-  const _StatCard({required this.label, required this.value, required this.color});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -401,16 +574,83 @@ class _StatCard extends StatelessWidget {
         children: [
           Container(height: 2, width: 24, color: color.withValues(alpha: 0.7)),
           const SizedBox(height: 12),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.creamDim,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.6)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.creamDim,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('$value',
-              style: GoogleFonts.playfairDisplay(
-                  color: color, fontSize: 30, fontWeight: FontWeight.w900)),
+          Text(
+            '$value',
+            style: GoogleFonts.playfairDisplay(
+              color: color,
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthlyStatCard extends StatelessWidget {
+  final String label;
+  final String mainValue;
+  final String? subtitle;
+  final Color color;
+  const _MonthlyStatCard({
+    required this.label,
+    required this.mainValue,
+    this.subtitle,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+      decoration: BoxDecoration(
+        color: AppColors.dark2,
+        border: Border.all(color: AppColors.dark4),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(height: 2, width: 24, color: color.withValues(alpha: 0.7)),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.creamDim,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mainValue,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.playfairDisplay(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: const TextStyle(color: AppColors.creamDim, fontSize: 11),
+            ),
+          ],
         ],
       ),
     );

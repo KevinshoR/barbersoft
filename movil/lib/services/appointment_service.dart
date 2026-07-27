@@ -41,6 +41,34 @@ class AppointmentService {
     );
   }
 
+  static Future<Appointment> update(
+    int id, {
+    required int barberId,
+    required int serviceId,
+    required String clientName,
+    required String clientPhone,
+    String? clientEmail,
+    required DateTime scheduledAt,
+    String? notes,
+  }) async {
+    final res = await Api.dio.put(
+      '/appointments/$id',
+      data: {
+        'barber_id': barberId,
+        'service_id': serviceId,
+        'client_name': clientName,
+        'client_phone': clientPhone,
+        if (clientEmail != null && clientEmail.isNotEmpty)
+          'client_email': clientEmail,
+        'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
+    );
+    return Appointment.fromJson(
+      res.data['appointment'] as Map<String, dynamic>,
+    );
+  }
+
   static Future<Appointment> updateStatus(int id, String status) async {
     final res = await Api.dio.patch(
       '/appointments/$id',

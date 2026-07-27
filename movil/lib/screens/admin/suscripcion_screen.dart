@@ -1,11 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/referral_service.dart';
 import '../../services/subscription_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
+
+// Número de WhatsApp para activar/gestionar la suscripción mientras el pago
+// no está automatizado con una pasarela.
+const _whatsappNumber = '573116735081';
+
+Future<void> _openWhatsAppSubscribe(
+  BuildContext context,
+  String? shopName,
+) async {
+  final nombre = (shopName == null || shopName.isEmpty)
+      ? 'mi barbería'
+      : shopName;
+  final mensaje =
+      'Hola, quiero activar mi suscripción de Barbersoft (\$50.000/mes) para '
+      '"$nombre". Ya hice/voy a hacer la transferencia.';
+  final uri = Uri.https('wa.me', '/$_whatsappNumber', {'text': mensaje});
+
+  try {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      showErrorSnack(
+        context,
+        'No se pudo abrir WhatsApp. Verifica que esté instalado.',
+      );
+    }
+  } catch (_) {
+    if (context.mounted) {
+      showErrorSnack(
+        context,
+        'No se pudo abrir WhatsApp. Verifica que esté instalado.',
+      );
+    }
+  }
+}
 
 class SuscripcionScreen extends StatefulWidget {
   const SuscripcionScreen({super.key});
@@ -127,6 +164,7 @@ class _SuscripcionScreenState extends State<SuscripcionScreen> {
       );
     }
 
+    final shopName = context.watch<AuthProvider>().barbershop?.name;
     final status = _status!.status;
     final isTrial = status == 'trial';
     final isActive = status == 'active';
@@ -218,35 +256,12 @@ class _SuscripcionScreenState extends State<SuscripcionScreen> {
                   style: TextStyle(color: AppColors.creamDim, fontSize: 13),
                 ),
               ],
-              const SizedBox(height: 20),
-              if (!isActive)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Activar suscripción'),
-                        content: const Text(
-                          'Para gestionar el pago de tu plan, ingresá a tu panel desde la web de Barbersoft.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Entendido'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    child: const Text('VER PLANES'),
-                  ),
-                ),
             ],
           ),
         ),
         const SizedBox(height: 20),
         Text(
-          'PLANES DISPONIBLES',
+          'TU PLAN',
           style: const TextStyle(
             color: AppColors.creamDim,
             fontSize: 11,
@@ -256,33 +271,43 @@ class _SuscripcionScreenState extends State<SuscripcionScreen> {
         ),
         const SizedBox(height: 12),
         _PlanCard(
-          label: 'MENSUAL',
-          price: '\$89.900',
+          label: 'PLAN BARBERSOFT',
+          price: '\$50.000',
           period: 'mes',
-          billing: 'Facturado mensualmente',
+          billing: 'Facturado mensualmente · cancela cuando quieras',
+          popular: true,
           features: const [
             'Citas ilimitadas',
             'Barberos ilimitados',
             'Página de reservas pública',
-            'Recordatorios automáticos WhatsApp',
-            'Reportes mensuales',
+            'Recordatorios automáticos por correo',
+            'Panel con estadísticas del negocio',
+            'Asistente con IA para tus clientes',
+            'Soporte por WhatsApp',
           ],
         ),
-        const SizedBox(height: 12),
-        _PlanCard(
-          label: 'ANUAL',
-          price: '\$69.900',
-          period: 'mes',
-          billing: 'Facturado anualmente · ahorrás \$240.000',
-          popular: true,
-          features: const [
-            'Todo lo del plan mensual',
-            '2 meses gratis',
-            'Soporte prioritario',
-            'Acceso anticipado a funciones',
-            'Reportes avanzados',
-          ],
-        ),
+        if (!isActive) ...[
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _openWhatsAppSubscribe(context, shopName),
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('SUSCRIBIRME POR WHATSAPP'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Por ahora la suscripción se activa manualmente (Nequi/Bancolombia): '
+            'escríbenos por WhatsApp y activamos tu cuenta apenas confirmemos la '
+            'transferencia. Pronto este proceso será automático.',
+            style: TextStyle(
+              color: AppColors.creamDim,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+        ],
         if (_referrals != null) ...[
           const SizedBox(height: 28),
           _ReferralsSection(stats: _referrals!),

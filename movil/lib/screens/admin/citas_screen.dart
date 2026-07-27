@@ -280,6 +280,19 @@ class _CitasScreenState extends State<CitasScreen> {
     if (created == true) _load();
   }
 
+  Future<void> _openEditSheet(Appointment a) async {
+    final updated = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.dark2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (_) => _CreateAppointmentSheet(editing: a),
+    );
+    if (updated == true) _load();
+  }
+
   Future<void> _pickFilterDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -444,7 +457,7 @@ class _CitasScreenState extends State<CitasScreen> {
             key: ValueKey(a.id),
             startActionPane: ActionPane(
               motion: const ScrollMotion(),
-              extentRatio: _canRemind(a) ? 0.5 : 0.28,
+              extentRatio: 0.5,
               children: [
                 SlidableAction(
                   onPressed: (_) => _showDetail(a),
@@ -452,6 +465,28 @@ class _CitasScreenState extends State<CitasScreen> {
                   foregroundColor: AppColors.dark,
                   icon: Icons.visibility_outlined,
                   label: 'Ver',
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                SlidableAction(
+                  onPressed: (_) => _openEditSheet(a),
+                  backgroundColor: AppColors.goldDim,
+                  foregroundColor: AppColors.cream,
+                  icon: Icons.edit_outlined,
+                  label: 'Editar',
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+              ],
+            ),
+            endActionPane: ActionPane(
+              motion: const ScrollMotion(),
+              extentRatio: _canRemind(a) ? 0.75 : 0.5,
+              children: [
+                SlidableAction(
+                  onPressed: (_) => _showStatusSheet(a),
+                  backgroundColor: AppColors.goldDim,
+                  foregroundColor: AppColors.cream,
+                  icon: Icons.label_outline,
+                  label: 'Estado',
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 if (_canRemind(a))
@@ -463,20 +498,6 @@ class _CitasScreenState extends State<CitasScreen> {
                     label: 'Recordar',
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-              ],
-            ),
-            endActionPane: ActionPane(
-              motion: const ScrollMotion(),
-              extentRatio: 0.5,
-              children: [
-                SlidableAction(
-                  onPressed: (_) => _showStatusSheet(a),
-                  backgroundColor: AppColors.goldDim,
-                  foregroundColor: AppColors.cream,
-                  icon: Icons.label_outline,
-                  label: 'Estado',
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
                 SlidableAction(
                   onPressed: (_) => _delete(a),
                   backgroundColor: AppColors.danger,
@@ -589,7 +610,8 @@ class _CitasScreenState extends State<CitasScreen> {
 }
 
 class _CreateAppointmentSheet extends StatefulWidget {
-  const _CreateAppointmentSheet();
+  final Appointment? editing;
+  const _CreateAppointmentSheet({this.editing});
 
   @override
   State<_CreateAppointmentSheet> createState() =>
@@ -598,10 +620,18 @@ class _CreateAppointmentSheet extends StatefulWidget {
 
 class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
+  late final _nameCtrl = TextEditingController(
+    text: widget.editing?.clientName ?? '',
+  );
+  late final _phoneCtrl = TextEditingController(
+    text: widget.editing?.clientPhone ?? '',
+  );
+  late final _emailCtrl = TextEditingController(
+    text: widget.editing?.clientEmail ?? '',
+  );
+  late final _notesCtrl = TextEditingController(
+    text: widget.editing?.notes ?? '',
+  );
 
   List<Barber>? _barbers;
   List<Service>? _services;
@@ -612,9 +642,22 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
   bool _saving = false;
   String? _error;
 
+  bool get _isEditing => widget.editing != null;
+
   @override
   void initState() {
     super.initState();
+    final editing = widget.editing;
+    if (editing != null) {
+      _barberId = editing.barberId;
+      _serviceId = editing.serviceId;
+      _date = DateTime(
+        editing.scheduledAt.year,
+        editing.scheduledAt.month,
+        editing.scheduledAt.day,
+      );
+      _time = TimeOfDay.fromDateTime(editing.scheduledAt);
+    }
     _loadOptions();
   }
 
@@ -625,10 +668,16 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
         ServiceService.getAll(),
       ]);
       if (!mounted) return;
+      // Al editar, el barbero/servicio de la cita puede haber sido
+      // desactivado desde entonces; lo mantenemos visible en su dropdown
+      // para que el valor precargado siga siendo válido (si no, el
+      // DropdownButtonFormField no encuentra el item y falla).
       setState(() {
-        _barbers = (results[0] as List<Barber>).where((b) => b.active).toList();
+        _barbers = (results[0] as List<Barber>)
+            .where((b) => b.active || b.id == _barberId)
+            .toList();
         _services = (results[1] as List<Service>)
-            .where((s) => s.active)
+            .where((s) => s.active || s.id == _serviceId)
             .toList();
       });
     } catch (e) {
@@ -649,7 +698,7 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _date ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
     );
@@ -659,7 +708,7 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: _time ?? TimeOfDay.now(),
     );
     if (picked != null) setState(() => _time = picked);
   }
@@ -699,15 +748,28 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
 
     setState(() => _saving = true);
     try {
-      await AppointmentService.create(
-        barberId: _barberId!,
-        serviceId: _serviceId!,
-        clientName: _nameCtrl.text.trim(),
-        clientPhone: _phoneCtrl.text.trim(),
-        clientEmail: _emailCtrl.text.trim(),
-        scheduledAt: scheduledAt,
-        notes: _notesCtrl.text.trim(),
-      );
+      if (_isEditing) {
+        await AppointmentService.update(
+          widget.editing!.id!,
+          barberId: _barberId!,
+          serviceId: _serviceId!,
+          clientName: _nameCtrl.text.trim(),
+          clientPhone: _phoneCtrl.text.trim(),
+          clientEmail: _emailCtrl.text.trim(),
+          scheduledAt: scheduledAt,
+          notes: _notesCtrl.text.trim(),
+        );
+      } else {
+        await AppointmentService.create(
+          barberId: _barberId!,
+          serviceId: _serviceId!,
+          clientName: _nameCtrl.text.trim(),
+          clientPhone: _phoneCtrl.text.trim(),
+          clientEmail: _emailCtrl.text.trim(),
+          scheduledAt: scheduledAt,
+          notes: _notesCtrl.text.trim(),
+        );
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -754,9 +816,9 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'NUEVA CITA',
-                    style: TextStyle(
+                  Text(
+                    _isEditing ? 'EDITAR CITA' : 'NUEVA CITA',
+                    style: const TextStyle(
                       color: AppColors.gold,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -958,7 +1020,7 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                                 color: AppColors.dark,
                               ),
                             )
-                          : const Text('CREAR CITA'),
+                          : Text(_isEditing ? 'GUARDAR CAMBIOS' : 'CREAR CITA'),
                     ),
                   ],
                 ],
