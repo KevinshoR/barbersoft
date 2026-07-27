@@ -4,7 +4,12 @@ const ReportsController = {
   async monthly(req, res) {
     try {
       const id    = req.barbershop.id
-      const month = req.query.month || new Date().toISOString().slice(0, 7)  // 'YYYY-MM'
+      // El mes por defecto se calcula en hora Colombia, no con toISOString()
+      // (da la fecha en UTC): cerca de la medianoche UTC (después de las 7pm
+      // en Colombia) o en los últimos días del mes, toISOString() ya "cree"
+      // que es el día/mes siguiente y generaba el reporte del mes equivocado.
+      const month = req.query.month ||
+        new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date()).slice(0, 7)  // 'YYYY-MM'
 
       // Rango del mes calculado con aritmética de STRINGS/enteros, sin pasar por
       // new Date('YYYY-MM-01') — esa forma se interpreta como medianoche UTC y,
@@ -40,7 +45,12 @@ const ReportsController = {
         [id, start, end]
       )
 
-      // Barbero más solicitado
+      // Barbero más solicitado: solo cortes REALMENTE completados ('done').
+      // pending/confirmed son citas que todavía no pasaron — contarlas hacía
+      // que un barbero con muchas citas futuras agendadas apareciera como
+      // "el que más cortó" sin haber cortado nada todavía.
+      // Se agrupa por b.id (no solo por nombre) para blindar el caso de dos
+      // barberos con el mismo nombre.
       const topBarberResult = await pool.query(
         `SELECT b.name, COUNT(*) as count
          FROM appointments a
@@ -48,14 +58,14 @@ const ReportsController = {
          WHERE a.barbershop_id = $1
            AND a.scheduled_at >= $2
            AND a.scheduled_at < $3
-           AND a.status != 'cancelled'
-         GROUP BY b.name
+           AND a.status = 'done'
+         GROUP BY b.id, b.name
          ORDER BY count DESC
          LIMIT 1`,
         [id, start, end]
       )
 
-      // Servicio más pedido
+      // Servicio más pedido: mismo criterio, solo 'done', agrupado por s.id.
       const topServiceResult = await pool.query(
         `SELECT s.name, COUNT(*) as count
          FROM appointments a
@@ -63,8 +73,8 @@ const ReportsController = {
          WHERE a.barbershop_id = $1
            AND a.scheduled_at >= $2
            AND a.scheduled_at < $3
-           AND a.status != 'cancelled'
-         GROUP BY s.name
+           AND a.status = 'done'
+         GROUP BY s.id, s.name
          ORDER BY count DESC
          LIMIT 1`,
         [id, start, end]

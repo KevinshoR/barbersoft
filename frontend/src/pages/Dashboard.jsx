@@ -70,7 +70,10 @@ const [copied, setCopied]   = useState(false)
   const [monthly, setMonthly] = useState(null)
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0]
+    // "Hoy" se calcula en hora COLOMBIA, no con toISOString() (que da la fecha en UTC).
+    // Cerca de la medianoche UTC (después de las 7pm en Colombia), toISOString()
+    // ya "cree" que es el día siguiente y pedía las citas del día equivocado.
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
     api.get('/appointments?date=' + today)
       .then(res => { setAppointments(res.data.appointments); setLoaded(true) })
       .catch(() => setLoaded(true))
@@ -172,6 +175,9 @@ const [copied, setCopied]   = useState(false)
     {copied ? '✓ COPIADO' : 'COPIAR'}
   </button>
 </div>
+<p style={{ color:'var(--cream-dim)', fontSize:11.5, marginTop:8, opacity:0.75, maxWidth:420 }}>
+  Este es el link de reservas para tus clientes — compártelo por WhatsApp o redes para que agenden su cita directamente.
+</p>
         </div>
 
         {/* Stats */}
