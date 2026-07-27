@@ -49,7 +49,7 @@ function summarizeHours(hours) {
   }).join(' · ')
 }
 
-function validate(form, hours) {
+function validate(form, hours, barberDays) {
   const errors = {}
   if (!form.scheduled_at) {
     errors.scheduled_at = 'La fecha y hora son obligatorias'
@@ -66,6 +66,8 @@ function validate(form, hours) {
       if (dayHours && !dayHours.is_open) {
         const openDays = hours.filter(h => h.is_open).map(h => DAY_ABBR[h.day_of_week]).join(', ')
         errors.scheduled_at = `La barbería no abre este día. Días de atención: ${openDays || 'consulta con el local'}.`
+      } else if (barberDays && !barberDays.includes(selected.getDay())) {
+        errors.scheduled_at = 'El barbero seleccionado no atiende este día. Elige otro día u otro barbero.'
       } else if (dayHours && dayHours.is_open) {
         const time = selected.toTimeString().slice(0, 5)
         if (time < dayHours.open_time || time >= dayHours.close_time) {
@@ -79,6 +81,65 @@ function validate(form, hours) {
   errors.client_email = emailError(form.client_email)
   Object.keys(errors).forEach(k => { if (!errors[k]) delete errors[k] })
   return errors
+}
+
+// Construye un mapa día_de_semana -> horario, para consultar rápido
+function buildHoursMap(hours) {
+  const map = {}
+  ;(hours || []).forEach(h => { map[h.day_of_week] = h })
+  return map
+}
+
+// ¿Ese día (Date) está disponible? (barbería abierta ese día de semana Y, si hay
+// barbero elegido con días definidos, que el barbero también trabaje ese día)
+function isDayAvailable(date, hoursMap, barberDays) {
+  const dow = date.getDay()
+  const dayHours = hoursMap[dow]
+  if (!dayHours || !dayHours.is_open) return false
+  if (barberDays && !barberDays.includes(dow)) return false
+  return true
+}
+
+// Genera los próximos N días (Date, a medianoche local) a partir de hoy
+function nextDays(n) {
+  const days = []
+  const base = new Date()
+  base.setHours(0, 0, 0, 0)
+  for (let i = 0; i < n; i++) {
+    const d = new Date(base)
+    d.setDate(base.getDate() + i)
+    days.push(d)
+  }
+  return days
+}
+
+// Genera los horarios disponibles (cada 30 min) para un día específico,
+// respetando el horario de apertura/cierre y, si es hoy, que sea con al
+// menos 30 min de anticipación.
+function timeSlotsFor(date, hoursMap) {
+  const dayHours = hoursMap[date.getDay()]
+  if (!dayHours || !dayHours.is_open) return []
+  const [openH, openM]   = dayHours.open_time.split(':').map(Number)
+  const [closeH, closeM] = dayHours.close_time.split(':').map(Number)
+  const slots = []
+  const cursor = new Date(date)
+  cursor.setHours(openH, openM, 0, 0)
+  const end = new Date(date)
+  end.setHours(closeH, closeM, 0, 0)
+  const minAllowed = new Date(Date.now() + 30 * 60 * 1000)
+  while (cursor < end) {
+    if (cursor >= minAllowed) {
+      slots.push(new Date(cursor))
+    }
+    cursor.setMinutes(cursor.getMinutes() + 30)
+  }
+  return slots
+}
+
+// "2026-07-25" + Date con hora -> "2026-07-25T14:30" (formato que espera el form)
+function toLocalDateTimeValue(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', {
@@ -111,8 +172,11 @@ const navigate = useNavigate()
     barber_id: '', service_id: '', client_name: '',
     client_phone: '', client_email: '', scheduled_at: '', notes: ''
   })
+  const [pickedDay, setPickedDay] = useState(null) // Date del día elegido (sin hora), paso previo a elegir hora
 
-  const allErrors = validate(form, hours)
+  const selectedBarberForValidation = barbers.find(b => b.id === parseInt(form.barber_id))
+  const barberDaysForValidation = parseWorkDays(selectedBarberForValidation?.work_days)
+  const allErrors = validate(form, hours, barberDaysForValidation)
   const errors = Object.keys(allErrors).reduce((acc, k) => {
     if (touched[k]) acc[k] = allErrors[k]
     return acc
@@ -129,6 +193,15 @@ const navigate = useNavigate()
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
   }, [slug])
+
+  // Red de seguridad: si por algún motivo (datos desactualizados, etc.) queda
+  // seleccionada una fecha/hora inválida, también avisa arriba (no solo debajo).
+  // Con el selector de días/horas tocables esto no debería poder pasar en uso normal.
+  useEffect(() => {
+    if (step === 2 && touched.scheduled_at && errors.scheduled_at) {
+      setApiError(errors.scheduled_at)
+    }
+  }, [step, touched.scheduled_at, errors.scheduled_at])
 
   const markTouched = (name) => setTouched(t => (t[name] ? t : { ...t, [name]: true }))
 
@@ -307,7 +380,7 @@ const navigate = useNavigate()
           title={detailBarber.name}
           subtitle={detailBarber.specialty}
           selectLabel="ELEGIR ESTE BARBERO"
-          onSelect={() => { handleChange('barber_id', String(detailBarber.id)); setDetailBarber(null) }}
+          onSelect={() => { handleChange('barber_id', String(detailBarber.id)); setPickedDay(null); handleChange('scheduled_at', ''); setDetailBarber(null) }}
         >
           {parseWorkDays(detailBarber.work_days) && (
             <div style={{ marginBottom: 16 }}>
@@ -434,7 +507,7 @@ const navigate = useNavigate()
             {barbers.map(barber => (
               <div
                 key={barber.id}
-                onClick={() => handleChange('barber_id', String(barber.id))}
+                onClick={() => { handleChange('barber_id', String(barber.id)); setPickedDay(null); handleChange('scheduled_at', '') }}
                 style={form.barber_id === String(barber.id) ? s.cardSelected : s.card}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -478,85 +551,127 @@ const navigate = useNavigate()
         )}
 
         {/* PASO 2 — Elegir fecha y hora */}
-        {step === 2 && (
-          <div className="animate-fade-up">
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo vienes?</h2>
-            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el día y hora que mejor te quede</p>
+        {step === 2 && (() => {
+          const hoursMap = buildHoursMap(hours)
+          const barberDays = parseWorkDays(selectedBarber?.work_days)
+          const days = nextDays(30)
+          const slots = pickedDay ? timeSlotsFor(pickedDay, hoursMap) : []
+          const sameDay = (a, b) => a && b && a.toDateString() === b.toDateString()
+          const selectedDateTime = form.scheduled_at ? new Date(form.scheduled_at) : null
 
-            {summarizeHours(hours) && (
-              <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: 'var(--cream-dim)' }}>
-                🕒 Horario de atención: <strong style={{ color: 'var(--cream)' }}>{summarizeHours(hours)}</strong>
-              </div>
-            )}
+          const choosePickedDay = (d) => {
+            setPickedDay(d)
+            // Si ya había una hora elegida de OTRO día, la limpiamos para que elija de nuevo
+            if (!sameDay(selectedDateTime, d)) handleChange('scheduled_at', '')
+          }
 
-            {hours.length > 0 && (() => {
-              const barberDays = parseWorkDays(selectedBarber?.work_days)
-              return (
-                <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 18, marginBottom: 16 }}>
-                  <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 12 }}>
-                    AGENDA DE LA SEMANA{barberDays && selectedBarber ? ` · ${selectedBarber.name.split(' ')[0]}` : ''}
-                  </p>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {hours.slice().sort((a, b) => a.day_of_week - b.day_of_week).map(h => {
-                      const barberWorksThisDay = !barberDays || barberDays.includes(h.day_of_week)
-                      const available = h.is_open && barberWorksThisDay
-                      return (
-                        <div
-                          key={h.day_of_week}
-                          title={!h.is_open ? 'La barbería no abre' : !barberWorksThisDay ? `${selectedBarber?.name} no atiende este día` : 'Disponible'}
-                          style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                            padding: '8px 10px', borderRadius: 12, minWidth: 42,
-                            background: available ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)',
-                            border:     '1px solid ' + (available ? 'rgba(201,168,76,0.35)' : 'var(--dark-4)'),
-                            opacity:    available ? 1 : 0.45,
-                          }}
-                        >
-                          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', color: available ? 'var(--gold)' : 'var(--cream-dim)' }}>
-                            {DAY_ABBR[h.day_of_week]}
-                          </span>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: available ? 'var(--gold)' : 'var(--dark-4)' }} />
-                        </div>
-                      )
-                    })}
-                  </div>
+          const chooseSlot = (slotDate) => {
+            handleChange('scheduled_at', toLocalDateTimeValue(slotDate))
+          }
+
+          return (
+            <div className="animate-fade-up">
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo vienes?</h2>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el día y hora que mejor te quede</p>
+
+              {summarizeHours(hours) && (
+                <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: 'var(--cream-dim)' }}>
+                  🕒 Horario de atención: <strong style={{ color: 'var(--cream)' }}>{summarizeHours(hours)}</strong>
                   {barberDays && selectedBarber && (
-                    <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 10, opacity: 0.7 }}>
-                      Días resaltados: cuando la barbería está abierta y {selectedBarber.name.split(' ')[0]} atiende.
-                    </p>
+                    <div style={{ marginTop: 4 }}>✂ {selectedBarber.name.split(' ')[0]} atiende: <strong style={{ color: 'var(--cream)' }}>{barberDays.slice().sort().map(d => DAY_ABBR[d]).join(', ')}</strong></div>
                   )}
                 </div>
-              )
-            })()}
+              )}
 
-            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 24 }}>
-              <label style={{ ...s.label, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 13 }}>📅</span> FECHA Y HORA
-              </label>
-              <input
-                type="datetime-local"
-                value={form.scheduled_at}
-                onChange={e => handleChange('scheduled_at', e.target.value)}
-                style={{
-                  ...s.inp('scheduled_at'),
-                  border: '1px solid ' + (errors.scheduled_at ? 'var(--danger)' : form.scheduled_at ? 'rgba(201,168,76,0.5)' : 'var(--border-soft)'),
-                }}
-              />
-              {errors.scheduled_at && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.scheduled_at}</p>}
-            </div>
-
-            {selectedService && selectedBarber && form.scheduled_at && (
-              <div className="animate-fade-up" style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, padding: '16px 20px', marginTop: 16 }}>
-                <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 600, marginBottom: 10 }}>RESUMEN</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <p style={{ color: 'var(--cream)', fontSize: 13 }}>✦ {selectedService.name} — {selectedService.duration_min}min</p>
-                  <p style={{ color: 'var(--cream)', fontSize: 13 }}>✂ {selectedBarber.name}</p>
-                  <p style={{ color: 'var(--gold)', fontSize: 13 }}>📅 {new Date(form.scheduled_at).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+              {/* Selector de DÍA — los días cerrados están deshabilitados, no se pueden tocar */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ ...s.label, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <span style={{ fontSize: 13 }}>📅</span> ELIGE EL DÍA
+                </label>
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
+                  {days.map((d, i) => {
+                    const available = isDayAvailable(d, hoursMap, barberDays)
+                    const active = sameDay(pickedDay, d)
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={!available}
+                        onClick={() => available && choosePickedDay(d)}
+                        title={!available ? 'No disponible este día' : ''}
+                        style={{
+                          flexShrink: 0, width: 56, padding: '10px 0', borderRadius: 12, textAlign: 'center',
+                          cursor: available ? 'pointer' : 'not-allowed',
+                          background: active ? 'var(--gold)' : available ? 'var(--surface-1)' : 'var(--dark-3)',
+                          border: '1px solid ' + (active ? 'var(--gold)' : available ? 'var(--border-soft)' : 'var(--dark-4)'),
+                          opacity: available ? 1 : 0.4,
+                        }}
+                      >
+                        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', color: active ? 'var(--dark)' : available ? 'var(--cream-dim)' : 'var(--cream-dim)' }}>
+                          {DAY_ABBR[d.getDay()]}
+                        </div>
+                        <div style={{ fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-display)', color: active ? 'var(--dark)' : available ? 'var(--cream)' : 'var(--cream-dim)', marginTop: 2 }}>
+                          {d.getDate()}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Selector de HORA — solo aparecen horas dentro del horario de atención */}
+              {pickedDay && (
+                <div className="animate-fade-up" style={{ marginBottom: 16 }}>
+                  <label style={{ ...s.label, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                    <span style={{ fontSize: 13 }}>🕐</span> ELIGE LA HORA
+                  </label>
+                  {slots.length === 0 ? (
+                    <p style={{ color: 'var(--cream-dim)', fontSize: 13, background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: 16 }}>
+                      No quedan horarios disponibles ese día. Elige otro día.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))', gap: 8 }}>
+                      {slots.map((slot, i) => {
+                        const active = selectedDateTime && slot.getTime() === selectedDateTime.getTime()
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => chooseSlot(slot)}
+                            style={{
+                              padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                              background: active ? 'var(--gold)' : 'var(--surface-1)',
+                              border: '1px solid ' + (active ? 'var(--gold)' : 'var(--border-soft)'),
+                              color: active ? 'var(--dark)' : 'var(--cream)',
+                            }}
+                          >
+                            {slot.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Alerta de respaldo (no debería aparecer nunca con el selector nuevo, pero queda de red de seguridad) */}
+              {errors.scheduled_at && touched.scheduled_at && (
+                <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.scheduled_at}</p>
+              )}
+
+              {selectedService && selectedBarber && form.scheduled_at && (
+                <div className="animate-fade-up" style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, padding: '16px 20px', marginTop: 16 }}>
+                  <p style={{ color: 'var(--cream-dim)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 600, marginBottom: 10 }}>RESUMEN</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <p style={{ color: 'var(--cream)', fontSize: 13 }}>✦ {selectedService.name} — {selectedService.duration_min}min</p>
+                    <p style={{ color: 'var(--cream)', fontSize: 13 }}>✂ {selectedBarber.name}</p>
+                    <p style={{ color: 'var(--gold)', fontSize: 13 }}>📅 {new Date(form.scheduled_at).toLocaleString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* PASO 3 — Datos personales */}
         {step === 3 && (
@@ -583,6 +698,9 @@ const navigate = useNavigate()
                 >
                   <span>{emailOpen ? '－' : '＋'}</span> Correo electrónico
                 </button>
+                {!emailOpen && (
+                  <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 6, opacity: 0.7 }}>Agrégalo si quieres recibir el recordatorio de tu cita por correo.</p>
+                )}
                 {emailOpen && (
                   <div className="animate-fade-up" style={{ marginTop: 10 }}>
                     <input type="email" value={form.client_email} onChange={e => handleChange('client_email', e.target.value)} onBlur={() => markTouched('client_email')} placeholder="tucorreo@email.com" style={s.inp('client_email')} autoFocus />

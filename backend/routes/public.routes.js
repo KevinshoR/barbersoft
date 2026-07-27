@@ -65,7 +65,7 @@ router.get('/:slug', async (req, res) => {
     if (!shop) return res.status(404).json({ error: 'Barbería no encontrada' })
 
     const barbers = await pool.query(
-      'SELECT id, name, photo_url FROM barbers WHERE barbershop_id = $1 AND active = true ORDER BY name ASC',
+      'SELECT id, name, photo_url, specialty, work_days FROM barbers WHERE barbershop_id = $1 AND active = true ORDER BY name ASC',
       [shop.id]
     )
 
