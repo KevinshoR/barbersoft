@@ -142,6 +142,21 @@ function toLocalDateTimeValue(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+// Genera la grilla de un mes: matriz de semanas, cada una con 7 celdas (Date o null
+// para los espacios antes/después del mes). La semana empieza en domingo.
+function monthGrid(year, month) {
+  const first = new Date(year, month, 1)
+  const startDay = first.getDay() // 0=Dom
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells = []
+  for (let i = 0; i < startDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d))
+  while (cells.length % 7 !== 0) cells.push(null)
+  const weeks = []
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
+  return weeks
+}
+
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', {
   style: 'currency', currency: 'COP', minimumFractionDigits: 0
 }).format(p)
@@ -173,6 +188,7 @@ const navigate = useNavigate()
     client_phone: '', client_email: '', scheduled_at: '', notes: ''
   })
   const [pickedDay, setPickedDay] = useState(null) // Date del día elegido (sin hora), paso previo a elegir hora
+  const [visibleMonth, setVisibleMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
 
   const selectedBarberForValidation = barbers.find(b => b.id === parseInt(form.barber_id))
   const barberDaysForValidation = parseWorkDays(selectedBarberForValidation?.work_days)
@@ -554,76 +570,110 @@ const navigate = useNavigate()
         {step === 2 && (() => {
           const hoursMap = buildHoursMap(hours)
           const barberDays = parseWorkDays(selectedBarber?.work_days)
-          const days = nextDays(30)
           const slots = pickedDay ? timeSlotsFor(pickedDay, hoursMap) : []
           const sameDay = (a, b) => a && b && a.toDateString() === b.toDateString()
           const selectedDateTime = form.scheduled_at ? new Date(form.scheduled_at) : null
 
+          const today = new Date(); today.setHours(0, 0, 0, 0)
+          const maxDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          const weeks = monthGrid(visibleMonth.getFullYear(), visibleMonth.getMonth())
+          const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+          const DOW = ['D','L','M','M','J','V','S']
+
+          // Límites de navegación de mes: no antes del mes actual, no más allá del mes que contiene maxDate
+          const firstAllowedMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+          const lastAllowedMonth  = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1)
+          const canPrev = visibleMonth > firstAllowedMonth
+          const canNext = visibleMonth < lastAllowedMonth
+
           const choosePickedDay = (d) => {
             setPickedDay(d)
-            // Si ya había una hora elegida de OTRO día, la limpiamos para que elija de nuevo
             if (!sameDay(selectedDateTime, d)) handleChange('scheduled_at', '')
           }
-
-          const chooseSlot = (slotDate) => {
-            handleChange('scheduled_at', toLocalDateTimeValue(slotDate))
-          }
+          const chooseSlot = (slotDate) => handleChange('scheduled_at', toLocalDateTimeValue(slotDate))
 
           return (
             <div className="animate-fade-up">
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--cream)', marginBottom: 6 }}>¿Cuándo vienes?</h2>
-              <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 24 }}>Elige el día y hora que mejor te quede</p>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginBottom: 20 }}>Elige el día y hora que mejor te quede</p>
 
               {summarizeHours(hours) && (
                 <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: 'var(--cream-dim)' }}>
-                  🕒 Horario de atención: <strong style={{ color: 'var(--cream)' }}>{summarizeHours(hours)}</strong>
+                  🕒 Horario: <strong style={{ color: 'var(--cream)' }}>{summarizeHours(hours)}</strong>
                   {barberDays && selectedBarber && (
                     <div style={{ marginTop: 4 }}>✂ {selectedBarber.name.split(' ')[0]} atiende: <strong style={{ color: 'var(--cream)' }}>{barberDays.slice().sort().map(d => DAY_ABBR[d]).join(', ')}</strong></div>
                   )}
                 </div>
               )}
 
-              {/* Selector de DÍA — los días cerrados están deshabilitados, no se pueden tocar */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ ...s.label, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <span style={{ fontSize: 13 }}>📅</span> ELIGE EL DÍA
-                </label>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
-                  {days.map((d, i) => {
-                    const available = isDayAvailable(d, hoursMap, barberDays)
-                    const active = sameDay(pickedDay, d)
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        disabled={!available}
-                        onClick={() => available && choosePickedDay(d)}
-                        title={!available ? 'No disponible este día' : ''}
-                        style={{
-                          flexShrink: 0, width: 56, padding: '10px 0', borderRadius: 12, textAlign: 'center',
-                          cursor: available ? 'pointer' : 'not-allowed',
-                          background: active ? 'var(--gold)' : available ? 'var(--surface-1)' : 'var(--dark-3)',
-                          border: '1px solid ' + (active ? 'var(--gold)' : available ? 'var(--border-soft)' : 'var(--dark-4)'),
-                          opacity: available ? 1 : 0.4,
-                        }}
-                      >
-                        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', color: active ? 'var(--dark)' : available ? 'var(--cream-dim)' : 'var(--cream-dim)' }}>
-                          {DAY_ABBR[d.getDay()]}
-                        </div>
-                        <div style={{ fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-display)', color: active ? 'var(--dark)' : available ? 'var(--cream)' : 'var(--cream-dim)', marginTop: 2 }}>
-                          {d.getDate()}
-                        </div>
-                      </button>
-                    )
-                  })}
+              {/* CALENDARIO MENSUAL */}
+              <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                {/* Encabezado con navegación de mes */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <button type="button" disabled={!canPrev}
+                    onClick={() => canPrev && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))}
+                    style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border-soft)', background: 'transparent', color: canPrev ? 'var(--gold)' : 'var(--dark-4)', cursor: canPrev ? 'pointer' : 'not-allowed', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>
+                    {MES[visibleMonth.getMonth()]} {visibleMonth.getFullYear()}
+                  </p>
+                  <button type="button" disabled={!canNext}
+                    onClick={() => canNext && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))}
+                    style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border-soft)', background: 'transparent', color: canNext ? 'var(--gold)' : 'var(--dark-4)', cursor: canNext ? 'pointer' : 'not-allowed', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+                </div>
+
+                {/* Cabecera de días de la semana */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
+                  {DOW.map((d, i) => (
+                    <div key={i} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--cream-dim)', opacity: 0.6, padding: '4px 0' }}>{d}</div>
+                  ))}
+                </div>
+
+                {/* Semanas */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {weeks.map((week, wi) => (
+                    <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                      {week.map((cell, ci) => {
+                        if (!cell) return <div key={ci} />
+                        const inRange = cell >= today && cell <= maxDate
+                        const openThatDay = isDayAvailable(cell, hoursMap, barberDays)
+                        const available = inRange && openThatDay
+                        const active = sameDay(pickedDay, cell)
+                        const isToday = sameDay(today, cell)
+                        return (
+                          <button
+                            key={ci}
+                            type="button"
+                            disabled={!available}
+                            onClick={() => available && choosePickedDay(cell)}
+                            title={!inRange ? 'Fuera del rango de reserva' : !openThatDay ? 'No disponible este día' : ''}
+                            style={{
+                              aspectRatio: '1', borderRadius: 10, border: '1px solid ' + (active ? 'var(--gold)' : 'transparent'),
+                              background: active ? 'var(--gold)' : available ? 'rgba(201,168,76,0.10)' : 'transparent',
+                              color: active ? 'var(--dark)' : available ? 'var(--cream)' : 'var(--cream-dim)',
+                              cursor: available ? 'pointer' : 'not-allowed',
+                              opacity: available ? 1 : 0.3,
+                              fontSize: 14, fontWeight: active ? 800 : 600,
+                              position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'background 0.15s',
+                            }}
+                          >
+                            {cell.getDate()}
+                            {isToday && !active && (
+                              <span style={{ position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: '50%', background: 'var(--gold)' }} />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Selector de HORA — solo aparecen horas dentro del horario de atención */}
+              {/* Selector de HORA */}
               {pickedDay && (
                 <div className="animate-fade-up" style={{ marginBottom: 16 }}>
                   <label style={{ ...s.label, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                    <span style={{ fontSize: 13 }}>🕐</span> ELIGE LA HORA
+                    <span style={{ fontSize: 13 }}>🕐</span> HORA DISPONIBLE · {pickedDay.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </label>
                   {slots.length === 0 ? (
                     <p style={{ color: 'var(--cream-dim)', fontSize: 13, background: 'var(--surface-1)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: 16 }}>
@@ -634,17 +684,13 @@ const navigate = useNavigate()
                       {slots.map((slot, i) => {
                         const active = selectedDateTime && slot.getTime() === selectedDateTime.getTime()
                         return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => chooseSlot(slot)}
+                          <button key={i} type="button" onClick={() => chooseSlot(slot)}
                             style={{
-                              padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                              padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
                               background: active ? 'var(--gold)' : 'var(--surface-1)',
                               border: '1px solid ' + (active ? 'var(--gold)' : 'var(--border-soft)'),
                               color: active ? 'var(--dark)' : 'var(--cream)',
-                            }}
-                          >
+                            }}>
                             {slot.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                           </button>
                         )
@@ -654,7 +700,6 @@ const navigate = useNavigate()
                 </div>
               )}
 
-              {/* Alerta de respaldo (no debería aparecer nunca con el selector nuevo, pero queda de red de seguridad) */}
               {errors.scheduled_at && touched.scheduled_at && (
                 <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>⚠ {errors.scheduled_at}</p>
               )}
