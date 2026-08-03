@@ -9,16 +9,25 @@ import api from '../services/api'
 import { requiredError, emailError, phoneError, hasErrors } from '../utils/validators'
 import { useToast } from '../context/ToastContext'
 
+// Interpreta "YYYY-MM-DDTHH:mm" como hora de COLOMBIA (UTC-5, sin DST),
+// sin importar la zona del navegador. Instante comparable con Date.now().
+function parseAsColombiaAppt(value) {
+  if (!value) return null
+  return new Date(value + ':00-05:00')
+}
+
 function validate(form) {
   const errors = {}
   if (!form.scheduled_at) {
-    errors.scheduled_at = 'La fecha y hora son obligatorias'
+    errors.scheduled_at = 'Elige el día y la hora de la cita'
   } else {
-    const selected = new Date(form.scheduled_at)
-    const minDate  = new Date(Date.now() + 30 * 60 * 1000)        // 30 min desde ahora
-    const maxDate  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 mes
-    if (selected < minDate) errors.scheduled_at = 'La cita debe ser al menos 30 minutos desde ahora'
-    if (selected > maxDate) errors.scheduled_at = 'La cita no puede ser a más de 1 mes de distancia'
+    const selected = parseAsColombiaAppt(form.scheduled_at)
+    // En el panel el barbero tiene flexibilidad: solo bloqueamos el pasado
+    // (con un pequeño margen de 5 min), no forzamos el horario de atención.
+    const minDate = new Date(Date.now() - 5 * 60 * 1000)
+    const maxDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 3 meses
+    if (selected < minDate) errors.scheduled_at = 'La cita no puede ser en el pasado'
+    if (selected > maxDate) errors.scheduled_at = 'La cita no puede ser a más de 3 meses'
   }
   errors.barber_id    = requiredError(form.barber_id, 'El barbero')
   errors.service_id   = requiredError(form.service_id, 'El servicio')
@@ -138,12 +147,75 @@ const toLocalInputValue = (iso) => {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+const DAY_ABBR_APPT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
+// "1,2,3,4,5,6" -> [1,2,3,4,5,6]. Vacío/undefined -> null (no restringe).
+const parseWorkDaysAppt = (value) => {
+  if (!value) return null
+  const days = String(value).split(',').map(Number).filter(n => !Number.isNaN(n))
+  return days.length ? days : null
+}
+
+const buildHoursMapAppt = (hours) => {
+  const map = {}
+  ;(hours || []).forEach(h => { map[h.day_of_week] = h })
+  return map
+}
+
+// Grilla mensual: semanas de 7 celdas (Date | null), empieza en domingo.
+const monthGridAppt = (year, month) => {
+  const first = new Date(year, month, 1)
+  const startDay = first.getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells = []
+  for (let i = 0; i < startDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d))
+  while (cells.length % 7 !== 0) cells.push(null)
+  const weeks = []
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
+  return weeks
+}
+
+// ¿La barbería abre ese día de la semana? (para marcar días recomendados vs excepcionales)
+const shopOpensDay = (date, hoursMap) => {
+  const dh = hoursMap[date.getDay()]
+  return !!(dh && dh.is_open)
+}
+
+// Genera slots de 30 min para un día. En el PANEL somos flexibles: generamos
+// slots de 8:00 a 20:00 SIEMPRE, pero marcamos cada uno como dentro/fuera de
+// horario para que el barbero vea la guía pero pueda agendar excepciones.
+const timeSlotsPanel = (date, hoursMap) => {
+  const dh = hoursMap[date.getDay()]
+  const slots = []
+  const START_H = 8, END_H = 20
+  const cursor = new Date(date); cursor.setHours(START_H, 0, 0, 0)
+  const end = new Date(date); end.setHours(END_H, 0, 0, 0)
+  while (cursor <= end) {
+    let dentroHorario = false
+    if (dh && dh.is_open) {
+      const t = `${String(cursor.getHours()).padStart(2, '0')}:${String(cursor.getMinutes()).padStart(2, '0')}`
+      dentroHorario = t >= dh.open_time && t < dh.close_time
+    }
+    slots.push({ date: new Date(cursor), dentroHorario })
+    cursor.setMinutes(cursor.getMinutes() + 30)
+  }
+  return slots
+}
+
+// Date con hora -> "YYYY-MM-DDTHH:mm" (formato del form)
+const toInputValueAppt = (date) => {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 export default function Appointments() {
   const { pathname } = useLocation()
   const toast = useToast()
   const [appointments, setAppointments] = useState([])
   const [barbers, setBarbers]           = useState([])
   const [services, setServices]         = useState([])
+  const [hours, setHours]               = useState([])
   const [loading, setLoading]           = useState(true)
   const [showForm, setShowForm]         = useState(false)
   const [editingId, setEditingId]       = useState(null)
@@ -161,6 +233,8 @@ export default function Appointments() {
     barber_id:'', service_id:'', client_name:'',
     client_phone:'', client_email:'', scheduled_at:'', notes:''
   })
+  const [pickedDay, setPickedDay] = useState(null) // Date del día elegido en el calendario
+  const [visibleMonth, setVisibleMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
 
   const allErrors = validate(form)
   const errors = Object.keys(allErrors).reduce((acc, k) => {
@@ -169,9 +243,9 @@ export default function Appointments() {
   }, {})
 
   useEffect(() => {
-    Promise.all([api.get('/barbers'), api.get('/services')])
-      .then(([b, s]) => { setBarbers(b.data.barbers); setServices(s.data.services) })
-      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar barberos y servicios.'))
+    Promise.all([api.get('/barbers'), api.get('/services'), api.get('/hours')])
+      .then(([b, s, h]) => { setBarbers(b.data.barbers); setServices(s.data.services); setHours(h.data.hours || h.data || []) })
+      .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar los datos.'))
   }, [])
 
   useEffect(() => { fetchAppointments() }, [])
@@ -218,6 +292,9 @@ export default function Appointments() {
       scheduled_at: toLocalInputValue(a.scheduled_at),
       notes:        a.notes || '',
     })
+    const d = new Date(a.scheduled_at)
+    setPickedDay(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
+    setVisibleMonth(new Date(d.getFullYear(), d.getMonth(), 1))
     setTouched({})
     setShowForm(true)
   }
@@ -378,7 +455,7 @@ export default function Appointments() {
           <button
             onClick={() => {
               if (showForm) { setShowForm(false); setEditingId(null) }
-              else { setForm({ barber_id:'', service_id:'', client_name:'', client_phone:'', client_email:'', scheduled_at:'', notes:'' }); setEditingId(null); setShowForm(true) }
+              else { setForm({ barber_id:'', service_id:'', client_name:'', client_phone:'', client_email:'', scheduled_at:'', notes:'' }); setPickedDay(null); setVisibleMonth((() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })()); setEditingId(null); setShowForm(true) }
               setTouched({})
             }}
             className="btn-primary"
@@ -481,7 +558,128 @@ export default function Appointments() {
                 {/* Sección: fecha */}
                 <p style={{ color:'var(--cream-dim)', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:14 }}>Fecha y hora</p>
                 <div style={{ marginBottom:24 }}>
-                  <input name="scheduled_at" type="datetime-local" value={form.scheduled_at} onChange={handleChange} onBlur={() => markTouched('scheduled_at')} style={inp('scheduled_at')} />
+                  {(() => {
+                    const hoursMap = buildHoursMapAppt(hours)
+                    const selBarber = barbers.find(b => String(b.id) === String(form.barber_id))
+                    const barberDays = parseWorkDaysAppt(selBarber?.work_days)
+                    const weeks = monthGridAppt(visibleMonth.getFullYear(), visibleMonth.getMonth())
+                    const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+                    const DOW = ['D','L','M','M','J','V','S']
+                    const sameDay = (a, b) => a && b && a.toDateString() === b.toDateString()
+                    const today0 = new Date(); today0.setHours(0,0,0,0)
+                    const selectedDateTime = form.scheduled_at ? new Date(form.scheduled_at) : null
+                    const slots = pickedDay ? timeSlotsPanel(pickedDay, hoursMap) : []
+
+                    // Navegación de mes: desde el mes actual hasta 3 meses adelante (el panel
+                    // permite agendar con más anticipación que el cliente).
+                    const firstMonth = new Date(today0.getFullYear(), today0.getMonth(), 1)
+                    const lastMonth  = new Date(today0.getFullYear(), today0.getMonth() + 3, 1)
+                    const canPrev = visibleMonth > firstMonth
+                    const canNext = visibleMonth < lastMonth
+
+                    const choosePickedDay = (d) => {
+                      setPickedDay(d)
+                      if (!sameDay(selectedDateTime, d)) setForm(f => ({ ...f, scheduled_at: '' }))
+                    }
+                    const chooseSlot = (slotDate) => {
+                      setForm(f => ({ ...f, scheduled_at: toInputValueAppt(slotDate) }))
+                      markTouched('scheduled_at')
+                    }
+
+                    return (
+                      <>
+                        {/* Calendario */}
+                        <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16, marginBottom:14 }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                            <button type="button" disabled={!canPrev}
+                              onClick={() => canPrev && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()-1, 1))}
+                              style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--dark-4)', background:'transparent', color: canPrev ? 'var(--gold)' : 'var(--dark-4)', cursor: canPrev ? 'pointer' : 'not-allowed', fontSize:15 }}>‹</button>
+                            <p style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:15, fontWeight:700, color:'var(--cream)' }}>
+                              {MES[visibleMonth.getMonth()]} {visibleMonth.getFullYear()}
+                            </p>
+                            <button type="button" disabled={!canNext}
+                              onClick={() => canNext && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()+1, 1))}
+                              style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--dark-4)', background:'transparent', color: canNext ? 'var(--gold)' : 'var(--dark-4)', cursor: canNext ? 'pointer' : 'not-allowed', fontSize:15 }}>›</button>
+                          </div>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:4 }}>
+                            {DOW.map((d, i) => <div key={i} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:'var(--cream-dim)', opacity:0.6, padding:'3px 0' }}>{d}</div>)}
+                          </div>
+                          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                            {weeks.map((week, wi) => (
+                              <div key={wi} style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3 }}>
+                                {week.map((cell, ci) => {
+                                  if (!cell) return <div key={ci} />
+                                  const isPast = cell < today0
+                                  const opens = shopOpensDay(cell, hoursMap)
+                                  const barberWorks = !barberDays || barberDays.includes(cell.getDay())
+                                  const recommended = opens && barberWorks   // día normal de atención
+                                  const active = sameDay(pickedDay, cell)
+                                  const isToday = sameDay(today0, cell)
+                                  // En el panel, TODOS los días futuros son seleccionables (flexibilidad),
+                                  // pero los no-recomendados se ven atenuados.
+                                  return (
+                                    <button key={ci} type="button" disabled={isPast}
+                                      onClick={() => !isPast && choosePickedDay(cell)}
+                                      title={isPast ? 'Fecha pasada' : recommended ? '' : 'Fuera del horario habitual'}
+                                      style={{
+                                        aspectRatio:'1', borderRadius:8, border:'1px solid ' + (active ? 'var(--gold)' : 'transparent'),
+                                        background: active ? 'var(--gold)' : isPast ? 'transparent' : recommended ? 'rgba(201,168,76,0.10)' : 'transparent',
+                                        color: active ? 'var(--dark)' : isPast ? 'var(--dark-4)' : recommended ? 'var(--cream)' : 'var(--cream-dim)',
+                                        cursor: isPast ? 'not-allowed' : 'pointer',
+                                        opacity: isPast ? 0.3 : recommended ? 1 : 0.5,
+                                        fontSize:13, fontWeight: active ? 800 : 600, position:'relative',
+                                        display:'flex', alignItems:'center', justifyContent:'center',
+                                      }}>
+                                      {cell.getDate()}
+                                      {isToday && !active && <span style={{ position:'absolute', bottom:3, width:4, height:4, borderRadius:'50%', background:'var(--gold)' }} />}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Horas */}
+                        {pickedDay && (
+                          <div style={{ marginBottom:8 }}>
+                            <p style={{ color:'var(--cream-dim)', fontSize:11, marginBottom:8 }}>
+                              Horas · {pickedDay.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' })}
+                            </p>
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(72px, 1fr))', gap:6 }}>
+                              {slots.map((slot, i) => {
+                                const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
+                                return (
+                                  <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
+                                    title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
+                                    style={{
+                                      padding:'9px 0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', position:'relative',
+                                      background: active ? 'var(--gold)' : 'var(--dark-3)',
+                                      border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
+                                      color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
+                                      opacity: slot.dentroHorario ? 1 : 0.55,
+                                    }}>
+                                    {slot.date.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <p style={{ color:'var(--cream-dim)', fontSize:10.5, marginTop:8, opacity:0.6 }}>
+                              Las horas atenuadas están fuera del horario habitual, pero puedes agendarlas si lo necesitas.
+                            </p>
+                          </div>
+                        )}
+
+                        {form.scheduled_at && (
+                          <div style={{ background:'rgba(201,168,76,0.08)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:10, padding:'10px 14px', marginTop:4 }}>
+                            <p style={{ color:'var(--gold)', fontSize:13, fontWeight:700 }}>
+                              📅 {new Date(form.scheduled_at).toLocaleString('es-CO', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                   {errors.scheduled_at && <p style={{ color:'var(--gold)', fontSize:12, marginTop:5 }}>⚠ {errors.scheduled_at}</p>}
                 </div>
 

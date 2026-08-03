@@ -113,13 +113,20 @@ async function run() {
   const servicioIds = (await pool.query('SELECT id FROM services WHERE barbershop_id = $1', [shopId])).rows.map(r => r.id)
   const estados = ['pending', 'confirmed', 'done', 'done', 'done', 'done', 'cancelled']
 
+  const hoy = new Date()
+  const diaDeHoy = hoy.getDate()
+
   let creadas = 0
+
+  // ── Citas repartidas en el mes (día 1 hasta HOY inclusive) ──
+  // Las de días pasados quedan mayormente 'done'; el rango incluye hoy para que
+  // el Dashboard ("citas hoy") nunca salga vacío por datos.
   for (let i = 0; i < 45; i++) {
     const cliente = clientes[Math.floor(Math.random() * clientes.length)]
     const barberId = barberIds[Math.floor(Math.random() * barberIds.length)]
     const serviceId = servicioIds[Math.floor(Math.random() * servicioIds.length)]
     const status = estados[Math.floor(Math.random() * estados.length)]
-    const diaOffset = Math.floor(Math.random() * 26) + 1 // día 1-26 del mes actual
+    const diaOffset = Math.floor(Math.random() * diaDeHoy) + 1 // día 1 .. hoy
     const hora = 9 + Math.floor(Math.random() * 9) // 9am - 5pm
     const min = Math.random() < 0.5 ? 0 : 30
 
@@ -136,7 +143,35 @@ async function run() {
       creadas++
     } catch { /* si cae en fecha ya usada por el mismo barbero, se salta */ }
   }
-  console.log(`✓ ${creadas} citas creadas en el mes actual (estados variados)`)
+
+  // ── Citas garantizadas para HOY (para que el panel muestre datos vivos) ──
+  // Mezcla de pendientes y confirmadas a distintas horas del día de hoy.
+  const citasDeHoy = [
+    { hora: 9,  min: 0,  status: 'confirmed' },
+    { hora: 10, min: 30, status: 'pending'   },
+    { hora: 11, min: 30, status: 'confirmed' },
+    { hora: 14, min: 0,  status: 'pending'   },
+    { hora: 15, min: 30, status: 'confirmed' },
+    { hora: 16, min: 30, status: 'done'      },
+  ]
+  for (const c of citasDeHoy) {
+    const cliente = clientes[Math.floor(Math.random() * clientes.length)]
+    const barberId = barberIds[Math.floor(Math.random() * barberIds.length)]
+    const serviceId = servicioIds[Math.floor(Math.random() * servicioIds.length)]
+
+    const fecha = new Date()
+    fecha.setHours(c.hora, c.min, 0, 0) // fecha = hoy, con la hora indicada
+
+    try {
+      await pool.query(
+        `INSERT INTO appointments (barbershop_id, barber_id, service_id, client_name, client_phone, client_email, scheduled_at, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [shopId, barberId, serviceId, cliente[0], cliente[1], cliente[2], fecha, c.status]
+      )
+      creadas++
+    } catch { /* si choca con otra cita del mismo barbero a la misma hora, se salta */ }
+  }
+  console.log(`✓ ${creadas} citas creadas (incluyendo varias para HOY)`)
 
   console.log('\n═══════════════════════════════════════')
   console.log('LISTO — datos para iniciar sesión y grabar:')
