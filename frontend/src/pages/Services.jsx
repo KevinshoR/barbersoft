@@ -51,7 +51,7 @@ function IconBtn({ icon, tooltip, onClick, danger }) {
   )
 }
 
-function Thumb({ src, size = 56 }) {
+function Thumb({ src, size = 80 }) {
   return src ? (
     <img src={src} alt="" style={{ width: size, height: size, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--dark-4)' }} onError={(e) => { e.target.style.display = 'none' }} />
   ) : (
@@ -268,7 +268,7 @@ export default function Services() {
       {detail && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div className="animate-fade-up" style={{ background: 'var(--dark-2)', borderRadius: 18, width: '100%', maxWidth: 480, maxHeight: '92vh', overflow: 'hidden', border: '1px solid var(--dark-4)', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-            <div style={{ position: 'relative', height: 220, background: 'var(--dark-3)', flexShrink: 0 }}>
+            <div style={{ position: 'relative', height: 300, background: 'var(--dark-3)', flexShrink: 0 }}>
               {resolveImageSrc(detail.image_url) ? (
                 <img src={resolveImageSrc(detail.image_url)} alt={detail.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
