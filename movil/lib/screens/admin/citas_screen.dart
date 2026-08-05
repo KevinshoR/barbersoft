@@ -517,37 +517,59 @@ class _CitasScreenState extends State<CitasScreen> {
               ),
               child: Row(
                 children: [
+                  // Cajón de hora con borde dorado + ícono calendario
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
+                      horizontal: 12,
+                      vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.dark3,
-                      borderRadius: BorderRadius.circular(8),
+                      color: AppColors.gold.withValues(alpha: 0.07),
+                      border: Border.all(
+                        color: AppColors.gold.withValues(alpha: 0.55),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    constraints: const BoxConstraints(minWidth: 64),
-                    child: Column(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          DateFormat('HH:mm').format(a.scheduledAt),
-                          style: GoogleFonts.playfairDisplay(
-                            color: AppColors.gold,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          color: AppColors.gold,
+                          size: 15,
                         ),
-                        Text(
-                          DateFormat('d MMM', 'es').format(a.scheduledAt),
-                          style: const TextStyle(
-                            color: AppColors.creamDim,
-                            fontSize: 10,
-                          ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              DateFormat('HH:mm').format(a.scheduledAt),
+                              style: const TextStyle(
+                                color: AppColors.cream,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              DateFormat('d MMM', 'es').format(a.scheduledAt),
+                              style: const TextStyle(
+                                color: AppColors.creamDim,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Foto del barbero (con fallback a inicial)
+                  _BarberAvatar(
+                    photoUrl: a.barberPhoto,
+                    name: a.barberName ?? a.clientName,
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,25 +579,38 @@ class _CitasScreenState extends State<CitasScreen> {
                           style: const TextStyle(
                             color: AppColors.cream,
                             fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${a.serviceName ?? ''} · ${a.barberName ?? ''}',
-                          style: const TextStyle(
-                            color: AppColors.creamDim,
-                            fontSize: 11,
+                            fontSize: 14.5,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 3),
                         Text(
-                          a.clientPhone,
+                          '${a.serviceName ?? ''} · ${a.barberName ?? ''}',
                           style: const TextStyle(
                             color: AppColors.creamDim,
-                            fontSize: 11,
+                            fontSize: 11.5,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.phone_outlined,
+                              color: AppColors.creamDim,
+                              size: 11,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              a.clientPhone,
+                              style: const TextStyle(
+                                color: AppColors.creamDim,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1092,4 +1127,51 @@ class _FieldLabel extends StatelessWidget {
 
 extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
+}
+
+// Avatar del barbero: muestra la foto de red; si es null o falla, un círculo
+// oscuro con la inicial del nombre.
+class _BarberAvatar extends StatelessWidget {
+  final String? photoUrl;
+  final String name;
+  const _BarberAvatar({this.photoUrl, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    final fallback = Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.dark3,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.dark4),
+      ),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: AppColors.creamDim,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+
+    if (photoUrl == null || photoUrl!.isEmpty) return fallback;
+
+    return ClipOval(
+      child: Image.network(
+        photoUrl!,
+        width: 44,
+        height: 44,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return fallback;
+        },
+      ),
+    );
+  }
 }

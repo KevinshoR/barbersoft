@@ -16,6 +16,7 @@ class Appointment {
   final String? notes;
   // Campos que vienen "joineados" en /api/appointments y /api/public/:slug/mis-citas
   final String? barberName;
+  final String? barberPhoto;
   final String? serviceName;
   final int? durationMin;
   final num? price;
@@ -31,6 +32,7 @@ class Appointment {
     this.status = 'pending',
     this.notes,
     this.barberName,
+    this.barberPhoto,
     this.serviceName,
     this.durationMin,
     this.price,
@@ -48,6 +50,7 @@ class Appointment {
       status: json['status'] ?? 'pending',
       notes: json['notes'],
       barberName: json['barber_name'],
+      barberPhoto: json['barber_photo'],
       serviceName: json['service_name'],
       durationMin: json['duration_min'] == null ? null : _toNum(json['duration_min']).toInt(),
       price: json['price'] == null ? null : _toNum(json['price']),

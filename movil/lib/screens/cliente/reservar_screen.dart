@@ -49,13 +49,46 @@ class _ReservarScreenState extends State<ReservarScreen> {
     super.dispose();
   }
 
+  // ¿Ese día está disponible? (barbería abierta ese día de semana Y, si hay
+  // barbero elegido con días definidos, que el barbero también trabaje ese día)
+  bool _isDayAvailable(DateTime day) {
+    final dowBackend = day.weekday % 7; // 0=Dom ... 6=Sáb
+    final hour = widget.shopData.hours
+        .where((h) => h.dayOfWeek == dowBackend)
+        .firstOrNull;
+    if (hour == null || !hour.isOpen) return false;
+    // Días del barbero (si tiene definidos)
+    final wd = _barber?.workDays;
+    if (wd != null && wd.trim().isNotEmpty) {
+      final days = wd
+          .split(',')
+          .map((e) => int.tryParse(e.trim()))
+          .whereType<int>()
+          .toList();
+      if (days.isNotEmpty && !days.contains(dowBackend)) return false;
+    }
+    return true;
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // Buscar el primer día disponible para abrir el calendario ahí
+    DateTime initial = today;
+    for (int i = 0; i < 31; i++) {
+      final d = today.add(Duration(days: i));
+      if (_isDayAvailable(d)) {
+        initial = d;
+        break;
+      }
+    }
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 30)),
+      initialDate: initial,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 30)),
+      // Los días cerrados (barbería o barbero) quedan deshabilitados: no se pueden tocar.
+      selectableDayPredicate: _isDayAvailable,
     );
     if (picked == null) return;
     setState(() {
@@ -83,6 +116,11 @@ class _ReservarScreenState extends State<ReservarScreen> {
       _slot = null;
       _availableSlots = null;
       _slotsMessage = null;
+      // Si la fecha ya elegida no es válida para este barbero, la limpiamos
+      // para que el cliente elija de nuevo con el calendario ya filtrado.
+      if (_date != null && !_isDayAvailable(_date!)) {
+        _date = null;
+      }
     });
     if (_service != null && _date != null) _loadSlots();
   }
@@ -107,6 +145,24 @@ class _ReservarScreenState extends State<ReservarScreen> {
         _slotsMessage = 'La barbería está cerrada ese día. Elegí otra fecha.';
       });
       return;
+    }
+
+    // Validar que el barbero también trabaje ese día
+    final wd = barber.workDays;
+    if (wd != null && wd.trim().isNotEmpty) {
+      final barberDays = wd
+          .split(',')
+          .map((e) => int.tryParse(e.trim()))
+          .whereType<int>()
+          .toList();
+      if (barberDays.isNotEmpty && !barberDays.contains(dowBackend)) {
+        setState(() {
+          _loadingSlots = false;
+          _slotsMessage =
+              '${barber.name} no atiende ese día. Elegí otra fecha u otro barbero.';
+        });
+        return;
+      }
     }
 
     try {

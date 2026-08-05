@@ -9,6 +9,7 @@ class Barbershop {
   final String? trialEndsAt;
   final String? subscriptionEndsAt;
   final String? currentPlan;
+  final bool isSuperAdmin;
 
   Barbershop({
     required this.id,
@@ -21,6 +22,7 @@ class Barbershop {
     this.trialEndsAt,
     this.subscriptionEndsAt,
     this.currentPlan,
+    this.isSuperAdmin = false,
   });
 
   factory Barbershop.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class Barbershop {
       trialEndsAt: json['trial_ends_at'],
       subscriptionEndsAt: json['subscription_ends_at'],
       currentPlan: json['current_plan'],
+      isSuperAdmin: json['is_super_admin'] == true,
     );
   }
 
@@ -49,5 +52,6 @@ class Barbershop {
         'trial_ends_at': trialEndsAt,
         'subscription_ends_at': subscriptionEndsAt,
         'current_plan': currentPlan,
+        'is_super_admin': isSuperAdmin,
       };
 }
