@@ -180,16 +180,16 @@ export default function Dashboard() {
         </div>
 
         {/* KPIs */}
-        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
           {kpis.map(k => (
-            <div key={k.label} style={{ ...card, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(201,168,76,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.tint }}>
+            <div key={k.label} style={{ ...card, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(201,168,76,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.tint, flexShrink: 0 }}>
                 {k.icon()}
               </div>
-              <div>
-                <p style={{ fontSize: k.isMoney ? 26 : 34, fontWeight: 900, color: 'var(--cream)', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{k.value}</p>
-                <p style={{ fontSize: 13, color: 'var(--cream-dim)', marginTop: 6 }}>{k.label}</p>
-                {k.sub && <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 6, fontWeight: 600 }}>{k.sub}</p>}
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: k.isMoney ? 24 : 30, fontWeight: 800, color: 'var(--cream)', lineHeight: 1.1, letterSpacing: '-0.01em' }}>{k.value}</p>
+                <p style={{ fontSize: 13, color: 'var(--cream-dim)', marginTop: 4 }}>{k.label}</p>
+                {k.sub && <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 5, fontWeight: 600 }}>{k.sub}</p>}
               </div>
             </div>
           ))}
@@ -243,22 +243,22 @@ export default function Dashboard() {
             </div>
 
             <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginBottom: 6 }}>Ocupación</p>
-            <p style={{ fontSize: 30, fontWeight: 900, color: 'var(--gold)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{occupancy}%</p>
+            <p style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', lineHeight: 1, letterSpacing: '-0.01em' }}>{occupancy}%</p>
             <div style={{ height: 8, background: 'var(--dark-3)', borderRadius: 20, marginTop: 10, marginBottom: 20, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: occupancy + '%', background: 'linear-gradient(90deg, var(--gold-dim), var(--gold))', borderRadius: 20 }} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
               <div>
-                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{appointments.length}</p>
+                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{appointments.length}</p>
                 <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Totales</p>
               </div>
               <div>
-                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{confirmed}</p>
+                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{confirmed}</p>
                 <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Confirmadas</p>
               </div>
               <div>
-                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{pending}</p>
+                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{pending}</p>
                 <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Pendientes</p>
               </div>
             </div>
@@ -290,7 +290,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
               <p style={kicker}>INGRESOS · ÚLTIMOS 7 DÍAS</p>
             </div>
-            <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', marginTop: 8 }}>{formatPrice(weekTotal)}</p>
+            <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--cream)', marginTop: 8, letterSpacing: '-0.01em' }}>{formatPrice(weekTotal)}</p>
             <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginBottom: 12 }}>Total de la semana</p>
             {hasWeekRevenue ? (
               <ResponsiveContainer width="100%" height={180}>
