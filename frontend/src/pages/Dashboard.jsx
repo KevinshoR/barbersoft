@@ -2,50 +2,62 @@ import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
 
 function formatDate() {
   return new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
-
+function greeting() {
+  const h = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', hour: '2-digit', hour12: false }).format(new Date()), 10)
+  if (h < 12) return 'Buenos días'
+  if (h < 19) return 'Buenas tardes'
+  return 'Buenas noches'
+}
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
 }
-
 function trialDaysLeft(trial_ends_at) {
   if (!trial_ends_at) return 0
   const diff = new Date(trial_ends_at) - new Date()
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
+function formatPrice(p) {
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p || 0)
+}
 
-const statusColor = { pending: '#C9A84C', confirmed: '#F5F0E8', cancelled: '#8B6914', done: '#B8B0A0' }
-const statusLabel = { pending: 'Pendiente', confirmed: 'Confirmada', cancelled: 'Cancelada', done: 'Completada' }
-const statusBg    = { pending: 'rgba(201,168,76,0.12)', confirmed: 'rgba(245,240,232,0.10)', cancelled: 'rgba(139,105,20,0.18)', done: 'rgba(184,176,160,0.12)' }
+const statusMeta = {
+  pending:   { label: 'Pendiente',  color: 'var(--gold)',       bg: 'rgba(201,168,76,0.12)' },
+  confirmed: { label: 'Confirmada', color: 'var(--gold-light)', bg: 'rgba(232,201,122,0.12)' },
+  done:      { label: 'Completada', color: 'var(--cream-dim)',  bg: 'rgba(184,176,160,0.12)' },
+  cancelled: { label: 'Cancelada',  color: 'var(--gold-dim)',   bg: 'rgba(139,105,20,0.18)' },
+}
 
 const DAY_ABBR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
-// Últimos 7 días (incluye hoy), como claves YYYY-MM-DD en orden cronológico
 function lastSevenDayKeys() {
   const keys = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    keys.push(d.toISOString().slice(0, 10))
+    keys.push(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(d))
   }
   return keys
 }
 
-function formatPrice(p) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p || 0)
+// Íconos SVG (línea, estilo consistente con el resto de la app)
+const Ic = {
+  calendar: (p) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+  check: (p) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>,
+  clock: (p) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+  money: (p) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
 }
 
-// Tooltip propio (tema oscuro/dorado) — el default de Recharts es blanco y no encaja
 function ChartTooltip({ active, payload, label, formatter }) {
   if (!active || !payload || !payload.length) return null
   return (
@@ -66,13 +78,10 @@ export default function Dashboard() {
   const [appointments, setAppointments] = useState([])
   const [weekAppointments, setWeekAppointments] = useState([])
   const [loaded, setLoaded]   = useState(false)
-const [copied, setCopied]   = useState(false)
+  const [copied, setCopied]   = useState(false)
   const [monthly, setMonthly] = useState(null)
 
   useEffect(() => {
-    // "Hoy" se calcula en hora COLOMBIA, no con toISOString() (que da la fecha en UTC).
-    // Cerca de la medianoche UTC (después de las 7pm en Colombia), toISOString()
-    // ya "cree" que es el día siguiente y pedía las citas del día equivocado.
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
     api.get('/appointments?date=' + today)
       .then(res => { setAppointments(res.data.appointments); setLoaded(true) })
@@ -93,226 +102,244 @@ const [copied, setCopied]   = useState(false)
 
   const pending   = appointments.filter(a => a.status === 'pending').length
   const confirmed = appointments.filter(a => a.status === 'confirmed').length
+  const todayRevenue = appointments.filter(a => a.status === 'done').reduce((sum, a) => sum + parseFloat(a.price || 0), 0)
   const isTrial   = barbershop?.subscription_status === 'trial'
   const daysLeft  = trialDaysLeft(barbershop?.trial_ends_at)
 
-  const stats = [
-    { label: 'CITAS HOY',    value: appointments.length, color: 'var(--gold)' },
-    { label: 'PENDIENTES',   value: pending,              color: 'var(--gold-light)' },
-    { label: 'CONFIRMADAS',  value: confirmed,            color: 'var(--gold-dim)' },
+  // Ocupación de hoy: citas activas (no canceladas) sobre una jornada estándar
+  // de referencia. Es una estimación visual, no un dato del backend.
+  const activeToday = appointments.filter(a => a.status !== 'cancelled').length
+  const CAPACITY_REF = 16 // franja de referencia para el % (no inventa datos, solo escala)
+  const occupancy = Math.min(100, Math.round((activeToday / CAPACITY_REF) * 100))
+
+  // KPIs superiores
+  const kpis = [
+    { label: 'Citas hoy',     value: appointments.length, icon: Ic.calendar, tint: 'var(--gold)' },
+    { label: 'Confirmadas',   value: confirmed,           icon: Ic.check,    tint: 'var(--gold-light)', sub: appointments.length ? Math.round((confirmed / appointments.length) * 100) + '% del total' : null },
+    { label: 'Pendientes',    value: pending,             icon: Ic.clock,    tint: 'var(--gold)', sub: pending ? 'Requieren revisión' : null },
+    { label: 'Ingresos hoy',  value: formatPrice(todayRevenue), icon: Ic.money, tint: 'var(--gold-light)', isMoney: true },
   ]
 
-  // Últimos 7 días: citas (sin canceladas) e ingresos (citas completadas)
+  // Gráfico de ingresos últimos 7 días
   const dayKeys = lastSevenDayKeys()
   const weeklyData = dayKeys.map(key => {
     const dayAppts = weekAppointments.filter(a => a.scheduled_at.slice(0, 10) === key)
-    const count    = dayAppts.filter(a => a.status !== 'cancelled').length
     const revenue  = dayAppts.filter(a => a.status === 'done').reduce((sum, a) => sum + parseFloat(a.price || 0), 0)
     const d = new Date(key + 'T00:00:00')
-    return { label: DAY_ABBR[d.getDay()], count, revenue }
+    return { label: DAY_ABBR[d.getDay()], revenue }
   })
-  const hasWeekRevenue = weeklyData.some(d => d.revenue > 0)
+  const weekTotal = weeklyData.reduce((s, d) => s + d.revenue, 0)
+  const hasWeekRevenue = weekTotal > 0
 
-  // Distribución de citas por estado, últimos 7 días
-  const weekStatusCounts = { pending: 0, confirmed: 0, done: 0, cancelled: 0 }
-  weekAppointments
-    .filter(a => dayKeys.includes(a.scheduled_at.slice(0, 10)))
-    .forEach(a => { if (weekStatusCounts[a.status] !== undefined) weekStatusCounts[a.status]++ })
+  // Servicios más vendidos (del reporte mensual)
+  const topServices = (monthly?.revenueByService || [])
+    .slice()
+    .sort((a, b) => parseInt(b.count) - parseInt(a.count))
+    .slice(0, 5)
+  const maxServiceCount = topServices.length ? parseInt(topServices[0].count) : 1
 
-  const statusDistribution = [
-    { key: 'pending',   label: 'Pendientes',  value: weekStatusCounts.pending,   opacity: 1 },
-    { key: 'confirmed', label: 'Confirmadas', value: weekStatusCounts.confirmed, opacity: 0.8 },
-    { key: 'done',      label: 'Completadas', value: weekStatusCounts.done,      opacity: 0.6 },
-    { key: 'cancelled', label: 'Canceladas',  value: weekStatusCounts.cancelled, opacity: 0.4 },
-  ]
-  const hasWeekAppointments = weekStatusCounts.pending + weekStatusCounts.confirmed + weekStatusCounts.done + weekStatusCounts.cancelled > 0
+  const reservarUrl = window.location.origin + '/reservar/' + (barbershop?.slug || '')
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&color=C9A84C&bgcolor=161616&data=${encodeURIComponent(reservarUrl)}`
+
+  const card = { background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 14 }
+  const sectionTitle = { color: 'var(--cream)', fontSize: 15, fontWeight: 700 }
+  const kicker = { color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700 }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dark)', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px', flex: 1, width: '100%' }}>
+      <main style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 24px 60px', flex: 1, width: '100%' }}>
 
         {/* Banner trial */}
         {isTrial && (
-          <div className="animate-fade-up" style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05))', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 12, padding: '16px 24px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="animate-fade-up" style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05))', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 12, padding: '16px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <p style={{ color: 'var(--gold)', fontWeight: 600, fontSize: 14 }}>
-                ◆ Período de prueba — {daysLeft} días restantes
-              </p>
-              <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2 }}>
-                Activa tu suscripción para mantener el acceso a todas las funciones
-              </p>
+              <p style={{ color: 'var(--gold)', fontWeight: 600, fontSize: 14 }}>◆ Período de prueba — {daysLeft} días restantes</p>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2 }}>Activa tu suscripción para mantener el acceso a todas las funciones</p>
             </div>
-            <a href="/subscription" style={{ background: 'var(--gold)', color: 'var(--dark)', padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textDecoration: 'none' }}>
-              VER PLANES
-            </a>
+            <a href="/subscription" style={{ background: 'var(--gold)', color: 'var(--dark)', padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textDecoration: 'none' }}>VER PLANES</a>
           </div>
         )}
 
         {/* Header */}
-        <div className="animate-fade-up delay-1" style={{ marginBottom: 32 }}>
-          <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 6 }}>
-            {formatDate().toUpperCase()}
-          </p>
-          <h1 style={{ fontSize: 42, fontWeight: 900, color: 'var(--cream)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-  Hola, {barbershop?.name?.split(' ')[0]}
-</h1>
-
-{/* Link de reservas */}
-<div style={{ display:'flex', alignItems:'center', gap:10, marginTop:14, background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'10px 16px', width:'fit-content' }}>
-  <span style={{ color:'var(--cream-dim)', fontSize:12 }}>🔗</span>
-  <span style={{ color:'var(--cream-dim)', fontSize:12, fontFamily:'monospace' }}>
-    /reservar/{barbershop?.slug}
-  </span>
-  <button
-    onClick={() => {
-      navigator.clipboard.writeText(window.location.origin + '/reservar/' + barbershop?.slug)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }}
-    style={{ background: copied ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', border:'1px solid ' + (copied ? 'rgba(201,168,76,0.3)' : 'var(--dark-4)'), color: copied ? '#C9A84C' : 'var(--cream-dim)', padding:'4px 12px', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, letterSpacing:'0.06em', fontFamily: 'var(--font-body)', transition:'all 0.2s' }}
-  >
-    {copied ? '✓ COPIADO' : 'COPIAR'}
-  </button>
-</div>
-<p style={{ color:'var(--cream-dim)', fontSize:11.5, marginTop:8, opacity:0.75, maxWidth:420 }}>
-  Este es el link de reservas para tus clientes — compártelo por WhatsApp o redes para que agenden su cita directamente.
-</p>
+        <div className="animate-fade-up delay-1" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontSize: 34, fontWeight: 900, color: 'var(--cream)', letterSpacing: '-0.02em', lineHeight: 1.1, fontFamily: 'var(--font-display)' }}>
+              {greeting()}, {barbershop?.name?.split(' ').slice(-1)[0] || barbershop?.name} 👋
+            </h1>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 13, marginTop: 6, textTransform: 'capitalize' }}>{formatDate()}</p>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Link to="/appointments" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--gold)', color: 'var(--dark)', padding: '11px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              <span style={{ fontSize: 16 }}>+</span> Nueva cita
+            </Link>
+            <Link to="/appointments" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--dark-2)', border: '1px solid var(--dark-4)', color: 'var(--cream)', padding: '11px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              Ver agenda
+            </Link>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-          {stats.map((stat, i) => (
-            <div key={stat.label} style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '24px 28px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: stat.color, opacity: 0.6 }} />
-              <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 12 }}>{stat.label}</p>
-              <p style={{ fontSize: 48, fontWeight: 900, color: stat.color, lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stat.value}</p>
+        {/* KPIs */}
+        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+          {kpis.map(k => (
+            <div key={k.label} style={{ ...card, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(201,168,76,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.tint }}>
+                {k.icon()}
+              </div>
+              <div>
+                <p style={{ fontSize: k.isMoney ? 26 : 34, fontWeight: 900, color: 'var(--cream)', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{k.value}</p>
+                <p style={{ fontSize: 13, color: 'var(--cream-dim)', marginTop: 6 }}>{k.label}</p>
+                {k.sub && <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 6, fontWeight: 600 }}>{k.sub}</p>}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Resumen del mes (3 métricas rescatadas del extinto módulo Reportes) */}
-        {monthly && (
-          <div className="animate-fade-up delay-2" style={{ marginBottom: 32 }}>
-            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12, fontFamily: 'var(--font-body)' }}>
-              RESUMEN DEL MES
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-              <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--gold)', opacity: 0.6 }} />
-                <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 10 }}>INGRESOS DEL MES</p>
-                <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>{formatPrice(monthly.revenue)}</p>
+        {/* Fila media: Agenda de hoy | Resumen del día | QR reservas */}
+        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+
+          {/* Agenda de hoy */}
+          <div style={{ ...card, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--dark-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={sectionTitle}>Agenda de hoy</h2>
+              <Link to="/appointments" style={{ fontSize: 12, color: 'var(--gold)', textDecoration: 'none', fontWeight: 600 }}>Ver completa →</Link>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              {!loaded ? (
+                <p style={{ color: 'var(--cream-dim)', fontSize: 13, textAlign: 'center', padding: '40px 0' }}>Cargando...</p>
+              ) : appointments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <p style={{ color: 'var(--cream)', fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-display)' }}>Sin citas hoy</p>
+                  <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 4 }}>Comparte tu link de reservas para llenar la agenda.</p>
+                </div>
+              ) : (
+                appointments.slice(0, 6).map((a, i) => {
+                  const meta = statusMeta[a.status] || statusMeta.pending
+                  return (
+                    <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', borderBottom: i < Math.min(appointments.length, 6) - 1 ? '1px solid var(--dark-3)' : 'none' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
+                      <div style={{ minWidth: 52 }}>
+                        <p style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700 }}>{formatTime(a.scheduled_at)}</p>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.client_name}</p>
+                        <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.service_name} · {a.barber_name}</p>
+                      </div>
+                      <span style={{ background: meta.bg, color: meta.color, fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 20, letterSpacing: '0.04em', flexShrink: 0 }}>
+                        {meta.label}
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Resumen del día */}
+          <div style={{ ...card, padding: '18px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <p style={kicker}>RESUMEN DEL DÍA</p>
+              <Link to="/appointments" style={{ fontSize: 11, color: 'var(--gold)', textDecoration: 'none' }}>Ver más</Link>
+            </div>
+
+            <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginBottom: 6 }}>Ocupación</p>
+            <p style={{ fontSize: 30, fontWeight: 900, color: 'var(--gold)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{occupancy}%</p>
+            <div style={{ height: 8, background: 'var(--dark-3)', borderRadius: 20, marginTop: 10, marginBottom: 20, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: occupancy + '%', background: 'linear-gradient(90deg, var(--gold-dim), var(--gold))', borderRadius: 20 }} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
+              <div>
+                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{appointments.length}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Totales</p>
               </div>
-              <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--gold)', opacity: 0.6 }} />
-                <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 10 }}>BARBERO DEL MES</p>
-                <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {monthly.topBarber?.name || '—'}
-                </p>
-                {monthly.topBarber && (
-                  <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginTop: 4 }}>{monthly.topBarber.count} citas</p>
-                )}
+              <div>
+                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{confirmed}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Confirmadas</p>
               </div>
-              <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--gold)', opacity: 0.6 }} />
-                <p style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--cream-dim)', fontWeight: 600, marginBottom: 10 }}>SERVICIO TOP</p>
-                <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {monthly.topService?.name || '—'}
-                </p>
-                {monthly.topService && (
-                  <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginTop: 4 }}>{monthly.topService.count} veces</p>
-                )}
+              <div>
+                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{pending}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Pendientes</p>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Gráficas */}
-        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: hasWeekRevenue ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16, marginBottom: 32 }}>
-
-          {/* Citas por día (última semana) */}
-          <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 20px 12px' }}>
-            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 16 }}>CITAS · ÚLTIMOS 7 DÍAS</p>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={weeklyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <CartesianGrid stroke="var(--dark-4)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={{ stroke: 'var(--dark-4)' }} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,76,0.08)' }} />
-                <Bar dataKey="count" name="Citas" fill="var(--gold)" radius={[4, 4, 0, 0]} maxBarSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* QR + link de reservas */}
+          <div style={{ ...card, padding: '18px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <p style={{ ...kicker, alignSelf: 'flex-start', marginBottom: 14 }}>TU ENLACE DE RESERVAS</p>
+            <div style={{ background: 'var(--dark-3)', padding: 10, borderRadius: 12, border: '1px solid var(--dark-4)' }}>
+              <img src={qrSrc} alt="QR de reservas" width={150} height={150} style={{ display: 'block', borderRadius: 6 }} />
+            </div>
+            <p style={{ color: 'var(--cream-dim)', fontSize: 11.5, fontFamily: 'monospace', marginTop: 12, wordBreak: 'break-all', lineHeight: 1.4 }}>
+              /reservar/{barbershop?.slug}
+            </p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(reservarUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+              style={{ marginTop: 12, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: copied ? 'rgba(201,168,76,0.15)' : 'var(--gold)', color: copied ? 'var(--gold)' : 'var(--dark)', border: copied ? '1px solid rgba(201,168,76,0.3)' : 'none', padding: '10px 0', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em' }}
+            >
+              {copied ? '✓ Copiado' : '🔗 Copiar enlace'}
+            </button>
           </div>
+        </div>
 
-          {/* Distribución por estado */}
-          <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 20px 12px' }}>
-            <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 16 }}>ESTADO · ÚLTIMOS 7 DÍAS</p>
-            {hasWeekAppointments ? (
+        {/* Fila inferior: Ingresos 7 días | Servicios más vendidos */}
+        <div className="animate-fade-up delay-3" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
+
+          {/* Ingresos últimos 7 días */}
+          <div style={{ ...card, padding: '20px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+              <p style={kicker}>INGRESOS · ÚLTIMOS 7 DÍAS</p>
+            </div>
+            <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', marginTop: 8 }}>{formatPrice(weekTotal)}</p>
+            <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginBottom: 12 }}>Total de la semana</p>
+            {hasWeekRevenue ? (
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={statusDistribution} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--dark-4)" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="label" tick={{ fill: 'var(--cream)', fontSize: 11 }} axisLine={false} tickLine={false} width={78} />
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(201,168,76,0.08)' }} />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={18}>
-                    {statusDistribution.map(s => <Cell key={s.key} fill="var(--gold)" fillOpacity={s.opacity} />)}
-                  </Bar>
-                </BarChart>
+                <AreaChart data={weeklyData} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="goldFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--dark-4)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={{ stroke: 'var(--dark-4)' }} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--cream-dim)', fontSize: 10 }} axisLine={false} tickLine={false} width={44} tickFormatter={v => v >= 1000 ? '$' + (v / 1000) + 'K' : '$' + v} />
+                  <Tooltip content={<ChartTooltip formatter={formatPrice} />} cursor={{ stroke: 'var(--dark-4)' }} />
+                  <Area type="monotone" dataKey="revenue" name="Ingresos" stroke="var(--gold)" strokeWidth={2.5} fill="url(#goldFill)" dot={{ r: 3, fill: 'var(--gold)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <p style={{ color: 'var(--cream-dim)', fontSize: 13, textAlign: 'center', padding: '48px 0', opacity: 0.6 }}>Sin citas esta semana</p>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 13, textAlign: 'center', padding: '48px 0', opacity: 0.6 }}>Aún no hay ingresos registrados esta semana</p>
             )}
           </div>
 
-          {/* Ingresos por día (solo si hay citas completadas con precio) */}
-          {hasWeekRevenue && (
-            <div style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, padding: '20px 20px 12px' }}>
-              <p style={{ color: 'var(--gold)', fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 16 }}>INGRESOS · ÚLTIMOS 7 DÍAS</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={weeklyData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--dark-4)" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: 'var(--cream-dim)', fontSize: 11 }} axisLine={{ stroke: 'var(--dark-4)' }} tickLine={false} />
-                  <YAxis tick={{ fill: 'var(--cream-dim)', fontSize: 10 }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? (v / 1000) + 'K' : v} />
-                  <Tooltip content={<ChartTooltip formatter={formatPrice} />} cursor={{ stroke: 'var(--dark-4)' }} />
-                  <Line type="monotone" dataKey="revenue" name="Ingresos" stroke="var(--gold)" strokeWidth={2} dot={{ r: 3, fill: 'var(--gold)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
+          {/* Servicios más vendidos */}
+          <div style={{ ...card, padding: '20px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <p style={kicker}>SERVICIOS MÁS VENDIDOS</p>
+              <Link to="/services" style={{ fontSize: 11, color: 'var(--gold)', textDecoration: 'none' }}>Ver todos</Link>
             </div>
-          )}
-        </div>
-
-        {/* Citas de hoy */}
-        <div className="animate-fade-up delay-3" style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--dark-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ fontSize: 18, color: 'var(--cream)', fontWeight: 700 }}>Citas de hoy</h2>
-            <a href="/appointments" style={{ fontSize: 12, color: 'var(--gold)', letterSpacing: '0.06em', textDecoration: 'none', fontWeight: 600 }}>VER TODAS →</a>
-          </div>
-
-          {!loaded ? (
-            <p style={{ color: 'var(--cream-dim)', fontSize: 14, textAlign: 'center', padding: '48px 0' }}>Cargando...</p>
-          ) : appointments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <p style={{ fontSize: 32, marginBottom: 12 }}>◷</p>
-              <p style={{ color: 'var(--cream-dim)', fontSize: 14 }}>No hay citas para hoy</p>
-            </div>
-          ) : (
-            appointments.map((a, i) => (
-              <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 28px', borderBottom: i < appointments.length - 1 ? '1px solid var(--dark-3)' : 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ background: 'var(--dark-3)', borderRadius: 8, padding: '8px 12px', textAlign: 'center', minWidth: 56 }}>
-                    <p style={{ color: 'var(--gold)', fontSize: 15, fontWeight: 700 }}>{formatTime(a.scheduled_at)}</p>
+            {topServices.length === 0 ? (
+              <p style={{ color: 'var(--cream-dim)', fontSize: 13, textAlign: 'center', padding: '40px 0', opacity: 0.6 }}>Sin datos del mes todavía</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {topServices.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--dark-3)', color: 'var(--gold)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                        <span style={{ color: 'var(--cream)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                        <span style={{ color: 'var(--cream-dim)', fontSize: 13, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{s.count}</span>
+                      </div>
+                      <div style={{ height: 6, background: 'var(--dark-3)', borderRadius: 20, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: (parseInt(s.count) / maxServiceCount * 100) + '%', background: 'linear-gradient(90deg, var(--gold-dim), var(--gold))', borderRadius: 20 }} />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 14 }}>{a.client_name}</p>
-                    <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginTop: 2 }}>{a.service_name} · {a.barber_name}</p>
-                  </div>
-                </div>
-                <span style={{ background: statusBg[a.status], color: statusColor[a.status], fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.06em' }}>
-                  {statusLabel[a.status].toUpperCase()}
-                </span>
+                ))}
               </div>
-            ))
-          )}
+            )}
+          </div>
         </div>
 
       </main>

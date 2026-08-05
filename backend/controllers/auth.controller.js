@@ -219,11 +219,6 @@ if (!result.rows[0]) {
   return res.status(404).json({ error: 'No encontramos ninguna cuenta con ese email. Verificá que sea el correcto o registrate.' })
 }
 
-// Obtener todos los admins (máximo 3)
-const allAdmins = await pool.query(
-  'SELECT email, name FROM barbershops ORDER BY created_at ASC LIMIT 3'
-) 
-
     const shop  = result.rows[0]
     const token = crypto.randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
@@ -243,7 +238,7 @@ const allAdmins = await pool.query(
 
     await resend.emails.send({
   from:    'Barbersoft <onboarding@resend.dev>',
-  to:      allAdmins.rows.map(a => a.email),
+  to:      shop.email,
   subject: 'Recuperar contraseña — Barbersoft',
       html: `
         <div style="font-family:'DM Sans',Arial,sans-serif;max-width:480px;margin:0 auto;background:#111;color:#F5F0E8;border-radius:16px;overflow:hidden">
