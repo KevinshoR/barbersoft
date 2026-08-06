@@ -135,7 +135,7 @@ function StatusSelector({ status, onUpdate }) {
   )
 }
 
-const formatTime  = (d) => new Date(d).toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })
+const formatTime  = (d) => new Date(d).toLocaleTimeString('es-CO', { hour:'numeric', minute:'2-digit', hour12:true })
 const formatDate  = (d) => new Date(d).toLocaleDateString('es-CO', { weekday:'short', day:'numeric', month:'short' })
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(p)
 
@@ -227,7 +227,6 @@ export default function Appointments() {
   const [touched, setTouched]           = useState({})
   const [filterDate, setFilterDate]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [filtersOpen, setFiltersOpen]   = useState(true)
   const [search, setSearch]             = useState('')
   const [page, setPage]                 = useState(1)
   const [form, setForm] = useState({
@@ -466,57 +465,59 @@ export default function Appointments() {
           </button>
         </div>
 
-        {/* Búsqueda + botón Filtros */}
-        <div className="animate-fade-up" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16, marginBottom: filtersOpen ? 0 : 20 }}>
-          <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-            <div style={{ position:'relative', flex:1 }}>
-              <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'var(--cream-dim)', display:'flex' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              </span>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por cliente, teléfono, barbero o servicio..."
-                style={{ width:'100%', padding:'12px 14px 12px 42px', background:'var(--surface-1)', color:'var(--cream)', border:'1px solid var(--dark-4)', borderRadius:10, outline:'none', fontSize:14 }} />
-            </div>
-            <button onClick={() => setFiltersOpen(o => !o)}
-              style={{ display:'inline-flex', alignItems:'center', gap:8, background:'var(--surface-1)', border:'1px solid var(--dark-4)', color:'var(--cream)', padding:'11px 16px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:600, flexShrink:0 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-              Filtros
-              <span style={{ transform: filtersOpen ? 'rotate(180deg)' : 'none', transition:'transform 0.2s', display:'flex' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-              </span>
-            </button>
-          </div>
-
-          {filtersOpen && (
-            <div className="animate-fade-up" style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap', marginTop:16, paddingTop:16, borderTop:'1px solid var(--dark-4)' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <label style={{ color:'var(--cream-dim)', fontSize:13 }}>Fecha</label>
-                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
-                  style={{ padding:'8px 12px', width:'auto', fontSize:13 }} />
-                {filterDate && (
-                  <button onClick={() => setFilterDate('')} style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:16, lineHeight:1 }}>×</button>
-                )}
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <label style={{ color:'var(--cream-dim)', fontSize:13 }}>Estado</label>
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding:'8px 12px', width:'auto', fontSize:13 }}>
-                  <option value="">Todos</option>
-                  <option value="pending">Pendiente</option>
-                  <option value="confirmed">Confirmada</option>
-                  <option value="done">Completada</option>
-                  <option value="cancelled">Cancelada</option>
-                </select>
-              </div>
-              <button onClick={() => { setFilterDate(''); setFilterStatus('') }}
-                style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:12.5, marginLeft:'auto', fontFamily:'var(--font-body)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                Limpiar filtros
-              </button>
-            </div>
-          )}
+        {/* Búsqueda */}
+        <div className="animate-fade-up" style={{ position:'relative', marginBottom:16 }}>
+          <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'var(--cream-dim)', display:'flex' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por cliente, teléfono, barbero o servicio..."
+            style={{ width:'100%', padding:'12px 14px 12px 42px', background:'var(--surface-1)', color:'var(--cream)', border:'1px solid var(--dark-4)', borderRadius:12, outline:'none', fontSize:14 }} />
         </div>
 
-        {/* Kicker */}
-        <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:700, margin: filtersOpen ? '20px 0 14px' : '0 0 14px' }}>CITAS PROGRAMADAS</p>
+        {/* Filtros */}
+        <div className="animate-fade-up delay-1" style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:12, padding:'16px 24px', marginBottom:20, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+          <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.08em', fontWeight:600, flexShrink:0 }}>FILTROS</p>
+
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <label style={{ color:'var(--cream-dim)', fontSize:12 }}>Fecha:</label>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={e => setFilterDate(e.target.value)}
+              style={{ padding:'7px 12px', width:'auto', fontSize:13 }}
+            />
+            {filterDate && (
+              <button
+                onClick={() => setFilterDate('')}
+                style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:16, lineHeight:1 }}
+              >×</button>
+            )}
+          </div>
+
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <label style={{ color:'var(--cream-dim)', fontSize:12 }}>Estado:</label>
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              style={{ padding:'7px 12px', width:'auto', fontSize:13 }}
+            >
+              <option value="">Todos</option>
+              <option value="pending">Pendiente</option>
+              <option value="confirmed">Confirmada</option>
+              <option value="done">Completada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </div>
+
+          {(filterDate || filterStatus) && (
+            <button
+              onClick={() => { setFilterDate(''); setFilterStatus('') }}
+              style={{ background:'none', border:'none', color:'var(--cream-dim)', cursor:'pointer', fontSize:12, marginLeft:'auto', letterSpacing:'0.06em', fontFamily:'DM Sans' }}
+            >
+              LIMPIAR FILTROS
+            </button>
+          )}
+        </div>
 
         {/* Modal nueva cita */}
         {showForm && (
@@ -587,9 +588,8 @@ export default function Appointments() {
 
                     return (
                       <>
-                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, alignItems:'start' }}>
                         {/* Calendario */}
-                        <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16 }}>
+                        <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16, marginBottom:14 }}>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
                             <button type="button" disabled={!canPrev}
                               onClick={() => canPrev && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()-1, 1))}
@@ -640,62 +640,41 @@ export default function Appointments() {
                           </div>
                         </div>
 
-                        {/* Columna derecha: Horas */}
-                        <div>
-                        {!pickedDay && (
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', minHeight:200, color:'var(--cream-dim)', fontSize:13, textAlign:'center', opacity:0.5, padding:20 }}>
-                            Elige un día en el calendario para ver las horas disponibles
-                          </div>
-                        )}
-                        {/* Horas agrupadas por franja (Mañana / Tarde / Noche) */}
-                        {pickedDay && (() => {
-                          const grupos = [
-                            { key: 'manana', label: 'Mañana', icon: '☀', desde: 0,  hasta: 12 },
-                            { key: 'tarde',  label: 'Tarde',  icon: '☀', desde: 12, hasta: 19 },
-                            { key: 'noche',  label: 'Noche',  icon: '☾', desde: 19, hasta: 24 },
-                          ]
-                          const slotBtn = (slot, i) => {
-                            const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
-                            return (
-                              <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
-                                title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
-                                style={{
-                                  padding:'9px 0', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', textAlign:'center',
-                                  background: active ? 'var(--gold)' : 'var(--dark-3)',
-                                  border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
-                                  color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
-                                  opacity: slot.dentroHorario ? 1 : 0.5,
-                                }}>
-                                {String(slot.date.getHours()).padStart(2,'0')}:{String(slot.date.getMinutes()).padStart(2,'0')}
-                              </button>
-                            )
-                          }
-                          return (
-                            <div style={{ marginBottom:8 }}>
-                              <p style={{ color:'var(--cream-dim)', fontSize:12.5, marginBottom:14 }}>Selecciona una hora</p>
-                              {grupos.map(g => {
-                                const delGrupo = slots.filter(s => s.date.getHours() >= g.desde && s.date.getHours() < g.hasta)
-                                if (delGrupo.length === 0) return null
+                        {/* Horas */}
+                        {pickedDay && (
+                          <div style={{ marginBottom:8 }}>
+                            <p style={{ color:'var(--cream-dim)', fontSize:11, marginBottom:8 }}>
+                              Horas · {pickedDay.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' })}
+                            </p>
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(72px, 1fr))', gap:6 }}>
+                              {slots.map((slot, i) => {
+                                const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
                                 return (
-                                  <div key={g.key} style={{ marginBottom:18 }}>
-                                    <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
-                                      <span style={{ color:'var(--gold)', fontSize:13 }}>{g.icon}</span>
-                                      <span style={{ color:'var(--cream)', fontSize:13, fontWeight:600 }}>{g.label}</span>
-                                    </div>
-                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
-                                      {delGrupo.map(slotBtn)}
-                                    </div>
-                                  </div>
+                                  <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
+                                    title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
+                                    style={{
+                                      padding:'9px 0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', position:'relative',
+                                      background: active ? 'var(--gold)' : 'var(--dark-3)',
+                                      border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
+                                      color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
+                                      opacity: slot.dentroHorario ? 1 : 0.55,
+                                    }}>
+                                    {(() => {
+                                      let h = slot.date.getHours()
+                                      const m = slot.date.getMinutes()
+                                      const ampm = h >= 12 ? 'PM' : 'AM'
+                                      h = h % 12; if (h === 0) h = 12
+                                      return `${h}:${String(m).padStart(2, '0')} ${ampm}`
+                                    })()}
+                                  </button>
                                 )
                               })}
-                              <div style={{ display:'flex', alignItems:'center', gap:6, color:'var(--cream-dim)', fontSize:11.5, opacity:0.7, marginTop:4 }}>
-                                <span>◷</span> Duración estimada: {selectedService?.duration_min || 60} min
-                              </div>
                             </div>
-                          )
-                        })()}
-                        </div>
-                        </div>
+                            <p style={{ color:'var(--cream-dim)', fontSize:10.5, marginTop:8, opacity:0.6 }}>
+                              Las horas atenuadas están fuera del horario habitual, pero puedes agendarlas si lo necesitas.
+                            </p>
+                          </div>
+                        )}
 
                         {form.scheduled_at && (
                           <div style={{ background:'rgba(201,168,76,0.08)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:10, padding:'10px 14px', marginTop:4 }}>
@@ -771,37 +750,18 @@ export default function Appointments() {
           ) : paginated.map((a, idx) => (
             <div
               key={a.id}
-              style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative', zIndex: paginated.length - idx }}
+              style={{ background:'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,0.25)', zIndex: paginated.length - idx }}
             >
               <div style={{ display:'flex', alignItems:'center', gap:16, flex:1, minWidth:0 }}>
-                <div style={{ background:'rgba(201,168,76,0.07)', border:'1px solid rgba(201,168,76,0.55)', borderRadius:12, padding:'11px 16px', flexShrink:0, minWidth:132, display:'flex', alignItems:'center', gap:10 }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                  <div>
-                    <p style={{ color:'var(--cream)', fontSize:15, fontWeight:700, lineHeight:1.15, letterSpacing:'-0.01em', whiteSpace:'nowrap' }}>{formatTime(a.scheduled_at)}</p>
-                    <p style={{ color:'var(--cream-dim)', fontSize:11, marginTop:2, whiteSpace:'nowrap' }}>{formatDate(a.scheduled_at)}</p>
-                  </div>
+                <div style={{ background:'linear-gradient(135deg, var(--gold-dim) 0%, var(--dark-3) 100%)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:12, padding:'10px 14px', textAlign:'center', flexShrink:0, minWidth:76 }}>
+                  <p style={{ color:'var(--gold-light)', fontSize:15, fontWeight:800, fontFamily:'var(--font-display, Georgia, serif)' }}>{formatTime(a.scheduled_at)}</p>
+                  <p style={{ color:'var(--cream-dim)', fontSize:10, marginTop:2 }}>{formatDate(a.scheduled_at)}</p>
                 </div>
-                <div style={{ minWidth:0, display:'flex', alignItems:'center', gap:12, flex:1 }}>
-                  {a.barber_photo ? (
-                    <img src={a.barber_photo} alt={a.barber_name}
-                      style={{ width:44, height:44, borderRadius:'50%', objectFit:'cover', border:'1px solid var(--dark-4)', flexShrink:0 }}
-                      onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex' }} />
-                  ) : null}
-                  <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--dark-3)', border:'1px solid var(--dark-4)', display: a.barber_photo ? 'none' : 'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:'var(--cream-dim)', fontSize:14, fontWeight:700 }}>
-                    {(a.barber_name || a.client_name || '?').trim().charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{ minWidth:0 }}>
-                    <p style={{ color:'var(--cream)', fontWeight:600, fontSize:14.5, marginBottom:3 }}>{a.client_name}</p>
-                    <p style={{ color:'var(--cream-dim)', fontSize:12.5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', display:'flex', alignItems:'center', gap:8 }}>
-                      <span>{a.service_name} · {a.barber_name}</span>
-                      {a.client_phone && (
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:4, opacity:0.8 }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                          {a.client_phone}
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                <div style={{ minWidth:0 }}>
+                  <p style={{ color:'var(--cream)', fontWeight:700, fontSize:15, marginBottom:3, fontFamily:'var(--font-display, Georgia, serif)' }}>{a.client_name}</p>
+                  <p style={{ color:'var(--cream-dim)', fontSize:12.5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {a.service_name} · {a.barber_name} · {a.client_phone}
+                  </p>
                 </div>
               </div>
 
@@ -826,14 +786,12 @@ export default function Appointments() {
         </div>
 
         {/* Paginación */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginTop:20 }}>
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-          {filtered.length > 0 && (
-            <p style={{ color:'var(--cream-dim)', fontSize:12.5 }}>
-              Mostrando {(page-1)*PAGE_SIZE+1} a {Math.min(page*PAGE_SIZE, filtered.length)} de {filtered.length} citas
-            </p>
-          )}
-        </div>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        {totalPages > 1 && (
+          <p style={{ color:'var(--cream-dim)', fontSize:12, textAlign:'center', marginTop:10 }}>
+            {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} de {filtered.length}
+          </p>
+        )}
 
       <Footer />
       </main>
