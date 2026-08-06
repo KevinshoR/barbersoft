@@ -16,6 +16,44 @@ function to12h(hhmm) {
   return `${h12}:${String(m).padStart(2, '0')} ${period}`
 }
 
+// Selector de hora claro (12h con AM/PM) que guarda internamente en formato
+// 24h "HH:MM" (lo que el backend espera). Evita la confusión del input nativo,
+// donde "06:00" no distinguía mañana de tarde.
+function TimePicker12h({ value, onChange, disabled }) {
+  // value viene como "HH:MM" (24h). Lo descomponemos a 12h + periodo.
+  const [hh, mm] = (value || '09:00').split(':').map(Number)
+  const period = hh >= 12 ? 'PM' : 'AM'
+  const h12 = hh % 12 === 0 ? 12 : hh % 12
+
+  const emit = (nh12, nmm, nperiod) => {
+    let h24 = nh12 % 12
+    if (nperiod === 'PM') h24 += 12
+    onChange(`${String(h24).padStart(2, '0')}:${String(nmm).padStart(2, '0')}`)
+  }
+
+  const selStyle = {
+    background: 'var(--dark-3)', color: 'var(--cream)', border: '1px solid var(--dark-4)',
+    borderRadius: 8, padding: '8px 6px', fontSize: 14, cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.4 : 1, outline: 'none',
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+      <select value={h12} disabled={disabled} onChange={e => emit(Number(e.target.value), mm, period)} style={selStyle}>
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <span style={{ color: 'var(--cream-dim)', fontWeight: 700 }}>:</span>
+      <select value={mm} disabled={disabled} onChange={e => emit(h12, Number(e.target.value), period)} style={selStyle}>
+        {[0, 15, 30, 45].map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
+      </select>
+      <select value={period} disabled={disabled} onChange={e => emit(h12, mm, e.target.value)} style={selStyle}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  )
+}
+
 export default function Hours() {
   const { pathname } = useLocation()
   const toast = useToast()
@@ -109,29 +147,19 @@ export default function Hours() {
                 <p style={{ color: 'var(--cream)', fontWeight: 600, fontSize: 14 }}>{hour.day_name}</p>
 
                 <div>
-                  <input
-                    type="time"
+                  <TimePicker12h
                     value={hour.open_time}
-                    onChange={e => handleChange(hour.day_of_week, 'open_time', e.target.value)}
+                    onChange={val => handleChange(hour.day_of_week, 'open_time', val)}
                     disabled={!hour.is_open}
-                    style={{ ...inp, opacity: hour.is_open ? 1 : 0.4, cursor: hour.is_open ? 'auto' : 'not-allowed', border: '1px solid ' + (rowError ? 'var(--gold)' : 'var(--dark-4)') }}
                   />
-                  {hour.is_open && hour.open_time && (
-                    <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 4, fontWeight: 600, letterSpacing: '0.02em' }}>{to12h(hour.open_time)}</p>
-                  )}
                 </div>
 
                 <div>
-                  <input
-                    type="time"
+                  <TimePicker12h
                     value={hour.close_time}
-                    onChange={e => handleChange(hour.day_of_week, 'close_time', e.target.value)}
+                    onChange={val => handleChange(hour.day_of_week, 'close_time', val)}
                     disabled={!hour.is_open}
-                    style={{ ...inp, opacity: hour.is_open ? 1 : 0.4, cursor: hour.is_open ? 'auto' : 'not-allowed', border: '1px solid ' + (rowError ? 'var(--gold)' : 'var(--dark-4)') }}
                   />
-                  {hour.is_open && hour.close_time && (
-                    <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 4, fontWeight: 600, letterSpacing: '0.02em' }}>{to12h(hour.close_time)}</p>
-                  )}
                 </div>
 
                 {/* Toggle */}
