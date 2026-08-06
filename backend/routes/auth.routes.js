@@ -22,4 +22,4 @@ router.put('/profile', authMiddleware, AuthController.updateProfile)
 router.post('/forgot-password', authLimiter, AuthController.forgotPassword)
 router.post('/reset-password',  authLimiter, AuthController.resetPassword)
 
-module.exports = router 
+module.exports = router
