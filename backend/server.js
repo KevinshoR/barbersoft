@@ -19,13 +19,8 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Sin origin (acceso directo, apps móviles, health checks, curl): se permite.
-    if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
-    if (process.env.NODE_ENV !== 'production' &&
-        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true)
-    }
+    if (!origin && process.env.NODE_ENV !== 'production') return callback(null, true)
+    if (origin && allowedOrigins.includes(origin)) return callback(null, true)
     return callback(new Error('Origen no permitido por CORS'))
   },
   credentials: true,
@@ -43,11 +38,6 @@ const generalLimiter = rateLimit({
   message: { error: 'Demasiadas peticiones. Intenta más tarde.' },
 })
 app.use('/api', generalLimiter)
-
-// Ruta de salud: verificar que el backend está vivo (útil en el despliegue).
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'barbersoft-api', time: new Date().toISOString() })
-})
 
 // Archivos subidos (imágenes de servicios y barberos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))

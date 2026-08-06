@@ -3,12 +3,15 @@ const rateLimit      = require('express-rate-limit')
 const AuthController = require('../controllers/auth.controller')
 const authMiddleware = require('../middleware/auth.middleware')
 
-// Limita intentos de acceso/registro para frenar fuerza bruta
+// Limita intentos de acceso/registro para frenar fuerza bruta.
+// skipSuccessfulRequests: los accesos correctos NO cuentan, solo los fallidos,
+// así un usuario legítimo nunca se bloquea por entrar y salir varias veces.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
   message: { error: 'Demasiados intentos de acceso. Espera unos minutos e intenta de nuevo.' },
 })
 
