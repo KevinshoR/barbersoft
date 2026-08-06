@@ -45,6 +45,11 @@ const generalLimiter = rateLimit({
 })
 app.use('/api', generalLimiter)
 
+// Ruta de salud: para verificar que el backend está vivo (útil en el despliegue).
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'barbersoft-api', time: new Date().toISOString() })
+})
+
 // Archivos subidos (imágenes de servicios y barberos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
