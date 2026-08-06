@@ -135,7 +135,7 @@ function StatusSelector({ status, onUpdate }) {
   )
 }
 
-const formatTime  = (d) => new Date(d).toLocaleTimeString('es-CO', { hour:'numeric', minute:'2-digit', hour12:true })
+const formatTime  = (d) => new Date(d).toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })
 const formatDate  = (d) => new Date(d).toLocaleDateString('es-CO', { weekday:'short', day:'numeric', month:'short' })
 const formatPrice = (p) => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(p)
 
@@ -302,7 +302,12 @@ export default function Appointments() {
   const handleCreate = async (e) => {
     e.preventDefault()
     setTouched({ barber_id: true, service_id: true, client_name: true, client_phone: true, client_email: true, scheduled_at: true })
-    if (hasErrors(allErrors)) return
+    if (hasErrors(allErrors)) {
+      // Avisar al usuario cuál es el primer problema, en vez de no hacer nada.
+      const primerError = Object.values(allErrors).find(Boolean)
+      toast.error(primerError || 'Revisa los datos de la cita.')
+      return
+    }
     setSaving(true)
     try {
       const payload = {
@@ -659,13 +664,7 @@ export default function Appointments() {
                                       color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
                                       opacity: slot.dentroHorario ? 1 : 0.55,
                                     }}>
-                                    {(() => {
-                                      let h = slot.date.getHours()
-                                      const m = slot.date.getMinutes()
-                                      const ampm = h >= 12 ? 'PM' : 'AM'
-                                      h = h % 12; if (h === 0) h = 12
-                                      return `${h}:${String(m).padStart(2, '0')} ${ampm}`
-                                    })()}
+                                    {slot.date.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
                                   </button>
                                 )
                               })}

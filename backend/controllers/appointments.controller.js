@@ -86,40 +86,42 @@ const AppointmentsController = {
       scheduled_at, notes
     })
 
-    try {
-      const infoResult = await pool.query(
-        `SELECT b.name AS barber_name, s.name AS service_name,
-                sh.name AS barbershop_name, sh.email AS barbershop_email
-         FROM barbers b, services s, barbershops sh
-         WHERE b.id = $1 AND s.id = $2 AND sh.id = $3`,
-        [barber_id, service_id, req.barbershop.id]
-      )
-      const info = infoResult.rows[0]
-
-      if (info) {
-        await enviarConfirmacionCliente({
-          clienteEmail:   client_email,
-          clienteNombre:  client_name,
-          barberiaNombre: info.barbershop_name,
-          barberoNombre:  info.barber_name,
-          servicioNombre: info.service_name,
-          fechaHora:      scheduled_at,
-        })
-
-        await enviarAvisoBarbero({
-          barberiaEmail:   info.barbershop_email,
-          barberiaNombre:  info.barbershop_name,
-          clienteNombre:   client_name,
-          clienteTelefono: client_phone,
-          servicioNombre:  info.service_name,
-          fechaHora:       scheduled_at,
-        })
-      }
-    } catch (mailErr) {
-      console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)
-    }
-
+    // Responder de inmediato — los correos no deben bloquear la respuesta.
     res.status(201).json({ appointment })
+
+    // Correos en segundo plano: si Gmail tarda o falla, la cita ya está creada.
+    ;(async () => {
+      try {
+        const infoResult = await pool.query(
+          `SELECT b.name AS barber_name, s.name AS service_name,
+                  sh.name AS barbershop_name, sh.email AS barbershop_email
+           FROM barbers b, services s, barbershops sh
+           WHERE b.id = $1 AND s.id = $2 AND sh.id = $3`,
+          [barber_id, service_id, req.barbershop.id]
+        )
+        const info = infoResult.rows[0]
+        if (info) {
+          await enviarConfirmacionCliente({
+            clienteEmail:   client_email,
+            clienteNombre:  client_name,
+            barberiaNombre: info.barbershop_name,
+            barberoNombre:  info.barber_name,
+            servicioNombre: info.service_name,
+            fechaHora:      scheduled_at,
+          })
+          await enviarAvisoBarbero({
+            barberiaEmail:   info.barbershop_email,
+            barberiaNombre:  info.barbershop_name,
+            clienteNombre:   client_name,
+            clienteTelefono: client_phone,
+            servicioNombre:  info.service_name,
+            fechaHora:       scheduled_at,
+          })
+        }
+      } catch (mailErr) {
+        console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)
+      }
+    })()
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Error creando cita' })
