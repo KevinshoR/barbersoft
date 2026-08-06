@@ -19,11 +19,10 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin && process.env.NODE_ENV !== 'production') return callback(null, true)
-    if (origin && allowedOrigins.includes(origin)) return callback(null, true)
-    // En desarrollo, permitir cualquier localhost / 127.0.0.1 sin importar el puerto
-    // (Flutter web en Chrome usa un puerto aleatorio en cada arranque).
-    if (origin && process.env.NODE_ENV !== 'production' &&
+    // Sin origin (acceso directo, apps móviles, health checks, curl): se permite.
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    if (process.env.NODE_ENV !== 'production' &&
         /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       return callback(null, true)
     }
@@ -45,7 +44,7 @@ const generalLimiter = rateLimit({
 })
 app.use('/api', generalLimiter)
 
-// Ruta de salud: para verificar que el backend está vivo (útil en el despliegue).
+// Ruta de salud: verificar que el backend está vivo (útil en el despliegue).
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'barbersoft-api', time: new Date().toISOString() })
 })

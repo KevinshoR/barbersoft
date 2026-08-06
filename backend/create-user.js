@@ -19,7 +19,7 @@ async function run() {
   const existe = await pool.query('SELECT id FROM barbershops WHERE email = $1', [email])
   if (existe.rows.length > 0) {
     await pool.query(
-      `UPDATE barbershops SET password = $1, subscription_status = 'active',
+      `UPDATE barbershops SET password = $1, subscription_status = 'active', 
        subscription_ends_at = NOW() + INTERVAL '1 year' WHERE email = $2`,
       [hash, email]
     )

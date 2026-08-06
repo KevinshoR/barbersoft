@@ -7,14 +7,10 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user:     process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  // Fija la zona horaria a nivel de conexión de forma confiable, sin disparar
-  // un client.query() suelto en 'connect' (que causaba el DeprecationWarning
-  // "client is already executing a query" y hacía que el SET TIME ZONE no se
-  // aplicara de forma consistente). Esto se envía en el arranque de cada conexión.
+  // Fija la zona horaria a nivel de conexión de forma confiable.
   options: '-c timezone=America/Bogota',
-  // SSL: los proveedores en la nube (Neon, Render, etc.) exigen conexión cifrada.
-  // Se activa si DB_SSL=true, o si estamos en producción, o si el host es de Neon.
-  // En local (sin nada de eso) se desactiva para no romper el desarrollo.
+  // SSL: los proveedores en la nube (Neon, Render) exigen conexión cifrada.
+  // Se activa si DB_SSL=true, o en producción, o si el host es de Neon.
   ssl: (
     process.env.DB_SSL === 'true' ||
     process.env.NODE_ENV === 'production' ||
@@ -35,10 +31,10 @@ pool.connect((err, client, release) => {
   }
 })
 
-// IMPORTANTE: sin este manejador, cuando Neon cierra una conexión inactiva
-// (scale-to-zero tras 5 min), el pool emite un evento 'error' no manejado que
-// tumba TODO el proceso. Con esto, solo se registra y el pool crea una conexión
-// nueva en la siguiente consulta. El servidor sigue vivo.
+// Sin este manejador, cuando Neon cierra una conexión inactiva (scale-to-zero),
+// el pool emite un evento 'error' no manejado que tumba TODO el proceso.
+// Con esto, solo se registra y el pool crea una conexión nueva en la siguiente
+// consulta. El servidor sigue vivo.
 pool.on('error', (err) => {
   console.error('Error inesperado en el pool de PostgreSQL (se recuperará solo):', err.message)
 })
