@@ -740,14 +740,6 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
     if (picked != null) setState(() => _date = picked);
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time ?? TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => _time = picked);
-  }
-
   Future<void> _submit() async {
     setState(() => _error = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -984,46 +976,29 @@ class _CreateAppointmentSheetState extends State<_CreateAppointmentSheet> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const _FieldLabel('FECHA'),
-                              OutlinedButton(
-                                onPressed: _pickDate,
-                                child: Text(
-                                  _date == null
-                                      ? 'Elegir'
-                                      : DateFormat(
-                                          'd MMM yyyy',
-                                          'es',
-                                        ).format(_date!),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const _FieldLabel('HORA'),
-                              OutlinedButton(
-                                onPressed: _pickTime,
-                                child: Text(
-                                  _time == null
-                                      ? 'Elegir'
-                                      : _time!.format(context),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    const _FieldLabel('FECHA'),
+                    OutlinedButton.icon(
+                      onPressed: _pickDate,
+                      icon: const Icon(Icons.calendar_today_outlined, size: 16),
+                      label: Text(
+                        _date == null
+                            ? 'Elegir día'
+                            : DateFormat('EEEE d MMM yyyy', 'es').format(_date!),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
                     ),
+                    if (_date != null) ...[
+                      const SizedBox(height: 16),
+                      const _FieldLabel('SELECCIONA UNA HORA'),
+                      const SizedBox(height: 4),
+                      _TimeSlotPicker(
+                        selected: _time,
+                        onSelect: (t) => setState(() => _time = t),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     const _FieldLabel('NOTAS (OPCIONAL)'),
                     TextFormField(
@@ -1172,6 +1147,93 @@ class _BarberAvatar extends StatelessWidget {
           return fallback;
         },
       ),
+    );
+  }
+}
+
+// Selector de horas agrupadas por franja (Mañana / Tarde / Noche), en grilla
+// de 4 columnas. Genera slots de 30 min de 8:00 a 20:30.
+class _TimeSlotPicker extends StatelessWidget {
+  final TimeOfDay? selected;
+  final ValueChanged<TimeOfDay> onSelect;
+  const _TimeSlotPicker({this.selected, required this.onSelect});
+
+  List<TimeOfDay> _slotsBetween(int startH, int endH) {
+    final slots = <TimeOfDay>[];
+    for (int h = startH; h < endH; h++) {
+      slots.add(TimeOfDay(hour: h, minute: 0));
+      slots.add(TimeOfDay(hour: h, minute: 30));
+    }
+    return slots;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final grupos = [
+      {'label': 'Mañana', 'icon': Icons.wb_sunny_outlined, 'slots': _slotsBetween(8, 12)},
+      {'label': 'Tarde', 'icon': Icons.wb_sunny_outlined, 'slots': _slotsBetween(12, 19)},
+      {'label': 'Noche', 'icon': Icons.nightlight_outlined, 'slots': _slotsBetween(19, 21)},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grupos.map((g) {
+        final slots = g['slots'] as List<TimeOfDay>;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 14, bottom: 8),
+              child: Row(
+                children: [
+                  Icon(g['icon'] as IconData, color: AppColors.gold, size: 15),
+                  const SizedBox(width: 7),
+                  Text(g['label'] as String,
+                      style: const TextStyle(
+                        color: AppColors.cream,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      )),
+                ],
+              ),
+            ),
+            GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 2.1,
+              children: slots.map((t) {
+                final active = selected != null &&
+                    selected!.hour == t.hour &&
+                    selected!.minute == t.minute;
+                return GestureDetector(
+                  onTap: () => onSelect(t),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: active ? AppColors.gold : AppColors.dark3,
+                      border: Border.all(
+                        color: active ? AppColors.gold : AppColors.dark4,
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(
+                      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        color: active ? AppColors.dark : AppColors.cream,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 }

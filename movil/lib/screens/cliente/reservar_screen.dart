@@ -384,6 +384,18 @@ class _ReservarScreenState extends State<ReservarScreen> {
                       : const Text('CONFIRMAR RESERVA'),
                 ),
                 const SizedBox(height: 12),
+                Text(
+                  'Al confirmar tu reserva, aceptas el tratamiento de tus datos '
+                  'personales (nombre, teléfono y correo) para gestionar tu cita, '
+                  'conforme a nuestra Política de Privacidad.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.creamDim,
+                    fontSize: 11,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),

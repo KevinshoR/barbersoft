@@ -587,8 +587,9 @@ export default function Appointments() {
 
                     return (
                       <>
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, alignItems:'start' }}>
                         {/* Calendario */}
-                        <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16, marginBottom:14 }}>
+                        <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16 }}>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
                             <button type="button" disabled={!canPrev}
                               onClick={() => canPrev && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()-1, 1))}
@@ -639,35 +640,62 @@ export default function Appointments() {
                           </div>
                         </div>
 
-                        {/* Horas */}
-                        {pickedDay && (
-                          <div style={{ marginBottom:8 }}>
-                            <p style={{ color:'var(--cream-dim)', fontSize:11, marginBottom:8 }}>
-                              Horas · {pickedDay.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' })}
-                            </p>
-                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(72px, 1fr))', gap:6 }}>
-                              {slots.map((slot, i) => {
-                                const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
-                                return (
-                                  <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
-                                    title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
-                                    style={{
-                                      padding:'9px 0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', position:'relative',
-                                      background: active ? 'var(--gold)' : 'var(--dark-3)',
-                                      border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
-                                      color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
-                                      opacity: slot.dentroHorario ? 1 : 0.55,
-                                    }}>
-                                    {slot.date.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <p style={{ color:'var(--cream-dim)', fontSize:10.5, marginTop:8, opacity:0.6 }}>
-                              Las horas atenuadas están fuera del horario habitual, pero puedes agendarlas si lo necesitas.
-                            </p>
+                        {/* Columna derecha: Horas */}
+                        <div>
+                        {!pickedDay && (
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', minHeight:200, color:'var(--cream-dim)', fontSize:13, textAlign:'center', opacity:0.5, padding:20 }}>
+                            Elige un día en el calendario para ver las horas disponibles
                           </div>
                         )}
+                        {/* Horas agrupadas por franja (Mañana / Tarde / Noche) */}
+                        {pickedDay && (() => {
+                          const grupos = [
+                            { key: 'manana', label: 'Mañana', icon: '☀', desde: 0,  hasta: 12 },
+                            { key: 'tarde',  label: 'Tarde',  icon: '☀', desde: 12, hasta: 19 },
+                            { key: 'noche',  label: 'Noche',  icon: '☾', desde: 19, hasta: 24 },
+                          ]
+                          const slotBtn = (slot, i) => {
+                            const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
+                            return (
+                              <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
+                                title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
+                                style={{
+                                  padding:'9px 0', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', textAlign:'center',
+                                  background: active ? 'var(--gold)' : 'var(--dark-3)',
+                                  border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
+                                  color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
+                                  opacity: slot.dentroHorario ? 1 : 0.5,
+                                }}>
+                                {String(slot.date.getHours()).padStart(2,'0')}:{String(slot.date.getMinutes()).padStart(2,'0')}
+                              </button>
+                            )
+                          }
+                          return (
+                            <div style={{ marginBottom:8 }}>
+                              <p style={{ color:'var(--cream-dim)', fontSize:12.5, marginBottom:14 }}>Selecciona una hora</p>
+                              {grupos.map(g => {
+                                const delGrupo = slots.filter(s => s.date.getHours() >= g.desde && s.date.getHours() < g.hasta)
+                                if (delGrupo.length === 0) return null
+                                return (
+                                  <div key={g.key} style={{ marginBottom:18 }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
+                                      <span style={{ color:'var(--gold)', fontSize:13 }}>{g.icon}</span>
+                                      <span style={{ color:'var(--cream)', fontSize:13, fontWeight:600 }}>{g.label}</span>
+                                    </div>
+                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
+                                      {delGrupo.map(slotBtn)}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                              <div style={{ display:'flex', alignItems:'center', gap:6, color:'var(--cream-dim)', fontSize:11.5, opacity:0.7, marginTop:4 }}>
+                                <span>◷</span> Duración estimada: {selectedService?.duration_min || 60} min
+                              </div>
+                            </div>
+                          )
+                        })()}
+                        </div>
+                        </div>
 
                         {form.scheduled_at && (
                           <div style={{ background:'rgba(201,168,76,0.08)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:10, padding:'10px 14px', marginTop:4 }}>
