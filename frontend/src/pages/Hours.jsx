@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import HelpButton from '../components/HelpButton'
@@ -16,40 +16,73 @@ function to12h(hhmm) {
   return `${h12}:${String(m).padStart(2, '0')} ${period}`
 }
 
-// Selector de hora claro (12h con AM/PM) que guarda internamente en formato
-// 24h "HH:MM" (lo que el backend espera). Evita la confusión del input nativo,
-// donde "06:00" no distinguía mañana de tarde.
+// Selector de hora: un solo botón que muestra "9:00 AM" y al tocarlo abre un
+// desplegable con todas las horas ya armadas. Guarda internamente en formato
+// 24h "HH:MM" (lo que el backend espera).
 function TimePicker12h({ value, onChange, disabled }) {
-  // value viene como "HH:MM" (24h). Lo descomponemos a 12h + periodo.
-  const [hh, mm] = (value || '09:00').split(':').map(Number)
-  const period = hh >= 12 ? 'PM' : 'AM'
-  const h12 = hh % 12 === 0 ? 12 : hh % 12
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
 
-  const emit = (nh12, nmm, nperiod) => {
-    let h24 = nh12 % 12
-    if (nperiod === 'PM') h24 += 12
-    onChange(`${String(h24).padStart(2, '0')}:${String(nmm).padStart(2, '0')}`)
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Genera todas las opciones de hora (cada 30 min, de 6:00 AM a 11:30 PM).
+  const opciones = []
+  for (let h = 6; h <= 23; h++) {
+    for (const m of [0, 30]) {
+      const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      const period = h >= 12 ? 'PM' : 'AM'
+      const h12 = h % 12 === 0 ? 12 : h % 12
+      opciones.push({ val, label: `${h12}:${String(m).padStart(2, '0')} ${period}` })
+    }
   }
 
-  const selStyle = {
-    background: 'var(--dark-3)', color: 'var(--cream)', border: '1px solid var(--dark-4)',
-    borderRadius: 8, padding: '8px 6px', fontSize: 14, cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.4 : 1, outline: 'none',
-  }
+  const actual = to12h(value) || 'Elegir'
 
   return (
-    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-      <select value={h12} disabled={disabled} onChange={e => emit(Number(e.target.value), mm, period)} style={selStyle}>
-        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{h}</option>)}
-      </select>
-      <span style={{ color: 'var(--cream-dim)', fontWeight: 700 }}>:</span>
-      <select value={mm} disabled={disabled} onChange={e => emit(h12, Number(e.target.value), period)} style={selStyle}>
-        {[0, 15, 30, 45].map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
-      </select>
-      <select value={period} disabled={disabled} onChange={e => emit(h12, mm, e.target.value)} style={selStyle}>
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
-      </select>
+    <div ref={ref} style={{ position: 'relative', width: 'fit-content' }}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(o => !o)}
+        style={{
+          background: 'var(--dark-3)', color: 'var(--cream)', border: '1px solid var(--dark-4)',
+          borderRadius: 9, padding: '9px 14px', fontSize: 14, fontWeight: 600, minWidth: 96,
+          cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        }}
+      >
+        {actual}
+        <span style={{ color: 'var(--gold)', fontSize: 10 }}>▼</span>
+      </button>
+      {open && !disabled && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50,
+          background: 'var(--dark-2)', border: '1px solid var(--dark-4)', borderRadius: 10,
+          maxHeight: 240, overflowY: 'auto', minWidth: 120, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          {opciones.map(o => (
+            <button
+              key={o.val}
+              type="button"
+              onClick={() => { onChange(o.val); setOpen(false) }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '9px 14px',
+                background: value === o.val ? 'rgba(201,168,76,0.15)' : 'transparent',
+                color: value === o.val ? 'var(--gold)' : 'var(--cream)',
+                border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: value === o.val ? 700 : 500,
+              }}
+              onMouseEnter={e => { if (value !== o.val) e.currentTarget.style.background = 'var(--dark-3)' }}
+              onMouseLeave={e => { if (value !== o.val) e.currentTarget.style.background = 'transparent' }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
