@@ -13,10 +13,12 @@ CREATE TABLE barbershops (
   subscription_status  VARCHAR(20) DEFAULT 'trial', -- trial | active | blocked
   trial_ends_at        TIMESTAMP DEFAULT (NOW() + INTERVAL '14 days'),
   subscription_ends_at TIMESTAMP,
+  current_plan         VARCHAR(50), -- plan contratado actualmente (ej. 'monthly'); null en trial
   -- Sistema de referidos
   referral_code         VARCHAR(12) UNIQUE, -- código propio de esta barbería para referir a otras
   referred_by            VARCHAR(12),        -- referral_code de quien la refirió al registrarse (null si ninguno)
   referral_bonus_given   BOOLEAN DEFAULT false, -- true una vez que se dio el beneficio de 15 días por SU primer pago
+  referral_count         INT DEFAULT 0,      -- cuántas barberías ha referido
   -- Super admin: acceso al panel de control interno (/api/admin/*), no relacionado con la suscripción propia
   is_super_admin BOOLEAN DEFAULT false,
   created_at  TIMESTAMP DEFAULT NOW()
@@ -92,3 +94,10 @@ CREATE INDEX idx_appointments_barbershop ON appointments(barbershop_id);
 CREATE INDEX idx_appointments_scheduled  ON appointments(scheduled_at);
 CREATE INDEX idx_appointments_barber     ON appointments(barber_id);
 CREATE INDEX idx_business_hours_barbershop ON business_hours(barbershop_id);
+-- ═══════════════════════════════════════════════════════════════
+-- MIGRACIONES para bases de datos YA existentes.
+-- Si creaste la BD antes de que se agregaran estas columnas, corre
+-- solo esta sección (es segura: IF NOT EXISTS no rompe nada si ya están).
+-- ═══════════════════════════════════════════════════════════════
+ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS current_plan   VARCHAR(50);
+ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS referral_count INT DEFAULT 0;
