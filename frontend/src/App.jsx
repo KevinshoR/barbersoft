@@ -1,4 +1,5 @@
 import Landing from './pages/Landing'
+import Legal from './pages/Legal'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -76,6 +77,8 @@ export default function App() {
 }/>
           <Route path="/reservar/:slug"        element={<ShopProfile />}/>
           <Route path="/" element={<Landing />}/>
+          <Route path="/terminos" element={<Legal />}/>
+          <Route path="/privacidad" element={<Legal />}/>
         </Routes>
       </BrowserRouter>
     </ToastProvider>

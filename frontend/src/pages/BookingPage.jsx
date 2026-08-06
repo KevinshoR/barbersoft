@@ -830,9 +830,13 @@ const navigate = useNavigate()
           )}
         </div>
 
-        <p style={{ textAlign: 'center', color: 'var(--cream-dim)', fontSize: 11, opacity: 0.8, marginTop: 20 }}>
-          Al reservar aceptas que el local te contacte para confirmar tu cita.
-        </p>
+        {step === STEPS.length - 1 && (
+          <p style={{ color: 'var(--cream-dim)', fontSize: 11, textAlign: 'center', marginTop: 14, lineHeight: 1.5, opacity: 0.85 }}>
+            Al confirmar tu reserva, aceptas el tratamiento de tus datos personales (nombre, teléfono y correo)
+            para gestionar tu cita, conforme a nuestra{' '}
+            <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>Política de Privacidad</a>.
+          </p>
+        )}
 
       </main>
       {shop && <ChatbotWidget slug={slug} shopName={shop.name} />}

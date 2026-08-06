@@ -180,23 +180,23 @@ export default function Dashboard() {
         </div>
 
         {/* KPIs */}
-        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
           {kpis.map(k => (
-            <div key={k.label} style={{ ...card, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(201,168,76,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.tint, flexShrink: 0 }}>
+            <div key={k.label} style={{ ...card, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(201,168,76,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.tint }}>
                 {k.icon()}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: k.isMoney ? 24 : 30, fontWeight: 800, color: 'var(--cream)', lineHeight: 1.1, letterSpacing: '-0.01em' }}>{k.value}</p>
-                <p style={{ fontSize: 13, color: 'var(--cream-dim)', marginTop: 4 }}>{k.label}</p>
-                {k.sub && <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 5, fontWeight: 600 }}>{k.sub}</p>}
+              <div>
+                <p style={{ fontSize: k.isMoney ? 26 : 34, fontWeight: 900, color: 'var(--cream)', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{k.value}</p>
+                <p style={{ fontSize: 13, color: 'var(--cream-dim)', marginTop: 6 }}>{k.label}</p>
+                {k.sub && <p style={{ fontSize: 11, color: 'var(--gold)', marginTop: 6, fontWeight: 600 }}>{k.sub}</p>}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Fila media: Agenda de hoy | Resumen del día | QR reservas */}
-        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+        {/* Fila media: Agenda de hoy | Resumen del día | Tareas pendientes */}
+        <div className="animate-fade-up delay-2" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
 
           {/* Agenda de hoy */}
           <div style={{ ...card, overflow: 'hidden' }}>
@@ -243,42 +243,76 @@ export default function Dashboard() {
             </div>
 
             <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginBottom: 6 }}>Ocupación</p>
-            <p style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', lineHeight: 1, letterSpacing: '-0.01em' }}>{occupancy}%</p>
+            <p style={{ fontSize: 30, fontWeight: 900, color: 'var(--gold)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{occupancy}%</p>
             <div style={{ height: 8, background: 'var(--dark-3)', borderRadius: 20, marginTop: 10, marginBottom: 20, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: occupancy + '%', background: 'linear-gradient(90deg, var(--gold-dim), var(--gold))', borderRadius: 20 }} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
               <div>
-                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{appointments.length}</p>
+                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{appointments.length}</p>
                 <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Totales</p>
               </div>
               <div>
-                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{confirmed}</p>
+                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{confirmed}</p>
                 <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Confirmadas</p>
               </div>
               <div>
-                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{pending}</p>
+                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)' }}>{pending}</p>
                 <p style={{ fontSize: 10.5, color: 'var(--cream-dim)', marginTop: 2 }}>Pendientes</p>
               </div>
             </div>
           </div>
 
-          {/* QR + link de reservas */}
-          <div style={{ ...card, padding: '18px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <p style={{ ...kicker, alignSelf: 'flex-start', marginBottom: 14 }}>TU ENLACE DE RESERVAS</p>
-            <div style={{ background: 'var(--dark-3)', padding: 10, borderRadius: 12, border: '1px solid var(--dark-4)' }}>
-              <img src={qrSrc} alt="QR de reservas" width={150} height={150} style={{ display: 'block', borderRadius: 6 }} />
-            </div>
-            <p style={{ color: 'var(--cream-dim)', fontSize: 11.5, fontFamily: 'monospace', marginTop: 12, wordBreak: 'break-all', lineHeight: 1.4 }}>
-              /reservar/{barbershop?.slug}
-            </p>
-            <button
-              onClick={() => { navigator.clipboard.writeText(reservarUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-              style={{ marginTop: 12, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: copied ? 'rgba(201,168,76,0.15)' : 'var(--gold)', color: copied ? 'var(--gold)' : 'var(--dark)', border: copied ? '1px solid rgba(201,168,76,0.3)' : 'none', padding: '10px 0', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em' }}
-            >
-              {copied ? '✓ Copiado' : '🔗 Copiar enlace'}
-            </button>
+          {/* Tareas pendientes (calculadas de datos reales) */}
+          <div style={{ ...card, padding: '18px 22px' }}>
+            <p style={{ ...kicker, marginBottom: 16 }}>TAREAS PENDIENTES</p>
+            {(() => {
+              const tasks = []
+              if (pending > 0) tasks.push({
+                icon: '◷', color: 'var(--gold)',
+                title: `${pending} ${pending === 1 ? 'cita espera' : 'citas esperan'} confirmación`,
+                sub: 'Revisa y confirma las citas pendientes',
+                to: '/appointments',
+              })
+              const tomorrowKey = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(d) })()
+              const tomorrowCount = weekAppointments.filter(a => a.scheduled_at.slice(0, 10) === tomorrowKey && a.status !== 'cancelled').length
+              if (tomorrowCount > 0) tasks.push({
+                icon: '✓', color: 'var(--success)',
+                title: 'Agenda de mañana disponible',
+                sub: `${tomorrowCount} ${tomorrowCount === 1 ? 'cita programada' : 'citas programadas'}`,
+                to: '/appointments',
+              })
+              if (appointments.length === 0) tasks.push({
+                icon: '🔗', color: 'var(--gold)',
+                title: 'Comparte tu enlace de reservas',
+                sub: 'Aún no tienes citas para hoy',
+                to: null,
+              })
+
+              if (tasks.length === 0) {
+                return <p style={{ color: 'var(--cream-dim)', fontSize: 13, textAlign: 'center', padding: '30px 0', opacity: 0.6 }}>Todo al día ✓</p>
+              }
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {tasks.map((t, i) => {
+                    const inner = (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: 'var(--dark-3)', borderRadius: 10, border: '1px solid var(--dark-4)' }}>
+                        <span style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(201,168,76,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: t.color, flexShrink: 0 }}>{t.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ color: 'var(--cream)', fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{t.title}</p>
+                          <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 2 }}>{t.sub}</p>
+                        </div>
+                        {t.to && <span style={{ color: 'var(--cream-dim)', fontSize: 14, opacity: 0.5 }}>›</span>}
+                      </div>
+                    )
+                    return t.to
+                      ? <Link key={i} to={t.to} style={{ textDecoration: 'none' }}>{inner}</Link>
+                      : <div key={i}>{inner}</div>
+                  })}
+                </div>
+              )
+            })()}
           </div>
         </div>
 
@@ -290,7 +324,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
               <p style={kicker}>INGRESOS · ÚLTIMOS 7 DÍAS</p>
             </div>
-            <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--cream)', marginTop: 8, letterSpacing: '-0.01em' }}>{formatPrice(weekTotal)}</p>
+            <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--cream)', fontFamily: 'var(--font-display)', marginTop: 8 }}>{formatPrice(weekTotal)}</p>
             <p style={{ fontSize: 11, color: 'var(--cream-dim)', marginBottom: 12 }}>Total de la semana</p>
             {hasWeekRevenue ? (
               <ResponsiveContainer width="100%" height={180}>

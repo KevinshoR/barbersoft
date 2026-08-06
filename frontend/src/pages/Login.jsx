@@ -28,6 +28,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', department:'', municipality:'', referral_code_usado:'' })
   const [touched, setTouched] = useState({})
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const { login } = useAuth()
   const navigate  = useNavigate()
@@ -92,7 +93,7 @@ export default function Login() {
 
   const isSubmitDisabled = loading
     || !!emailErr
-    || (isRegister && (Object.values(registerErrors).some(Boolean) || !isPasswordValid(form.password, form.email)))
+    || (isRegister && (Object.values(registerErrors).some(Boolean) || !isPasswordValid(form.password, form.email) || !acceptedTerms))
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--dark)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, position:'relative', overflow:'hidden' }}>
@@ -216,6 +217,23 @@ export default function Login() {
               </div>
               {isRegister && <PasswordStrength password={form.password} email={form.email} />}
             </div>
+
+            {isRegister && (
+              <label style={{ display:'flex', alignItems:'flex-start', gap:10, marginTop:4, cursor:'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={e => setAcceptedTerms(e.target.checked)}
+                  style={{ marginTop:3, width:16, height:16, accentColor:'var(--gold)', cursor:'pointer', flexShrink:0 }}
+                />
+                <span style={{ color:'var(--cream-dim)', fontSize:12, lineHeight:1.5 }}>
+                  He leído y acepto los{' '}
+                  <a href="/terminos" target="_blank" rel="noopener noreferrer" style={{ color:'var(--gold)', textDecoration:'underline' }}>Términos y Condiciones</a>
+                  {' '}y la{' '}
+                  <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color:'var(--gold)', textDecoration:'underline' }}>Política de Privacidad</a>, incluyendo el tratamiento de mis datos personales.
+                </span>
+              </label>
+            )}
 
             <button
               type="submit"
