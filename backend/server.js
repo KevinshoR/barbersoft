@@ -19,8 +19,12 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin && process.env.NODE_ENV !== 'production') return callback(null, true)
-    if (origin && allowedOrigins.includes(origin)) return callback(null, true)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    if (process.env.NODE_ENV !== 'production' &&
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true)
+    }
     return callback(new Error('Origen no permitido por CORS'))
   },
   credentials: true,
@@ -81,4 +85,4 @@ if (process.env.NODE_ENV === 'production' && process.env.SELF_URL) {
       .then(() => console.log('[KeepAlive] ping OK'))
       .catch((e) => console.log('[KeepAlive] ping falló:', e.message))
   }, CATORCE_MIN)
-} 
+}
