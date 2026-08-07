@@ -16,7 +16,7 @@ if (process.env.MAIL_USER && process.env.MAIL_PASS) {
       pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
     },
     // Timeouts: si Gmail no responde a tiempo, el envío falla rápido en vez de
-    // colgar la acción del usuario por minutos. Conexión y envío máx ~10s.
+    // colgar la acción del usuario por minutos.
     connectionTimeout: 8000,
     greetingTimeout:   8000,
     socketTimeout:     10000,

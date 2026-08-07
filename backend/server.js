@@ -70,7 +70,7 @@ app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`)
 })
 
-// Keep-alive: en el plan gratis de Render el servidor se DUERME tras 15 min sin
+// Keep-alive: en el  plan gratis de Render el servidor se DUERME tras 15 min sin
 // tráfico, y despertar tarda 30-50s (la temida "primera acción lenta"). Para
 // evitarlo, el propio servidor se hace un ping cada 14 min y así nunca se duerme.
 // Solo se activa en producción y si hay una URL propia definida (SELF_URL).
@@ -81,4 +81,4 @@ if (process.env.NODE_ENV === 'production' && process.env.SELF_URL) {
       .then(() => console.log('[KeepAlive] ping OK'))
       .catch((e) => console.log('[KeepAlive] ping falló:', e.message))
   }, CATORCE_MIN)
-}
+} 
