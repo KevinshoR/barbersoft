@@ -6,11 +6,6 @@ const CREAM = '#F5F0E8'
 
 let transporter = null
 
-// Diagnóstico: muestra qué ve el backend de las variables de correo (sin
-// exponer la contraseña completa). Ayuda a detectar si Render las está pasando.
-console.log('[Mail] MAIL_USER presente:', !!process.env.MAIL_USER, '| valor:', process.env.MAIL_USER || '(vacío)')
-console.log('[Mail] MAIL_PASS presente:', !!process.env.MAIL_PASS, '| longitud:', (process.env.MAIL_PASS || '').length)
-
 if (process.env.MAIL_USER && process.env.MAIL_PASS) {
   transporter = nodemailer.createTransport({
     host:   'smtp.gmail.com',
@@ -20,8 +15,14 @@ if (process.env.MAIL_USER && process.env.MAIL_PASS) {
       user: process.env.MAIL_USER,
       pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
     },
+    // Timeouts: si Gmail no responde a tiempo, el envío falla rápido en vez de
+    // colgar la acción del usuario por minutos. Conexión y envío máx ~10s.
+    connectionTimeout: 8000,
+    greetingTimeout:   8000,
+    socketTimeout:     10000,
+    pool: true,
+    maxConnections: 3,
   })
-  console.log('[Mail] ✓ Gmail SMTP configurado correctamente')
 } else {
   console.log('Gmail SMTP sin configurar — correo no enviado')
 }

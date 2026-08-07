@@ -19,13 +19,8 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Sin origin (acceso directo, apps móviles, health checks, curl): se permite.
-    if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
-    if (process.env.NODE_ENV !== 'production' &&
-        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true)
-    }
+    if (!origin && process.env.NODE_ENV !== 'production') return callback(null, true)
+    if (origin && allowedOrigins.includes(origin)) return callback(null, true)
     return callback(new Error('Origen no permitido por CORS'))
   },
   credentials: true,
@@ -43,11 +38,6 @@ const generalLimiter = rateLimit({
   message: { error: 'Demasiadas peticiones. Intenta más tarde.' },
 })
 app.use('/api', generalLimiter)
-
-// Ruta de salud: verificar que el backend está vivo (útil en el despliegue).
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'barbersoft-api', time: new Date().toISOString() })
-})
 
 // Archivos subidos (imágenes de servicios y barberos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
@@ -79,3 +69,16 @@ const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`)
 })
+
+// Keep-alive: en el plan gratis de Render el servidor se DUERME tras 15 min sin
+// tráfico, y despertar tarda 30-50s (la temida "primera acción lenta"). Para
+// evitarlo, el propio servidor se hace un ping cada 14 min y así nunca se duerme.
+// Solo se activa en producción y si hay una URL propia definida (SELF_URL).
+if (process.env.NODE_ENV === 'production' && process.env.SELF_URL) {
+  const CATORCE_MIN = 14 * 60 * 1000
+  setInterval(() => {
+    fetch(`${process.env.SELF_URL}/api/health`)
+      .then(() => console.log('[KeepAlive] ping OK'))
+      .catch((e) => console.log('[KeepAlive] ping falló:', e.message))
+  }, CATORCE_MIN)
+}
