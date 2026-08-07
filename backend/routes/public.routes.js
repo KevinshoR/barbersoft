@@ -238,39 +238,42 @@ if (!hoursCheck.open) {
       scheduled_at: toColombiaDate(scheduled_at), notes
     })
 
-    try {
-      const infoResult = await pool.query(
-        `SELECT b.name AS barber_name, s.name AS service_name
-         FROM barbers b, services s
-         WHERE b.id = $1 AND s.id = $2`,
-        [barber_id, service_id]
-      )
-      const info = infoResult.rows[0]
-
-      if (info) {
-        await enviarConfirmacionCliente({
-          clienteEmail:   client_email,
-          clienteNombre:  client_name,
-          barberiaNombre: shop.name,
-          barberoNombre:  info.barber_name,
-          servicioNombre: info.service_name,
-          fechaHora:      scheduled_at,
-        })
-
-        await enviarAvisoBarbero({
-          barberiaEmail:   shop.email,
-          barberiaNombre:  shop.name,
-          clienteNombre:   client_name,
-          clienteTelefono: client_phone,
-          servicioNombre:  info.service_name,
-          fechaHora:       scheduled_at,
-        })
-      }
-    } catch (mailErr) {
-      console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)
-    }
-
+    // Responder al cliente INMEDIATAMENTE — no lo hacemos esperar por los correos.
     res.status(201).json({ appointment, message: 'Cita reservada con éxito' })
+
+    // Los correos se envían en segundo plano (después de responder). Si Gmail
+    // tarda o falla, la reserva ya quedó confirmada y el cliente no se cuelga.
+    ;(async () => {
+      try {
+        const infoResult = await pool.query(
+          `SELECT b.name AS barber_name, s.name AS service_name
+           FROM barbers b, services s
+           WHERE b.id = $1 AND s.id = $2`,
+          [barber_id, service_id]
+        )
+        const info = infoResult.rows[0]
+        if (info) {
+          await enviarConfirmacionCliente({
+            clienteEmail:   client_email,
+            clienteNombre:  client_name,
+            barberiaNombre: shop.name,
+            barberoNombre:  info.barber_name,
+            servicioNombre: info.service_name,
+            fechaHora:      scheduled_at,
+          })
+          await enviarAvisoBarbero({
+            barberiaEmail:   shop.email,
+            barberiaNombre:  shop.name,
+            clienteNombre:   client_name,
+            clienteTelefono: client_phone,
+            servicioNombre:  info.service_name,
+            fechaHora:       scheduled_at,
+          })
+        }
+      } catch (mailErr) {
+        console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)
+      }
+    })()
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'No pudimos procesar tu reserva. Por favor intenta de nuevo en unos minutos.' })
