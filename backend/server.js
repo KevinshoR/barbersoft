@@ -1,3 +1,10 @@
+// IMPORTANTE: forzar IPv4 en TODO el proceso Node. Render (y varios hostings)
+// no soportan IPv6 hacia servicios externos. Sin esto, Node intenta primero
+// IPv6 al resolver DNS (smtp.gmail.com, APIs externas...) y falla con
+// ENETUNREACH. Debe ir al principio, antes de importar cualquier módulo que
+// haga peticiones de red (nodemailer, axios, etc.).
+require('dns').setDefaultResultOrder('ipv4first')
+
 const express   = require('express')
 const cors      = require('cors')
 const helmet    = require('helmet')
