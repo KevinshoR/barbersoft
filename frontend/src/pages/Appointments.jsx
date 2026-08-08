@@ -749,9 +749,9 @@ export default function Appointments() {
           ) : paginated.map((a, idx) => (
             <div
               key={a.id}
-              style={{ background:'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,0.25)', zIndex: paginated.length - idx }}
+              style={{ background:'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border:'1px solid var(--dark-4)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,0.25)', zIndex: paginated.length - idx }}
             >
-              <div style={{ display:'flex', alignItems:'center', gap:16, flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:16, flex:'1 1 220px', minWidth:0 }}>
                 <div style={{ background:'linear-gradient(135deg, var(--gold-dim) 0%, var(--dark-3) 100%)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:12, padding:'10px 14px', textAlign:'center', flexShrink:0, minWidth:76 }}>
                   <p style={{ color:'var(--gold-light)', fontSize:15, fontWeight:800, fontFamily:'var(--font-display, Georgia, serif)' }}>{formatTime(a.scheduled_at)}</p>
                   <p style={{ color:'var(--cream-dim)', fontSize:10, marginTop:2 }}>{formatDate(a.scheduled_at)}</p>
@@ -764,7 +764,7 @@ export default function Appointments() {
                 </div>
               </div>
 
-              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, marginLeft:'auto' }}>
                 <StatusSelector
                   status={a.status}
                   onUpdate={(newStatus) => handleStatus(a.id, newStatus)}

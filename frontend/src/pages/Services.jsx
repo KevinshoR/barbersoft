@@ -245,14 +245,14 @@ export default function Services() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {paginated.map(s => (
-              <div key={s.id} style={{ background: 'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
+              <div key={s.id} style={{ background: 'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', boxShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
                 <Thumb src={resolveImageSrc(s.image_url)} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                   <p style={{ fontFamily: 'var(--font-display, Georgia, serif)', fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>{s.name}</p>
                   <p style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--cream-dim)', fontSize: 13, marginTop: 3 }}>{Ic.clock()} {s.duration_min} min</p>
                   {s.description && <p style={{ color: 'var(--cream-dim)', fontSize: 12.5, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.8 }}>{s.description}</p>}
                 </div>
-                <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display, Georgia, serif)', fontWeight: 800, fontSize: 19, whiteSpace: 'nowrap' }}>{formatPrice(s.price)}</span>
+                <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display, Georgia, serif)', fontWeight: 800, fontSize: 19, whiteSpace: 'nowrap', marginLeft: 'auto' }}>{formatPrice(s.price)}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <IconBtn icon={Ic.eye()} tooltip="Ver detalle" onClick={() => setDetail(s)} />
                   <IconBtn icon={Ic.pencil()} tooltip="Editar" onClick={() => openEdit(s)} />

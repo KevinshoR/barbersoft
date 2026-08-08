@@ -238,9 +238,9 @@ export default function Barbers() {
             {paginated.map(b => {
               const dias = parseDays(b.work_days)
               return (
-                <div key={b.id} style={{ background: 'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.25)', opacity: b.active ? 1 : 0.6, transition: 'all 0.2s' }}>
+                <div key={b.id} style={{ background: 'linear-gradient(135deg, var(--dark-2) 0%, rgba(31,31,31,0.6) 100%)', border: '1px solid var(--dark-4)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', boxShadow: '0 2px 12px rgba(0,0,0,0.25)', opacity: b.active ? 1 : 0.6, transition: 'all 0.2s' }}>
                   <Avatar src={resolveImageSrc(b.photo_url)} name={b.name} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <p style={{ fontFamily: 'var(--font-display, Georgia, serif)', fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>{b.name}</p>
                       <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', padding: '3px 8px', borderRadius: 20, background: b.active ? 'rgba(201,168,76,0.15)' : 'var(--dark-4)', color: b.active ? 'var(--gold)' : 'var(--cream-dim)' }}>{b.active ? 'ACTIVO' : 'INACTIVO'}</span>
@@ -252,7 +252,7 @@ export default function Barbers() {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 'auto' }}>
                     <Switch on={b.active} busy={toggling === b.id} onClick={() => handleToggle(b)} />
                     <IconBtn icon={Ic.eye()} tooltip="Ver detalle" onClick={() => setDetail(b)} />
                     <IconBtn icon={Ic.pencil()} tooltip="Editar" onClick={() => openEdit(b)} />
