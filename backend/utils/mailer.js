@@ -1,4 +1,17 @@
 const nodemailer = require('nodemailer')
+const dns        = require('dns')
+
+// Función lookup personalizada que fuerza IPv4. Se la pasamos a nodemailer para
+// que la use al resolver 'smtp.gmail.com'. Sin esto, en Render, Node prefiere
+// IPv6 (que no está soportado hacia afuera) y falla con ENETUNREACH.
+const lookupIPv4 = (hostname, options, callback) => {
+  // Si options es una función (llamada 3-args con options omitido), reordena.
+  if (typeof options === 'function') {
+    callback = options
+    options = {}
+  }
+  return dns.lookup(hostname, { ...options, family: 4 }, callback)
+}
 
 const GOLD  = '#C9A84C'
 const BLACK = '#0D0D0D'
@@ -9,16 +22,19 @@ let transporter = null
 if (process.env.MAIL_USER && process.env.MAIL_PASS) {
   transporter = nodemailer.createTransport({
     host:   'smtp.gmail.com',
-    port:   465,
-    secure: true,
-    // Forzar IPv4: Render no soporta IPv6 hacia servicios externos, y sin esto
-    // Node intenta primero IPv6 y falla con ENETUNREACH.
+    port:   587,          // STARTTLS en 587 en vez de SSL en 465 (más compatible con Render).
+    secure: false,        // false = usar STARTTLS
+    requireTLS: true,     // exige TLS después del handshake
+    // Lookup DNS personalizado que fuerza IPv4. Es la única forma confiable
+    // de evitar que nodemailer intente conectarse por IPv6 en Render.
+    dnsLookup: lookupIPv4,
+    // Redundante pero por si algún socket lo respeta:
     family: 4,
+    tls: { family: 4 },
     auth: {
       user: process.env.MAIL_USER,
       pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
     },
-    // Timeouts generosos: Gmail a veces tarda 10-20s en responder.
     connectionTimeout: 20000,
     greetingTimeout:   20000,
     socketTimeout:     30000,
