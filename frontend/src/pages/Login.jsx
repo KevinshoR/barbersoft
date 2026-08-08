@@ -141,7 +141,7 @@ export default function Login() {
   return (
     <div className="au-wrap">
       <style>{`
-        .au-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,44fr) minmax(0,56fr);background:var(--dark);font-family:var(--font-body)}
+        .au-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);background:var(--dark);font-family:var(--font-body)}
         /* ---- Panel izquierdo ---- */
         .au-side{position:relative;padding:40px 48px;display:flex;flex-direction:column;overflow:hidden;
           background:
@@ -173,8 +173,8 @@ export default function Login() {
         .au-quote-who b{display:block;color:var(--cream);font-size:13.5px;font-weight:600}
         .au-quote-who small{color:var(--cream-dim);font-size:12px}
         /* ---- Panel derecho ---- */
-        .au-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 32px 40px;overflow-y:auto}
-        .au-card{position:relative;width:100%;max-width:560px;background:var(--dark-2);border:1px solid var(--dark-4);border-radius:20px;padding:52px 40px 34px;margin-top:34px}
+        .au-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 48px 40px;overflow-y:auto}
+        .au-card{position:relative;width:100%;max-width:820px;background:var(--dark-2);border:1px solid var(--dark-4);border-radius:20px;padding:52px 56px 38px;margin-top:34px}
         .au-badge{position:absolute;top:-34px;left:50%;transform:translateX(-50%);width:68px;height:68px;border-radius:50%;
           background:var(--dark);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold)}
         .au-title{font-family:var(--font-display);font-size:34px;font-weight:700;color:var(--cream);text-align:center;margin:0 0 8px;letter-spacing:-.01em}
@@ -192,7 +192,11 @@ export default function Login() {
         /* secciones */
         .au-sec{display:flex;align-items:center;gap:9px;color:var(--gold);font-size:11.5px;font-weight:700;letter-spacing:.13em;margin:0 0 16px}
         .au-sec span{color:var(--cream-dim);font-weight:500;letter-spacing:0;font-size:11px}
-        .au-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+        .au-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:14px 18px}
+        .au-grid-3{display:grid;grid-template-columns:repeat(3, 1fr);gap:14px 18px}
+        @media (min-width:1200px){
+          .au-grid{grid-template-columns:repeat(4, 1fr)}
+        }
         .au-label{display:block;font-size:13px;color:var(--cream);margin-bottom:7px;font-weight:500}
         .au-field{position:relative;display:flex;align-items:center}
         .au-field-ic{position:absolute;left:14px;display:flex;color:var(--cream-dim);opacity:.75;pointer-events:none}
@@ -232,6 +236,7 @@ export default function Login() {
           .au-main{padding:40px 18px 32px}
           .au-card{padding:48px 22px 30px}
           .au-grid{grid-template-columns:1fr}
+          .au-grid-3{grid-template-columns:1fr}
           .au-title{font-size:28px}
           .au-step{width:96px}
           .au-step small{font-size:10.5px}
@@ -378,7 +383,8 @@ export default function Login() {
 
             <p className="au-sec">{Ic.user(15)} CUENTA DE ACCESO</p>
 
-            <div style={{ marginBottom: 14 }}>
+            <div style={isRegister ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' } : {}}>
+            <div style={{ marginBottom: isRegister ? 0 : 14 }}>
               <label className="au-label">Correo electrónico</label>
               <div className="au-field">
                 <span className="au-field-ic">{Ic.mail()}</span>
@@ -408,6 +414,7 @@ export default function Login() {
               </div>
               {isRegister && !form.password && <p className="au-help">Mínimo 8 caracteres, con letras y números.</p>}
               {isRegister && form.password && <PasswordStrength password={form.password} email={form.email} />}
+            </div>
             </div>
 
             {isRegister && (

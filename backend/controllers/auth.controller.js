@@ -208,17 +208,21 @@ const AuthController = {
     const { email } = req.body
     if (!email) return res.status(400).json({ error: 'El correo es obligatorio' })
 
+    // Normalizar a minúsculas — así el correo se encuentra sin importar cómo lo escriba el usuario.
+    const emailNorm = String(email).trim().toLowerCase()
+
     const result = await pool.query(
-      'SELECT id, name, email FROM barbershops WHERE email = $1',
-      [email]
+      'SELECT id, name, email FROM barbershops WHERE LOWER(email) = $1',
+      [emailNorm]
     )
 
-    // Respuesta siempre uniforme: no revelamos si un correo está registrado o
-    // no (evita que se use este endpoint para descubrir cuentas). Si existe,
-    // el correo sale igual; si no, simplemente no hay a quién enviar.
-    res.json({ message: 'Si el correo está registrado, en unos minutos recibirás un enlace para restablecer tu contraseña.' })
-
-    if (!result.rows[0]) return
+    if (!result.rows[0]) {
+      // Mensaje neutro para no revelar si un correo está registrado o no,
+      // pero orientando al usuario a revisar spam y verificar el correo.
+      return res.json({
+        message: 'Si el correo está registrado, recibirás un enlace en breve. Revisa también tu carpeta de spam. Si no llega, verifica que el correo esté escrito exactamente como te registraste.'
+      })
+    }
 
     const shop  = result.rows[0]
     const token = crypto.randomBytes(32).toString('hex')
@@ -226,24 +230,24 @@ const AuthController = {
 
     // Invalidar tokens anteriores
     await pool.query(
-      'UPDATE password_resets SET used = true WHERE email = $1',
-      [email]
+      'UPDATE password_resets SET used = true WHERE LOWER(email) = $1',
+      [emailNorm]
     )
 
     await pool.query(
       'INSERT INTO password_resets (email, token, expires_at) VALUES ($1, $2, $3)',
-      [email, token, expires]
+      [shop.email, token, expires]
     )
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
 
-    // Envío en segundo plano: si Gmail tarda, no cuelga la respuesta al usuario.
-    ;(async () => {
-      try {
-        await enviarCorreo({
-          to:      shop.email,
-          subject: 'Recuperar contraseña — Barbersoft',
-          html: `
+    // Enviamos el correo AWAITED (con timeout de red ya en el transporter) para
+    // saber si falló y avisar al usuario en vez de dejarlo esperando en vano.
+    try {
+      await enviarCorreo({
+        to:      shop.email,
+        subject: 'Recuperar contraseña — Barbersoft',
+        html: `
         <div style="font-family:'DM Sans',Arial,sans-serif;max-width:480px;margin:0 auto;background:#111;color:#F5F0E8;border-radius:16px;overflow:hidden">
           <div style="background:#161616;padding:32px;text-align:center;border-bottom:1px solid #2A2A2A">
             <p style="font-size:32px;margin:0 0 8px">✂</p>
@@ -268,14 +272,15 @@ const AuthController = {
           </div>
         </div>
       `,
-        })
-      } catch (mailErr) {
-        console.error('[ForgotPassword] Error enviando correo:', mailErr.message)
-      }
-    })()
+      })
+      return res.json({ message: 'Te enviamos un enlace para restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).' })
+    } catch (mailErr) {
+      console.error('[ForgotPassword] Error enviando correo:', mailErr.message)
+      return res.status(500).json({ error: 'No pudimos enviar el correo en este momento. Intenta de nuevo en unos minutos.' })
+    }
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Error procesando la solicitud' })
+    console.error('[ForgotPassword] Error:', err.message)
+    return res.status(500).json({ error: 'Error procesando la solicitud.' })
   }
 },
 

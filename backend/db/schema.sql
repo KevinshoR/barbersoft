@@ -100,4 +100,15 @@ CREATE INDEX idx_business_hours_barbershop ON business_hours(barbershop_id);
 -- solo esta sección (es segura: IF NOT EXISTS no rompe nada si ya están).
 -- ═══════════════════════════════════════════════════════════════
 ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS current_plan   VARCHAR(50);
-ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS referral_count INT DEFAULT 0;
+ALTER TABLE barbershops ADD COLUMN IF NOT EXISTS referral_count INT DEFAULT 0;  
+-- Tabla para el flujo de "olvidé mi contraseña": guarda tokens con expiración.
+CREATE TABLE IF NOT EXISTS password_resets (
+  id         SERIAL PRIMARY KEY,
+  email      VARCHAR(100) NOT NULL,
+  token      VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  used       BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
+CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email);
