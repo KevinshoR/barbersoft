@@ -1,57 +1,64 @@
 const nodemailer = require('nodemailer')
 const dns        = require('dns')
 
-// Función lookup personalizada que fuerza IPv4. Se la pasamos a nodemailer para
-// que la use al resolver 'smtp.gmail.com'. Sin esto, en Render, Node prefiere
-// IPv6 (que no está soportado hacia afuera) y falla con ENETUNREACH.
-const lookupIPv4 = (hostname, options, callback) => {
-  // Si options es una función (llamada 3-args con options omitido), reordena.
-  if (typeof options === 'function') {
-    callback = options
-    options = {}
-  }
-  return dns.lookup(hostname, { ...options, family: 4 }, callback)
-}
-
 const GOLD  = '#C9A84C'
 const BLACK = '#0D0D0D'
 const CREAM = '#F5F0E8'
 
 let transporter = null
 
-if (process.env.MAIL_USER && process.env.MAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    host:   'smtp.gmail.com',
-    port:   587,          // STARTTLS en 587 en vez de SSL en 465 (más compatible con Render).
-    secure: false,        // false = usar STARTTLS
-    requireTLS: true,     // exige TLS después del handshake
-    // Lookup DNS personalizado que fuerza IPv4. Es la única forma confiable
-    // de evitar que nodemailer intente conectarse por IPv6 en Render.
-    dnsLookup: lookupIPv4,
-    // Redundante pero por si algún socket lo respeta:
-    family: 4,
-    tls: { family: 4 },
-    auth: {
-      user: process.env.MAIL_USER,
-      pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
-    },
-    connectionTimeout: 20000,
-    greetingTimeout:   20000,
-    socketTimeout:     30000,
-    pool: true,
-    maxConnections: 3,
-  })
-  // Verificamos la conexión al arrancar. Si Gmail rechaza (contraseña de app
-  // mal, cuenta bloqueada, etc.), lo sabemos DE ENTRADA en los logs, no cuando
-  // el usuario ya intentó recuperar su contraseña.
-  transporter.verify().then(() => {
-    console.log('[Mail] Gmail SMTP verificado y listo para enviar')
-  }).catch((err) => {
-    console.error('[Mail] ⚠ Gmail SMTP falló la verificación:', err.message)
-  })
-} else {
-  console.log('Gmail SMTP sin configurar — correo no enviado')
+// Creamos el transporter de forma asíncrona: primero resolvemos la IP IPv4 de
+// Gmail (smtp.gmail.com) y se la pasamos DIRECTA a nodemailer como host. Así
+// nodemailer nunca hace DNS y no hay forma de que use IPv6.
+// Esta es la solución al bug de Render donde IPv6 se resuelve pero no conecta.
+async function initTransporter() {
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+    console.log('Gmail SMTP sin configurar — correo no enviado')
+    return
+  }
+
+  try {
+    // resolve4 devuelve SOLO direcciones IPv4 (a diferencia de lookup, que
+    // puede devolver IPv6 según config del sistema).
+    const ipv4Addresses = await dns.promises.resolve4('smtp.gmail.com')
+    const smtpIP = ipv4Addresses[0]
+    console.log(`[Mail] smtp.gmail.com resuelto a IPv4: ${smtpIP}`)
+
+    transporter = nodemailer.createTransport({
+      host:   smtpIP,                // ← IP directa IPv4, no hostname
+      port:   465,
+      secure: true,
+      // Como usamos IP directa pero el certificado TLS es para 'smtp.gmail.com',
+      // hay que decirle a TLS que valide contra el hostname, no la IP.
+      tls: {
+        servername: 'smtp.gmail.com',
+      },
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
+      },
+      connectionTimeout: 20000,
+      greetingTimeout:   20000,
+      socketTimeout:     30000,
+      pool: true,
+      maxConnections: 3,
+    })
+
+    // Verificamos que Gmail acepta el login.
+    try {
+      await transporter.verify()
+      console.log('[Mail] Gmail SMTP verificado y listo para enviar')
+    } catch (verifyErr) {
+      console.error('[Mail] ⚠ Gmail SMTP falló la verificación:', verifyErr.message)
+    }
+  } catch (dnsErr) {
+    console.error('[Mail] ⚠ No se pudo resolver smtp.gmail.com a IPv4:', dnsErr.message)
+  }
 }
+
+// Ejecutamos el init pero no esperamos: el servidor arranca en paralelo.
+// Si el correo llega antes de que initTransporter termine, enviarCorreo esperará.
+const transporterReady = initTransporter()
 
 function formatFecha(fechaHora) {
   return new Date(fechaHora).toLocaleString('es-CO', {
@@ -90,6 +97,11 @@ function detailRow(label, value, last) {
 }
 
 async function enviarCorreo({ to, subject, html }) {
+  // Espera a que initTransporter termine (resolver IP + verify). Si ya terminó
+  // hace tiempo, esto resuelve al instante. Si el correo llega justo al arrancar,
+  // le da chance al init.
+  await transporterReady
+
   if (!transporter) {
     console.log('Gmail SMTP sin configurar — correo no enviado')
     return
