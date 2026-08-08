@@ -7,6 +7,12 @@ require('dotenv').config()
 
 const app = express()
 
+// Render (y todos los hostings gratis) ponen la app detrás de un proxy que
+// añade el header X-Forwarded-For con la IP real del usuario. Sin este ajuste,
+// Express ignora esa cabecera y el rate-limiter no puede distinguir usuarios.
+// Con '1' confiamos en 1 salto de proxy (el de Render), no en cualquier IP.
+app.set('trust proxy', 1)
+
 app.use(helmet())
 
 // Lista blanca de orígenes permitidos (separados por comas en CORS_ORIGINS).

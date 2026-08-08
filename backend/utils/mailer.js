@@ -11,6 +11,9 @@ if (process.env.MAIL_USER && process.env.MAIL_PASS) {
     host:   'smtp.gmail.com',
     port:   465,
     secure: true,
+    // Forzar IPv4: Render no soporta IPv6 hacia servicios externos, y sin esto
+    // Node intenta primero IPv6 y falla con ENETUNREACH.
+    family: 4,
     auth: {
       user: process.env.MAIL_USER,
       pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
