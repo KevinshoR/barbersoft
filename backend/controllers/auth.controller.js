@@ -4,10 +4,8 @@ const jwt          = require('jsonwebtoken')
 const UserModel    = require('../models/user.model')
 const ServiceModel = require('../models/service.model')
 const HoursModel   = require('../models/hours.model')
-const { Resend } = require('resend')
+const { enviarCorreo } = require('../utils/mailer')
 const crypto    = require('crypto')
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Sistema de referidos: código propio de 4 letras del nombre + 4 alfanuméricos
 // (ej. "KEVI-A7X9"), sin caracteres confusos (O/0, I/1/L).
@@ -208,16 +206,19 @@ const AuthController = {
   async forgotPassword(req, res) {
   try {
     const { email } = req.body
-    if (!email) return res.status(400).json({ error: 'Email obligatorio' })
+    if (!email) return res.status(400).json({ error: 'El correo es obligatorio' })
 
-   const result = await pool.query(
-  'SELECT id, name, email FROM barbershops WHERE email = $1',
-  [email]
-)
+    const result = await pool.query(
+      'SELECT id, name, email FROM barbershops WHERE email = $1',
+      [email]
+    )
 
-if (!result.rows[0]) {
-  return res.status(404).json({ error: 'No encontramos ninguna cuenta con ese email. Verificá que sea el correcto o registrate.' })
-}
+    // Respuesta siempre uniforme: no revelamos si un correo está registrado o
+    // no (evita que se use este endpoint para descubrir cuentas). Si existe,
+    // el correo sale igual; si no, simplemente no hay a quién enviar.
+    res.json({ message: 'Si el correo está registrado, en unos minutos recibirás un enlace para restablecer tu contraseña.' })
+
+    if (!result.rows[0]) return
 
     const shop  = result.rows[0]
     const token = crypto.randomBytes(32).toString('hex')
@@ -236,21 +237,23 @@ if (!result.rows[0]) {
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
 
-    await resend.emails.send({
-  from:    'Barbersoft <onboarding@resend.dev>',
-  to:      shop.email,
-  subject: 'Recuperar contraseña — Barbersoft',
-      html: `
+    // Envío en segundo plano: si Gmail tarda, no cuelga la respuesta al usuario.
+    ;(async () => {
+      try {
+        await enviarCorreo({
+          to:      shop.email,
+          subject: 'Recuperar contraseña — Barbersoft',
+          html: `
         <div style="font-family:'DM Sans',Arial,sans-serif;max-width:480px;margin:0 auto;background:#111;color:#F5F0E8;border-radius:16px;overflow:hidden">
           <div style="background:#161616;padding:32px;text-align:center;border-bottom:1px solid #2A2A2A">
             <p style="font-size:32px;margin:0 0 8px">✂</p>
-            <h1 style="font-size:22px;font-weight:900;color:#F5F0E8;margin:0">Barber<span style="color:#C9A84C">SaaS</span></h1>
+            <h1 style="font-size:22px;font-weight:900;color:#F5F0E8;margin:0">Barber<span style="color:#C9A84C">soft</span></h1>
           </div>
           <div style="padding:36px 32px">
             <h2 style="font-size:20px;color:#F5F0E8;margin:0 0 12px">Hola, ${shop.name}</h2>
             <p style="color:#B8B0A0;font-size:14px;line-height:1.7;margin:0 0 28px">
               Recibimos una solicitud para restablecer la contraseña de tu cuenta.
-              Si no fuiste vos, podés ignorar este email.
+              Si no fuiste tú, puedes ignorar este correo.
             </p>
             <a href="${resetUrl}"
                style="display:block;background:#C9A84C;color:#0A0A0A;text-align:center;padding:14px 0;border-radius:10px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-decoration:none">
@@ -261,16 +264,18 @@ if (!result.rows[0]) {
             </p>
           </div>
           <div style="padding:20px 32px;border-top:1px solid #2A2A2A;text-align:center">
-            <p style="color:#555;font-size:11px;margin:0">BarberSaaS · Software para barberías en Colombia</p>
+            <p style="color:#555;font-size:11px;margin:0">Barbersoft · Software para barberías en Colombia</p>
           </div>
         </div>
-      `
-    })
-
-    res.json({ message: 'Si ese email existe, recibirás un enlace en minutos.' })
+      `,
+        })
+      } catch (mailErr) {
+        console.error('[ForgotPassword] Error enviando correo:', mailErr.message)
+      }
+    })()
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'Error enviando el email' })
+    res.status(500).json({ error: 'Error procesando la solicitud' })
   }
 },
 

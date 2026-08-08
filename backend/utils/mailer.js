@@ -134,6 +134,7 @@ async function enviarRecordatorioCita({ clienteEmail, clienteNombre, barberiaNom
 }
 
 module.exports = {
+  enviarCorreo,
   enviarConfirmacionCliente,
   enviarAvisoBarbero,
   enviarRecordatorioCita,
