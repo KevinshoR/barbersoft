@@ -1,64 +1,20 @@
-const nodemailer = require('nodemailer')
-const dns        = require('dns')
+// mailer.js
+// Envío de correos vía API HTTP de Brevo (reemplaza el SMTP de Gmail).
+// Motivo: Render bloquea los puertos SMTP salientes (25/465/587) como política
+// anti-spam, así que era imposible enviar por SMTP. La API HTTP de Brevo sí sale.
+// 0 dependencias nuevas: usa el fetch nativo de Node 18+.
 
 const GOLD  = '#C9A84C'
 const BLACK = '#0D0D0D'
 const CREAM = '#F5F0E8'
 
-let transporter = null
-
-// Creamos el transporter de forma asíncrona: primero resolvemos la IP IPv4 de
-// Gmail (smtp.gmail.com) y se la pasamos DIRECTA a nodemailer como host. Así
-// nodemailer nunca hace DNS y no hay forma de que use IPv6.
-// Esta es la solución al bug de Render donde IPv6 se resuelve pero no conecta.
-async function initTransporter() {
-  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.log('Gmail SMTP sin configurar — correo no enviado')
-    return
-  }
-
-  try {
-    // resolve4 devuelve SOLO direcciones IPv4 (a diferencia de lookup, que
-    // puede devolver IPv6 según config del sistema).
-    const ipv4Addresses = await dns.promises.resolve4('smtp.gmail.com')
-    const smtpIP = ipv4Addresses[0]
-    console.log(`[Mail] smtp.gmail.com resuelto a IPv4: ${smtpIP}`)
-
-    transporter = nodemailer.createTransport({
-      host:   smtpIP,                // ← IP directa IPv4, no hostname
-      port:   465,
-      secure: true,
-      // Como usamos IP directa pero el certificado TLS es para 'smtp.gmail.com',
-      // hay que decirle a TLS que valide contra el hostname, no la IP.
-      tls: {
-        servername: 'smtp.gmail.com',
-      },
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
-      },
-      connectionTimeout: 20000,
-      greetingTimeout:   20000,
-      socketTimeout:     30000,
-      pool: true,
-      maxConnections: 3,
-    })
-
-    // Verificamos que Gmail acepta el login.
-    try {
-      await transporter.verify()
-      console.log('[Mail] Gmail SMTP verificado y listo para enviar')
-    } catch (verifyErr) {
-      console.error('[Mail] ⚠ Gmail SMTP falló la verificación:', verifyErr.message)
-    }
-  } catch (dnsErr) {
-    console.error('[Mail] ⚠ No se pudo resolver smtp.gmail.com a IPv4:', dnsErr.message)
-  }
-}
-
-// Ejecutamos el init pero no esperamos: el servidor arranca en paralelo.
-// Si el correo llega antes de que initTransporter termine, enviarCorreo esperará.
-const transporterReady = initTransporter()
+// Remitente. IMPORTANTE: el email debe estar VALIDADO como remitente en Brevo.
+// El correo con el que creaste la cuenta de Brevo ya viene validado por defecto.
+// Config por variables de entorno en Render:
+//   MAIL_FROM_EMAIL  → email remitente validado en Brevo
+//   MAIL_FROM_NAME   → nombre que ve el cliente (opcional, default 'Barbersoft')
+const FROM_EMAIL = process.env.MAIL_FROM_EMAIL || process.env.MAIL_USER || ''
+const FROM_NAME  = process.env.MAIL_FROM_NAME  || 'Barbersoft'
 
 function formatFecha(fechaHora) {
   return new Date(fechaHora).toLocaleString('es-CO', {
@@ -96,26 +52,47 @@ function detailRow(label, value, last) {
   `
 }
 
+// Núcleo de envío. Misma firma que antes: { to, subject, html }.
+// Ningún otro archivo que llame a enviarCorreo necesita cambiar.
 async function enviarCorreo({ to, subject, html }) {
-  // Espera a que initTransporter termine (resolver IP + verify). Si ya terminó
-  // hace tiempo, esto resuelve al instante. Si el correo llega justo al arrancar,
-  // le da chance al init.
-  await transporterReady
-
-  if (!transporter) {
-    console.log('Gmail SMTP sin configurar — correo no enviado')
+  if (!process.env.BREVO_API_KEY) {
+    console.log('Brevo sin configurar (falta BREVO_API_KEY) — correo no enviado')
+    return
+  }
+  if (!FROM_EMAIL) {
+    console.log('Remitente sin configurar (falta MAIL_FROM_EMAIL) — correo no enviado')
     return
   }
   if (!to) return
 
-  await transporter.sendMail({
-    // Fallback: si no está definido MAIL_FROM, usa el propio usuario de Gmail
-    // (Gmail rechaza el envío si el 'from' está vacío o no coincide).
-    from: process.env.MAIL_FROM || `Barbersoft <${process.env.MAIL_USER}>`,
-    to,
-    subject,
-    html,
-  })
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept':       'application/json',
+        'api-key':      process.env.BREVO_API_KEY,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: FROM_NAME, email: FROM_EMAIL },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    })
+
+    if (!res.ok) {
+      const body = await res.text()
+      console.error(`[Mail] Brevo respondió ${res.status}: ${body}`)
+      return
+    }
+
+    console.log(`[Mail] Correo enviado a ${to} vía Brevo`)
+  } catch (err) {
+    // No relanzamos: los correos van en segundo plano y un fallo de envío
+    // no debe tumbar la operación (crear cita, etc.).
+    console.error('[Mail] Error enviando por Brevo:', err.message)
+  }
 }
 
 async function enviarConfirmacionCliente({ clienteEmail, clienteNombre, barberiaNombre, barberoNombre, servicioNombre, fechaHora }) {
