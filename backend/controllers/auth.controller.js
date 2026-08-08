@@ -275,7 +275,12 @@ const AuthController = {
       })
       return res.json({ message: 'Te enviamos un enlace para restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).' })
     } catch (mailErr) {
-      console.error('[ForgotPassword] Error enviando correo:', mailErr.message)
+      console.error('[ForgotPassword] Error enviando correo:')
+      console.error('  message:', mailErr.message)
+      console.error('  code:   ', mailErr.code)
+      console.error('  command:', mailErr.command)
+      console.error('  response:', mailErr.response)
+      console.error('  responseCode:', mailErr.responseCode)
       return res.status(500).json({ error: 'No pudimos enviar el correo en este momento. Intenta de nuevo en unos minutos.' })
     }
   } catch (err) {

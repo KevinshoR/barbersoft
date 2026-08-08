@@ -15,13 +15,20 @@ if (process.env.MAIL_USER && process.env.MAIL_PASS) {
       user: process.env.MAIL_USER,
       pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
     },
-    // Timeouts: si Gmail no responde a tiempo, el envío falla rápido en vez de
-    // colgar la acción del usuario por minutos.
-    connectionTimeout: 8000,
-    greetingTimeout:   8000,
-    socketTimeout:     10000,
+    // Timeouts generosos: Gmail a veces tarda 10-20s en responder.
+    connectionTimeout: 20000,
+    greetingTimeout:   20000,
+    socketTimeout:     30000,
     pool: true,
     maxConnections: 3,
+  })
+  // Verificamos la conexión al arrancar. Si Gmail rechaza (contraseña de app
+  // mal, cuenta bloqueada, etc.), lo sabemos DE ENTRADA en los logs, no cuando
+  // el usuario ya intentó recuperar su contraseña.
+  transporter.verify().then(() => {
+    console.log('[Mail] Gmail SMTP verificado y listo para enviar')
+  }).catch((err) => {
+    console.error('[Mail] ⚠ Gmail SMTP falló la verificación:', err.message)
   })
 } else {
   console.log('Gmail SMTP sin configurar — correo no enviado')
@@ -71,7 +78,9 @@ async function enviarCorreo({ to, subject, html }) {
   if (!to) return
 
   await transporter.sendMail({
-    from: process.env.MAIL_FROM,
+    // Fallback: si no está definido MAIL_FROM, usa el propio usuario de Gmail
+    // (Gmail rechaza el envío si el 'from' está vacío o no coincide).
+    from: process.env.MAIL_FROM || `Barbersoft <${process.env.MAIL_USER}>`,
     to,
     subject,
     html,
