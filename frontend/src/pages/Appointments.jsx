@@ -681,7 +681,7 @@ export default function Appointments() {
                                           <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
                                             title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
                                             style={{
-                                              padding:'9px 0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer',
+                                              padding:'6px 0', borderRadius:7, fontSize:11, fontWeight:700, cursor:'pointer',
                                               background: active ? 'var(--gold)' : 'var(--dark-2)',
                                               border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
                                               color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
