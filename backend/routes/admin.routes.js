@@ -11,5 +11,6 @@ router.use(superAdminMiddleware)
 router.get('/barbershops',                AdminController.listBarbershops)
 router.post('/barbershops/:id/extend',    AdminController.extend)
 router.post('/barbershops/:id/block',     AdminController.block)
+router.delete('/barbershops/:id',         AdminController.remove)
 
 module.exports = router

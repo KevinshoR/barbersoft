@@ -16,6 +16,8 @@ const Ic = {
   plus: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 5v14M5 12h14"/></svg>,
   ban: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>,
   lock: (p) => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  trash: (p) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/><path d="M10 11v6M14 11v6"/></svg>,
+  warn: (p) => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>,
 }
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
@@ -31,6 +33,8 @@ export default function AdminPanel() {
   const [extending, setExtending] = useState(null) // barbershop siendo editado
   const [days, setDays] = useState('30')
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(null)      // barbershop a eliminar
+  const [confirmName, setConfirmName] = useState('')  // texto para confirmar el nombre
 
   useEffect(() => { fetchShops() }, [])
 
@@ -70,6 +74,30 @@ export default function AdminPanel() {
       fetchShops()
     } catch (err) {
       toast.error(err.response?.data?.error || 'No se pudo bloquear la barbería.')
+    }
+  }
+
+  // Eliminar barbería — acción destructiva permanente.
+  // El backend exige que confirm_name coincida EXACTAMENTE con el nombre.
+  const handleDelete = async () => {
+    if (!deleting) return
+    if (confirmName.trim() !== deleting.name.trim()) {
+      toast.error('El nombre no coincide.')
+      return
+    }
+    setBusy(true)
+    try {
+      await api.delete(`/admin/barbershops/${deleting.id}`, {
+        data: { confirm_name: confirmName.trim() },
+      })
+      toast.success(`${deleting.name} fue eliminada permanentemente`)
+      setDeleting(null)
+      setConfirmName('')
+      fetchShops()
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo eliminar la barbería.')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -197,6 +225,11 @@ export default function AdminPanel() {
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: '#D89090', border: '1px solid #C97A7A', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       {Ic.ban()} Bloquear
                     </button>
+                    <button onClick={() => { setDeleting(s); setConfirmName('') }}
+                      title="Eliminar permanentemente"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: '#E05252', border: '1px solid #E05252', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      {Ic.trash()} Eliminar
+                    </button>
                   </div>
                 )}
               </div>
@@ -233,6 +266,59 @@ export default function AdminPanel() {
               <button onClick={handleExtend} disabled={busy}
                 style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: 'var(--gold)', color: 'var(--dark)', fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
                 {busy ? 'Guardando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: eliminar barbería (acción destructiva) */}
+      {deleting && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--dark-2)', border: '1px solid rgba(224,82,82,0.4)', borderRadius: 16, padding: 28, maxWidth: 460, width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', color: '#E05252', marginBottom: 8 }}>{Ic.warn()}</div>
+            <p style={{ color: '#E05252', fontSize: 11, letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>Eliminar cuenta</p>
+            <h3 style={{ fontFamily: 'var(--font-display, Georgia, serif)', color: 'var(--cream)', fontSize: 22, textAlign: 'center', marginBottom: 14 }}>{deleting.name}</h3>
+
+            <p style={{ color: 'var(--cream-dim)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 14, textAlign: 'center' }}>
+              Esta acción es <strong style={{ color: '#E05252' }}>permanente y no se puede deshacer</strong>. Se borrarán la cuenta y <strong style={{ color: 'var(--cream)' }}>todo lo asociado</strong>: barberos, servicios, horarios y el historial completo de citas.
+            </p>
+
+            <div style={{ background: 'rgba(224,82,82,0.06)', border: '1px solid rgba(224,82,82,0.25)', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
+              <p style={{ color: 'var(--cream-dim)', fontSize: 12, marginBottom: 8, lineHeight: 1.5 }}>
+                Para confirmar, escribe el nombre exacto de la barbería:
+                <br /><span style={{ color: 'var(--cream)', fontWeight: 700 }}>{deleting.name}</span>
+              </p>
+              <input
+                type="text"
+                value={confirmName}
+                onChange={(e) => setConfirmName(e.target.value)}
+                autoFocus
+                placeholder="Escribe el nombre para confirmar"
+                style={{ width: '100%', background: 'var(--dark-3)', border: '1px solid var(--dark-4)', borderRadius: 8, padding: '10px 12px', color: 'var(--cream)', fontSize: 13.5, fontFamily: 'inherit' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { setDeleting(null); setConfirmName('') }}
+                disabled={busy}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid var(--dark-4)', background: 'transparent', color: 'var(--cream-dim)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={busy || confirmName.trim() !== deleting.name.trim()}
+                style={{
+                  flex: 1, padding: 12, borderRadius: 10, border: 'none',
+                  background: (busy || confirmName.trim() !== deleting.name.trim()) ? 'rgba(224,82,82,0.35)' : '#E05252',
+                  color: '#fff', fontWeight: 700,
+                  cursor: (busy || confirmName.trim() !== deleting.name.trim()) ? 'not-allowed' : 'pointer',
+                  opacity: busy ? 0.7 : 1,
+                }}
+              >
+                {busy ? 'Eliminando...' : 'Eliminar permanentemente'}
               </button>
             </div>
           </div>
