@@ -89,10 +89,32 @@ router.post('/', authMiddleware, (req, res) => {
       // Devolvemos la URL completa y permanente de Cloudinary.
       res.status(201).json({ url: result.secure_url })
     } catch (e) {
-      console.error('[upload] error subiendo a Cloudinary:', e.message)
+      console.error('[upload] error subiendo a Cloudinary:', JSON.stringify(e, null, 2))
       res.status(502).json({ error: 'No se pudo subir la imagen. Intenta de nuevo.' })
     }
   })
 })
 
 module.exports = router
+
+// ─────────────────────────────────────────────────────────────
+// RUTA TEMPORAL DE DIAGNÓSTICO — /api/upload/testupload
+// Sube un pixel de prueba a Cloudinary y devuelve el resultado o el error
+// COMPLETO (con el mensaje real de por qué falla). Abrir en el navegador:
+//   https://barbersoft-ga2u.onrender.com/api/upload/testupload
+// QUITAR esta ruta una vez resuelto.
+// ─────────────────────────────────────────────────────────────
+router.get('/testupload', async (req, res) => {
+  const pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  try {
+    const result = await cloudinary.uploader.upload(pixel, { folder: 'barbersoft/test' })
+    res.json({ ok: true, url: result.secure_url })
+  } catch (e) {
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+      http_code: e.error?.http_code || e.http_code,
+      full_error: e.error || e,
+    })
+  }
+})
