@@ -13,17 +13,6 @@ export default function Landing() {
     }
     window.addEventListener('scroll', handleScroll)
 
-    // FAQ
-    const faqBtns = document.querySelectorAll('.faq-q')
-    faqBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = btn.parentElement
-        const wasOpen = item.classList.contains('open')
-        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'))
-        if (!wasOpen) item.classList.add('open')
-      })
-    })
-
     // Scroll reveal
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
@@ -287,17 +276,6 @@ export default function Landing() {
         .btn-price-gold{background:var(--gold);color:var(--dark)}
         .btn-price-gold:hover{background:#E8C97A;transform:translateY(-2px)}
 
-        /* ── FAQ ── */
-        .faq-list{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
-        .faq-item{background:var(--dark-3);border:1px solid var(--dark-4);border-radius:13px;overflow:hidden;transition:border-color 0.25s}
-        .faq-item.open{border-color:rgba(201,168,76,0.4)}
-        .faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;background:transparent;border:none;color:var(--cream);font-size:14.5px;font-weight:700;padding:18px 22px;cursor:pointer;text-align:left;font-family:var(--font-body),sans-serif}
-        .faq-icon{color:var(--gold);font-size:18px;transition:transform 0.25s;flex-shrink:0}
-        .faq-item.open .faq-icon{transform:rotate(45deg)}
-        .faq-a{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
-        .faq-item.open .faq-a{max-height:200px}
-        .faq-a p{color:var(--cream-dim);font-size:13.5px;line-height:1.65;padding:0 22px 20px}
-
         /* ── CTA final ── */
         .cta-final{padding:120px 24px;text-align:center;position:relative;overflow:hidden}
         .cta-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(201,168,76,0.09) 0%,transparent 65%)}
@@ -327,7 +305,6 @@ export default function Landing() {
             <li><a href="#features">Funciones</a></li>
             <li><a href="#how">Cómo funciona</a></li>
             <li><a href="#pricing">Precios</a></li>
-            <li><a href="#faq">FAQ</a></li>
           </ul>
           <div style={{display:'flex', gap:10}}>
             <button className="btn-nav ghost" onClick={goToLogin}>ENTRAR</button>
@@ -344,7 +321,7 @@ export default function Landing() {
             <p className="hero-sub">Agenda, recuerda y gestiona tu barbería desde un solo lugar. Tus clientes reservan solos — tú solo cortas.</p>
             <div className="hero-cta">
               <button className="btn-hero btn-hero-gold" onClick={goToRegister}>PROBAR GRATIS 14 DÍAS →</button>
-              <a className="btn-hero btn-hero-outline" href="#how">▷ VER DEMO</a>
+              <button className="btn-hero btn-hero-outline" onClick={() => navigate('/reservar')}>▷ VER DEMO</button>
             </div>
             <div className="hero-trust">
               <span className="trust-item"><b>✓</b> Sin tarjeta de crédito</span>
@@ -527,27 +504,6 @@ export default function Landing() {
           </p>
         </section>
 
-        {/* ── FAQ ── */}
-        <section id="faq" style={{padding:'90px 24px',borderTop:'1px solid var(--dark-4)'}}>
-          <div className="section-header fade-up">
-            <span className="section-eyebrow">PREGUNTAS FRECUENTES</span>
-            <h2 className="section-title">Dudas comunes</h2>
-          </div>
-          <div className="faq-list">
-            {[
-              ['¿Necesito saber de tecnología para usarlo?', 'No. Si puedes usar WhatsApp, puedes usar Barbersoft. La configuración inicial toma menos de 10 minutos.'],
-              ['¿Qué pasa cuando termina el período de prueba?', 'Puedes elegir un plan y seguir usando todo normalmente. Tus datos se mantienen siempre.'],
-              ['¿Los clientes tienen que descargarse algo?', 'No. Reservan desde cualquier navegador en su celular. Solo abres el link.'],
-              ['¿Funciona para barberías con varios barberos?', 'Sí. Puedes agregar todos los barberos que quieras, cada uno con su propia agenda.'],
-            ].map(([q, a], i) => (
-              <div className="faq-item fade-up" key={i}>
-                <button className="faq-q">{q}<span className="faq-icon">+</span></button>
-                <div className="faq-a"><p>{a}</p></div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* ── CTA final ── */}
         <section className="cta-final">
           <div className="cta-bg"></div>
@@ -577,7 +533,6 @@ export default function Landing() {
           <div className="footer-links">
             <a href="#features">Funciones</a>
             <a href="#pricing">Precios</a>
-            <a href="#faq">FAQ</a>
             <span style={{cursor:'pointer',fontSize:12,color:'var(--cream-dim)',opacity:0.4}} onClick={goToLogin}>Entrar</span>
           </div>
         </footer>
