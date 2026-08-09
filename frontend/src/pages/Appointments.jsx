@@ -674,14 +674,14 @@ export default function Appointments() {
                                     <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--cream-dim)', fontSize:12, fontWeight:600, marginBottom:8 }}>
                                       <span>{group.icon}</span> {group.label}
                                     </p>
-                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:6 }}>
+                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(64px, 1fr))', gap:6 }}>
                                       {group.list.map((slot, i) => {
                                         const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
                                         return (
                                           <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
                                             title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
                                             style={{
-                                              padding:'6px 0', borderRadius:7, fontSize:11, fontWeight:700, cursor:'pointer',
+                                              padding:'4px 0', borderRadius:7, fontSize:10, fontWeight:700, cursor:'pointer',
                                               background: active ? 'var(--gold)' : 'var(--dark-2)',
                                               border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
                                               color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
