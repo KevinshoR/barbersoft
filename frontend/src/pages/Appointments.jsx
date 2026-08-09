@@ -188,9 +188,9 @@ const shopOpensDay = (date, hoursMap) => {
 const timeSlotsPanel = (date, hoursMap) => {
   const dh = hoursMap[date.getDay()]
   const slots = []
-  const START_H = 8, END_H = 20
+  const START_H = 8, END_H = 21
   const cursor = new Date(date); cursor.setHours(START_H, 0, 0, 0)
-  const end = new Date(date); end.setHours(END_H, 0, 0, 0)
+  const end = new Date(date); end.setHours(END_H, 30, 0, 0)
   while (cursor <= end) {
     let dentroHorario = false
     if (dh && dh.is_open) {
@@ -593,93 +593,133 @@ export default function Appointments() {
 
                     return (
                       <>
-                        {/* Calendario */}
-                        <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16, marginBottom:14 }}>
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                            <button type="button" disabled={!canPrev}
-                              onClick={() => canPrev && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()-1, 1))}
-                              style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--dark-4)', background:'transparent', color: canPrev ? 'var(--gold)' : 'var(--dark-4)', cursor: canPrev ? 'pointer' : 'not-allowed', fontSize:15 }}>‹</button>
-                            <p style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:15, fontWeight:700, color:'var(--cream)' }}>
-                              {MES[visibleMonth.getMonth()]} {visibleMonth.getFullYear()}
-                            </p>
-                            <button type="button" disabled={!canNext}
-                              onClick={() => canNext && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()+1, 1))}
-                              style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--dark-4)', background:'transparent', color: canNext ? 'var(--gold)' : 'var(--dark-4)', cursor: canNext ? 'pointer' : 'not-allowed', fontSize:15 }}>›</button>
-                          </div>
-                          <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:4 }}>
-                            {DOW.map((d, i) => <div key={i} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:'var(--cream-dim)', opacity:0.6, padding:'3px 0' }}>{d}</div>)}
-                          </div>
-                          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                            {weeks.map((week, wi) => (
-                              <div key={wi} style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3 }}>
-                                {week.map((cell, ci) => {
-                                  if (!cell) return <div key={ci} />
-                                  const isPast = cell < today0
-                                  const opens = shopOpensDay(cell, hoursMap)
-                                  const barberWorks = !barberDays || barberDays.includes(cell.getDay())
-                                  const recommended = opens && barberWorks   // día normal de atención
-                                  const active = sameDay(pickedDay, cell)
-                                  const isToday = sameDay(today0, cell)
-                                  // En el panel, TODOS los días futuros son seleccionables (flexibilidad),
-                                  // pero los no-recomendados se ven atenuados.
-                                  return (
-                                    <button key={ci} type="button" disabled={isPast}
-                                      onClick={() => !isPast && choosePickedDay(cell)}
-                                      title={isPast ? 'Fecha pasada' : recommended ? '' : 'Fuera del horario habitual'}
-                                      style={{
-                                        aspectRatio:'1', borderRadius:8, border:'1px solid ' + (active ? 'var(--gold)' : 'transparent'),
-                                        background: active ? 'var(--gold)' : isPast ? 'transparent' : recommended ? 'rgba(201,168,76,0.10)' : 'transparent',
-                                        color: active ? 'var(--dark)' : isPast ? 'var(--dark-4)' : recommended ? 'var(--cream)' : 'var(--cream-dim)',
-                                        cursor: isPast ? 'not-allowed' : 'pointer',
-                                        opacity: isPast ? 0.3 : recommended ? 1 : 0.5,
-                                        fontSize:13, fontWeight: active ? 800 : 600, position:'relative',
-                                        display:'flex', alignItems:'center', justifyContent:'center',
-                                      }}>
-                                      {cell.getDate()}
-                                      {isToday && !active && <span style={{ position:'absolute', bottom:3, width:4, height:4, borderRadius:'50%', background:'var(--gold)' }} />}
-                                    </button>
-                                  )
-                                })}
+                        {/* Layout dos columnas: calendario | horas (se apila en móvil) */}
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:14, marginBottom:14 }}>
+
+                          {/* Columna izquierda: Calendario */}
+                          <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16 }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                              <button type="button" disabled={!canPrev}
+                                onClick={() => canPrev && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()-1, 1))}
+                                style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--dark-4)', background:'transparent', color: canPrev ? 'var(--gold)' : 'var(--dark-4)', cursor: canPrev ? 'pointer' : 'not-allowed', fontSize:15 }}>‹</button>
+                              <p style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:15, fontWeight:700, color:'var(--cream)' }}>
+                                {MES[visibleMonth.getMonth()]} {visibleMonth.getFullYear()}
+                              </p>
+                              <button type="button" disabled={!canNext}
+                                onClick={() => canNext && setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth()+1, 1))}
+                                style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--dark-4)', background:'transparent', color: canNext ? 'var(--gold)' : 'var(--dark-4)', cursor: canNext ? 'pointer' : 'not-allowed', fontSize:15 }}>›</button>
+                            </div>
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:4 }}>
+                              {DOW.map((d, i) => <div key={i} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:'var(--cream-dim)', opacity:0.6, padding:'3px 0' }}>{d}</div>)}
+                            </div>
+                            <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                              {weeks.map((week, wi) => (
+                                <div key={wi} style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3 }}>
+                                  {week.map((cell, ci) => {
+                                    if (!cell) return <div key={ci} />
+                                    const isPast = cell < today0
+                                    const opens = shopOpensDay(cell, hoursMap)
+                                    const barberWorks = !barberDays || barberDays.includes(cell.getDay())
+                                    const recommended = opens && barberWorks
+                                    const active = sameDay(pickedDay, cell)
+                                    const isToday = sameDay(today0, cell)
+                                    return (
+                                      <button key={ci} type="button" disabled={isPast}
+                                        onClick={() => !isPast && choosePickedDay(cell)}
+                                        title={isPast ? 'Fecha pasada' : recommended ? '' : 'Fuera del horario habitual'}
+                                        style={{
+                                          aspectRatio:'1', borderRadius:8, border:'1px solid ' + (active ? 'var(--gold)' : 'transparent'),
+                                          background: active ? 'var(--gold)' : isPast ? 'transparent' : recommended ? 'rgba(201,168,76,0.10)' : 'transparent',
+                                          color: active ? 'var(--dark)' : isPast ? 'var(--dark-4)' : recommended ? 'var(--cream)' : 'var(--cream-dim)',
+                                          cursor: isPast ? 'not-allowed' : 'pointer',
+                                          opacity: isPast ? 0.3 : recommended ? 1 : 0.5,
+                                          fontSize:13, fontWeight: active ? 800 : 600, position:'relative',
+                                          display:'flex', alignItems:'center', justifyContent:'center',
+                                        }}>
+                                        {cell.getDate()}
+                                        {isToday && !active && <span style={{ position:'absolute', bottom:3, width:4, height:4, borderRadius:'50%', background:'var(--gold)' }} />}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                            {pickedDay && (
+                              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:12, paddingTop:12, borderTop:'1px solid var(--dark-4)', flexWrap:'wrap' }}>
+                                <span style={{ display:'inline-flex', alignItems:'center', gap:6, color:'var(--cream-dim)', fontSize:11.5 }}>
+                                  <span style={{ width:8, height:8, borderRadius:'50%', background:'var(--gold)' }} /> Fecha seleccionada
+                                </span>
+                                <span style={{ color:'var(--cream)', fontSize:12.5, fontWeight:600, textTransform:'capitalize' }}>
+                                  {pickedDay.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+                                </span>
                               </div>
-                            ))}
+                            )}
+                          </div>
+
+                          {/* Columna derecha: Horas agrupadas por franja */}
+                          <div style={{ background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:14, padding:16 }}>
+                            {!pickedDay ? (
+                              <div style={{ minHeight:180, height:'100%', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center' }}>
+                                <p style={{ color:'var(--cream-dim)', fontSize:13, opacity:0.7, maxWidth:200 }}>Elige un día en el calendario para ver las horas disponibles.</p>
+                              </div>
+                            ) : (
+                              <>
+                                <p style={{ fontFamily:'var(--font-display, Georgia, serif)', fontSize:15, fontWeight:700, color:'var(--cream)', marginBottom:14 }}>Selecciona una hora</p>
+                                {[
+                                  { label:'Mañana', icon:'☀️', list: slots.filter(s => s.date.getHours() < 13) },
+                                  { label:'Tarde',  icon:'☀️', list: slots.filter(s => s.date.getHours() >= 13 && s.date.getHours() < 19) },
+                                  { label:'Noche',  icon:'🌙', list: slots.filter(s => s.date.getHours() >= 19) },
+                                ].map(group => group.list.length > 0 && (
+                                  <div key={group.label} style={{ marginBottom:16 }}>
+                                    <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--cream-dim)', fontSize:12, fontWeight:600, marginBottom:8 }}>
+                                      <span>{group.icon}</span> {group.label}
+                                    </p>
+                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:6 }}>
+                                      {group.list.map((slot, i) => {
+                                        const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
+                                        return (
+                                          <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
+                                            title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
+                                            style={{
+                                              padding:'9px 0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer',
+                                              background: active ? 'var(--gold)' : 'var(--dark-2)',
+                                              border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
+                                              color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
+                                              opacity: slot.dentroHorario ? 1 : 0.5,
+                                            }}>
+                                            {slot.date.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                                {selectedService && (
+                                  <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--gold)', fontSize:12, fontWeight:600, marginTop:4 }}>
+                                    <span>🕐</span> Duración estimada: {selectedService.duration_min} min
+                                  </p>
+                                )}
+                                <p style={{ color:'var(--cream-dim)', fontSize:10.5, marginTop:8, opacity:0.6 }}>
+                                  Las horas atenuadas están fuera del horario habitual, pero puedes agendarlas si lo necesitas.
+                                </p>
+                              </>
+                            )}
                           </div>
                         </div>
 
-                        {/* Horas */}
-                        {pickedDay && (
-                          <div style={{ marginBottom:8 }}>
-                            <p style={{ color:'var(--cream-dim)', fontSize:11, marginBottom:8 }}>
-                              Horas · {pickedDay.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' })}
-                            </p>
-                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(72px, 1fr))', gap:6 }}>
-                              {slots.map((slot, i) => {
-                                const active = selectedDateTime && slot.date.getTime() === selectedDateTime.getTime()
-                                return (
-                                  <button key={i} type="button" onClick={() => chooseSlot(slot.date)}
-                                    title={slot.dentroHorario ? '' : 'Fuera del horario de atención'}
-                                    style={{
-                                      padding:'9px 0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', position:'relative',
-                                      background: active ? 'var(--gold)' : 'var(--dark-3)',
-                                      border:'1px solid ' + (active ? 'var(--gold)' : slot.dentroHorario ? 'var(--dark-4)' : 'rgba(139,105,20,0.4)'),
-                                      color: active ? 'var(--dark)' : slot.dentroHorario ? 'var(--cream)' : 'var(--cream-dim)',
-                                      opacity: slot.dentroHorario ? 1 : 0.55,
-                                    }}>
-                                    {slot.date.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <p style={{ color:'var(--cream-dim)', fontSize:10.5, marginTop:8, opacity:0.6 }}>
-                              Las horas atenuadas están fuera del horario habitual, pero puedes agendarlas si lo necesitas.
-                            </p>
-                          </div>
-                        )}
-
+                        {/* Resumen de tu cita */}
                         {form.scheduled_at && (
-                          <div style={{ background:'rgba(201,168,76,0.08)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:10, padding:'10px 14px', marginTop:4 }}>
-                            <p style={{ color:'var(--gold)', fontSize:13, fontWeight:700 }}>
-                              📅 {new Date(form.scheduled_at).toLocaleString('es-CO', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}
-                            </p>
+                          <div style={{ background:'var(--dark-3)', border:'1px solid rgba(201,168,76,0.3)', borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14 }}>
+                            <div style={{ width:44, height:44, borderRadius:'50%', border:'1px solid var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:'var(--gold)', fontSize:18 }}>📅</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <p style={{ color:'var(--cream-dim)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:3 }}>Resumen de tu cita</p>
+                              <p style={{ color:'var(--cream)', fontSize:13.5, fontWeight:600, textTransform:'capitalize' }}>
+                                {new Date(form.scheduled_at).toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+                                {'   '}
+                                <span style={{ color:'var(--gold)', fontWeight:800 }}>{new Date(form.scheduled_at).toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}</span>
+                                {selectedService && <span style={{ color:'var(--cream-dim)', fontWeight:500 }}> · Duración: {selectedService.duration_min} min</span>}
+                              </p>
+                            </div>
                           </div>
                         )}
                       </>

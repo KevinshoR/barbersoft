@@ -14,6 +14,75 @@ export function resolveImageSrc(url) {
 
 const isValidLink = (url) => /^https?:\/\/.+/i.test(url)
 
+// Comprime/redimensiona la imagen EN EL NAVEGADOR antes de subirla.
+// Motivo: las fotos de celular pesan 3-8MB y el backend solo acepta 2MB, así
+// que casi todas fallaban. Esto redibuja la imagen en un canvas a un ancho
+// máximo y la re-exporta como JPG con calidad ajustada, dejándola bien por
+// debajo del límite. De paso convierte formatos raros (HEIC de iPhone que el
+// navegador ya sabe mostrar) a JPG. Si por lo que sea la compresión falla,
+// se sube el archivo original (mejor intentar que bloquear).
+const MAX_DIMENSION = 1280   // ancho o alto máximo en px (suficiente para fotos de servicios/barberos)
+const TARGET_BYTES  = 1.6 * 1024 * 1024  // apuntamos a ~1.6MB para ir con margen bajo el límite de 2MB
+
+async function compressImage(file) {
+  // Los GIF (animados) y SVG no se comprimen bien por canvas: se dejan tal cual.
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file
+
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = reject
+      image.src = dataUrl
+    })
+
+    // Calcular el nuevo tamaño respetando la proporción
+    let { width, height } = img
+    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+      if (width >= height) {
+        height = Math.round(height * (MAX_DIMENSION / width))
+        width = MAX_DIMENSION
+      } else {
+        width = Math.round(width * (MAX_DIMENSION / height))
+        height = MAX_DIMENSION
+      }
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    // Fondo blanco para imágenes con transparencia (PNG → JPG no soporta alfa)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(img, 0, 0, width, height)
+
+    // Bajar la calidad hasta quedar bajo el objetivo de tamaño
+    let quality = 0.85
+    let blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', quality))
+    while (blob && blob.size > TARGET_BYTES && quality > 0.4) {
+      quality -= 0.15
+      blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', quality))
+    }
+
+    if (!blob) return file  // el navegador no pudo exportar → subir original
+
+    // Nombre con extensión .jpg
+    const baseName = (file.name || 'foto').replace(/\.[^.]+$/, '')
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' })
+  } catch {
+    // Cualquier fallo (formato no legible, etc.) → subir el original sin comprimir
+    return file
+  }
+}
+
 export default function ImageUpload({ value, onChange, label }) {
   const toast = useToast()
   const [mode, setMode]           = useState('file')
@@ -28,8 +97,10 @@ export default function ImageUpload({ value, onChange, label }) {
     setUploading(true)
     setImgError(false)
     try {
+      // Comprimir/redimensionar antes de subir (clave para fotos de celular).
+      const toUpload = await compressImage(file)
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', toUpload)
       // No fijar Content-Type a mano: el navegador debe generar el boundary del multipart.
       const res = await api.post('/upload', formData)
       onChange(res.data.url)
@@ -91,13 +162,13 @@ export default function ImageUpload({ value, onChange, label }) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+            accept="image/*"
             onChange={handleFileChange}
             disabled={uploading}
             style={{ fontSize: 12, color: 'var(--cream-dim)', fontFamily: 'var(--font-body)' }}
           />
-          {uploading && <p style={{ color: 'var(--gold)', fontSize: 12, marginTop: 6 }}>Subiendo...</p>}
-          <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 4, opacity: 0.6 }}>JPG, PNG o WEBP · máximo 2MB</p>
+          {uploading && <p style={{ color: 'var(--gold)', fontSize: 12, marginTop: 6 }}>Optimizando y subiendo...</p>}
+          <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 4, opacity: 0.6 }}>Puedes subir una foto desde tu celular. Se optimiza sola.</p>
         </div>
       ) : (
         <div>

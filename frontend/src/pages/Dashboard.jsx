@@ -80,6 +80,9 @@ export default function Dashboard() {
   const [loaded, setLoaded]   = useState(false)
   const [copied, setCopied]   = useState(false)
   const [monthly, setMonthly] = useState(null)
+  const [period, setPeriod] = useState('today')       // hoy | 7d | month | lastMonth | custom
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
 
   useEffect(() => {
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
@@ -106,6 +109,42 @@ export default function Dashboard() {
   const isTrial   = barbershop?.subscription_status === 'trial'
   const daysLeft  = trialDaysLeft(barbershop?.trial_ends_at)
 
+  // ── Filtro de periodo (reportes: hoy / 7 días / mes / mes pasado / rango) ──
+  // Se calcula sobre TODAS las citas: weekAppointments ya trae el historial completo.
+  // Las variables de HOY (pending, confirmed, todayRevenue) NO se tocan: siguen
+  // alimentando el "Resumen del día" y "Tareas pendientes" de más abajo.
+  const todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
+  function keyMinusDays(days) {
+    const d = new Date(todayKey + 'T00:00:00')
+    d.setDate(d.getDate() - days)
+    return new Intl.DateTimeFormat('en-CA').format(d)
+  }
+  function periodRange() {
+    if (period === '7d')        return { from: keyMinusDays(6), to: todayKey }
+    if (period === 'month')     return { from: todayKey.slice(0, 7) + '-01', to: todayKey }
+    if (period === 'lastMonth') {
+      const [y, m] = todayKey.split('-').map(Number)
+      const first = new Date(y, m - 2, 1)   // primer día del mes anterior
+      const last  = new Date(y, m - 1, 0)   // último día del mes anterior
+      return {
+        from: new Intl.DateTimeFormat('en-CA').format(first),
+        to:   new Intl.DateTimeFormat('en-CA').format(last),
+      }
+    }
+    if (period === 'custom')    return { from: customFrom || todayKey, to: customTo || todayKey }
+    return { from: todayKey, to: todayKey } // 'today'
+  }
+  const range = periodRange()
+  const allAppts = weekAppointments.length ? weekAppointments : appointments
+  const periodAppts = allAppts.filter(a => {
+    const k = (a.scheduled_at || '').slice(0, 10)
+    return k >= range.from && k <= range.to
+  })
+  const periodConfirmed = periodAppts.filter(a => a.status === 'confirmed').length
+  const periodPending   = periodAppts.filter(a => a.status === 'pending').length
+  const periodRevenue   = periodAppts.filter(a => a.status === 'done').reduce((sum, a) => sum + parseFloat(a.price || 0), 0)
+  const pLabel = { today: 'hoy', '7d': '· 7 días', month: '· este mes', lastMonth: '· mes pasado', custom: '· rango' }[period] || ''
+
   // Ocupación de hoy: citas activas (no canceladas) sobre una jornada estándar
   // de referencia. Es una estimación visual, no un dato del backend.
   const activeToday = appointments.filter(a => a.status !== 'cancelled').length
@@ -114,10 +153,10 @@ export default function Dashboard() {
 
   // KPIs superiores
   const kpis = [
-    { label: 'Citas hoy',     value: appointments.length, icon: Ic.calendar, tint: 'var(--gold)' },
-    { label: 'Confirmadas',   value: confirmed,           icon: Ic.check,    tint: 'var(--gold-light)', sub: appointments.length ? Math.round((confirmed / appointments.length) * 100) + '% del total' : null },
-    { label: 'Pendientes',    value: pending,             icon: Ic.clock,    tint: 'var(--gold)', sub: pending ? 'Requieren revisión' : null },
-    { label: 'Ingresos hoy',  value: formatPrice(todayRevenue), icon: Ic.money, tint: 'var(--gold-light)', isMoney: true },
+    { label: 'Citas ' + pLabel,     value: periodAppts.length, icon: Ic.calendar, tint: 'var(--gold)' },
+    { label: 'Confirmadas',         value: periodConfirmed,    icon: Ic.check,    tint: 'var(--gold-light)', sub: periodAppts.length ? Math.round((periodConfirmed / periodAppts.length) * 100) + '% del total' : null },
+    { label: 'Pendientes',          value: periodPending,      icon: Ic.clock,    tint: 'var(--gold)', sub: periodPending ? 'Requieren revisión' : null },
+    { label: 'Ingresos ' + pLabel,  value: formatPrice(periodRevenue), icon: Ic.money, tint: 'var(--gold-light)', isMoney: true },
   ]
 
   // Gráfico de ingresos últimos 7 días
@@ -177,6 +216,44 @@ export default function Dashboard() {
               Ver agenda
             </Link>
           </div>
+        </div>
+
+        {/* Selector de periodo del reporte */}
+        <div className="animate-fade-up delay-1" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+          <span style={{ color: 'var(--cream-dim)', fontSize: 12, fontWeight: 600, marginRight: 2 }}>Reporte:</span>
+          {[
+            { id: 'today',     label: 'Hoy' },
+            { id: '7d',        label: 'Últimos 7 días' },
+            { id: 'month',     label: 'Este mes' },
+            { id: 'lastMonth', label: 'Mes pasado' },
+            { id: 'custom',    label: 'Personalizado' },
+          ].map(opt => {
+            const active = period === opt.id
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setPeriod(opt.id)}
+                style={{
+                  padding: '7px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                  background: active ? 'var(--gold)' : 'var(--dark-2)',
+                  color: active ? 'var(--dark)' : 'var(--cream-dim)',
+                  border: '1px solid ' + (active ? 'var(--gold)' : 'var(--dark-4)'),
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+          {period === 'custom' && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <input type="date" value={customFrom} max={todayKey} onChange={e => setCustomFrom(e.target.value)}
+                style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', color: 'var(--cream)', borderRadius: 8, padding: '7px 10px', fontSize: 12.5 }} />
+              <span style={{ color: 'var(--cream-dim)', fontSize: 12 }}>a</span>
+              <input type="date" value={customTo} max={todayKey} onChange={e => setCustomTo(e.target.value)}
+                style={{ background: 'var(--dark-2)', border: '1px solid var(--dark-4)', color: 'var(--cream)', borderRadius: 8, padding: '7px 10px', fontSize: 12.5 }} />
+            </span>
+          )}
         </div>
 
         {/* KPIs */}
