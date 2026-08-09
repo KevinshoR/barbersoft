@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
 import ShopProfile from './pages/ShopProfile'
 import Login        from './pages/Login'
+import Register     from './pages/Register'
 import Dashboard    from './pages/Dashboard'
 import Appointments from './pages/Appointments'
 import Services     from './pages/Services'
@@ -42,6 +43,9 @@ export default function App() {
         <Routes>
           <Route path="/login" element={
             <PublicRoute><Login /></PublicRoute>
+          }/>
+          <Route path="/register" element={
+            <PublicRoute><Register /></PublicRoute>
           }/>
           <Route path="/dashboard" element={
             <PrivateRoute><Dashboard /></PrivateRoute>
