@@ -49,8 +49,9 @@ function subirACloudinary(buffer, barbershopId) {
       {
         folder: `barbersoft/${barbershopId || 'general'}`, // organiza por barbería
         resource_type: 'image',
-        // Transformación de seguridad: nunca guardar algo gigante.
-        transformation: [{ width: 1280, height: 1280, crop: 'limit', quality: 'auto:good' }],
+        // Sin transformaciones en la subida: la imagen ya viene comprimida desde
+        // el navegador (ImageUpload.jsx). Además, en cuentas gratuitas las
+        // transformaciones al subir pueden devolver 403.
       },
       (error, result) => {
         if (error) return reject(error)
@@ -95,29 +96,3 @@ router.post('/', authMiddleware, (req, res) => {
 })
 
 module.exports = router
-
-// ─────────────────────────────────────────────────────────────
-// RUTA TEMPORAL DE DIAGNÓSTICO — /api/upload/ping
-// Abre https://barbersoft-ga2u.onrender.com/api/upload/ping en el navegador.
-// Le hace ping a Cloudinary con tus credenciales y muestra el resultado o el
-// error EXACTO. QUITAR esta ruta una vez resuelto (no dejarla en producción).
-// ─────────────────────────────────────────────────────────────
-router.get('/ping', async (req, res) => {
-  const cfg = {
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '(vacío)',
-    api_key_len: (process.env.CLOUDINARY_API_KEY || '').length,
-    api_secret_len: (process.env.CLOUDINARY_API_SECRET || '').length,
-  }
-  try {
-    const result = await cloudinary.api.ping()
-    res.json({ ok: true, cloudinary: result, config: cfg })
-  } catch (e) {
-    res.status(500).json({
-      ok: false,
-      config: cfg,
-      error_message: e.message,
-      http_code: e.error?.http_code || e.http_code,
-      full: e.error || e,
-    })
-  }
-})
