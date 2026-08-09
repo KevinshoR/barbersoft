@@ -24,7 +24,6 @@ const bcrypt           = require('bcryptjs')
 const crypto           = require('crypto')
 const pool             = require('../config/db')
 const UserModel        = require('../models/user.model')
-const departments      = require('../data/colombia.json')
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const client = new OAuth2Client(GOOGLE_CLIENT_ID)
@@ -134,13 +133,9 @@ const GoogleController = {
 
     if (!id_token) return res.status(400).json({ error: 'Falta id_token' })
     if (!name || !name.trim()) return res.status(400).json({ error: 'El nombre de la barbería es obligatorio' })
-    if (!department || !municipality) return res.status(400).json({ error: 'Departamento y municipio son obligatorios' })
+    if (!department || !String(department).trim()) return res.status(400).json({ error: 'El departamento es obligatorio' })
+    if (!municipality || !String(municipality).trim()) return res.status(400).json({ error: 'El municipio es obligatorio' })
     if (!phone || phone.trim().length < 7) return res.status(400).json({ error: 'Teléfono inválido' })
-
-    // Validar depto/municipio contra el catálogo (igual que el registro normal)
-    if (!departments[department] || !departments[department].includes(municipality)) {
-      return res.status(400).json({ error: 'Departamento o municipio inválido' })
-    }
 
     let payload
     try {
