@@ -1,7 +1,8 @@
-﻿const router         = require('express').Router()
-const rateLimit      = require('express-rate-limit')
-const AuthController = require('../controllers/auth.controller')
-const authMiddleware = require('../middleware/auth.middleware')
+const router           = require('express').Router()
+const rateLimit        = require('express-rate-limit')
+const AuthController   = require('../controllers/auth.controller')
+const GoogleController = require('../controllers/google.controller')
+const authMiddleware   = require('../middleware/auth.middleware')
 
 // Limita intentos de acceso/registro para frenar fuerza bruta.
 // skipSuccessfulRequests: los accesos correctos NO cuentan, solo los fallidos,
@@ -21,5 +22,10 @@ router.get('/me',      authMiddleware, AuthController.me)
 router.put('/profile', authMiddleware, AuthController.updateProfile)
 router.post('/forgot-password', authLimiter, AuthController.forgotPassword)
 router.post('/reset-password',  authLimiter, AuthController.resetPassword)
+
+// Google Sign-In (One Tap): verifica el ID token contra Google y hace
+// login o inicia el flujo de registro con datos prellenados.
+router.post('/google/verify',   authLimiter, GoogleController.verify)
+router.post('/google/register', authLimiter, GoogleController.register)
 
 module.exports = router

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
@@ -6,6 +6,8 @@ import { getDepartments, getMunicipalities } from '../data/colombia'
 import { isPasswordValid } from '../utils/passwordValidation'
 import PasswordStrength from '../components/PasswordStrength'
 import { requiredError, lengthError, emailError, phoneError, combine } from '../utils/validators'
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 const registerSchema = {
   name: combine(v => requiredError(v, 'El nombre'), v => lengthError(v, { min: 2, max: 100, label: 'El nombre' })),
@@ -17,10 +19,9 @@ const registerSchema = {
     return null
   },
 }
-
 function isRequired(v) { return v !== undefined && v !== null && String(v).trim() !== '' }
 
-/* ---------- Iconos (trazo fino, heredan color) ---------- */
+/* ---------- Iconos ---------- */
 const Ic = {
   scissors: (s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>,
   store: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0"/></svg>,
@@ -32,18 +33,19 @@ const Ic = {
   tag: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-8-8V3h9.6l8.4 8.4a2 2 0 010 2z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>,
   eye: (s = 17) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>,
   eyeOff: (s = 17) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 4.2A10.9 10.9 0 0112 4c7 0 10.5 6.5 10.5 6.5a18 18 0 01-3.2 4.2M6.6 6.6A18 18 0 001.5 10.5S5 17 12 17a10.8 10.8 0 004.1-.8"/><line x1="2" y1="2" x2="22" y2="22"/></svg>,
-  calendar: (s = 20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>,
-  chart: (s = 20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 16v-4M12 16V9M16 16v-6"/></svg>,
-  users: (s = 20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.9"/><path d="M16 3.1a4 4 0 010 7.8"/></svg>,
   arrow: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>,
+  calendar: (s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>,
+  chart: (s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 16v-4M12 16V9M16 16v-6"/></svg>,
+  users: (s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.9"/><path d="M16 3.1a4 4 0 010 7.8"/></svg>,
+  help: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01"/></svg>,
+  shield: (s = 14) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  bolt: (s = 14) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>,
+  cloud: (s = 14) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H7a5 5 0 010-10 6 6 0 0111.6 2A4 4 0 0117.5 19z"/></svg>,
 }
 
-/* Campo con icono a la izquierda.
-   Va FUERA del componente: si se declara dentro del render, React lo trata como
-   un tipo nuevo en cada tecleo y remonta el input, perdiendo el foco. */
 function Campo({ label, icon, error: err, children }) {
   return (
-    <div>
+    <div style={{ marginBottom: 14 }}>
       <label className="au-label">{label}</label>
       <div className="au-field">
         <span className="au-field-ic">{icon}</span>
@@ -54,15 +56,14 @@ function Campo({ label, icon, error: err, children }) {
   )
 }
 
-/* Beneficios del panel izquierdo */
 const BENEFICIOS = [
-  { icon: Ic.calendar, title: 'Agenda inteligente',    text: 'Organiza citas y recordatorios sin complicaciones.' },
+  { icon: Ic.calendar, title: 'Agenda inteligente',      text: 'Organiza citas y recordatorios sin complicaciones.' },
   { icon: Ic.chart,    title: 'Reportes y estadísticas', text: 'Conoce tu negocio y toma mejores decisiones.' },
-  { icon: Ic.users,    title: 'Clientes satisfechos',  text: 'Brinda una experiencia premium y fideliza clientes.' },
+  { icon: Ic.users,    title: 'Clientes satisfechos',    text: 'Brinda una experiencia premium y fideliza clientes.' },
 ]
 
 export default function Login() {
-  const location   = useLocation()
+  const location = useLocation()
   const [isRegister, setIsRegister]     = useState(new URLSearchParams(location.search).get('register') === 'true')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
@@ -70,6 +71,11 @@ export default function Login() {
   const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', department:'', municipality:'', referral_code_usado:'' })
   const [touched, setTouched] = useState({})
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+
+  // Estado para el flujo Google (registro que necesita completar datos)
+  const [googleFlow, setGoogleFlow] = useState(null) // { idToken, prefill:{name,email} } | null
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const googleBtnRef = useRef(null)
 
   const { login } = useAuth()
   const navigate  = useNavigate()
@@ -90,19 +96,78 @@ export default function Login() {
     setForm(prev => ({
       ...prev,
       [name]: value,
-      ...(name === 'department' ? { municipality: '' } : {})
+      ...(name === 'department' ? { municipality: '' } : {}),
     }))
     setError('')
     markTouched(name)
   }
 
+  // ─── Google Sign-In (Google Identity Services) ───────────────────
+  // Cargamos el script de Google una sola vez y renderizamos el botón.
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return
+
+    let script = document.getElementById('google-identity-script')
+    if (!script) {
+      script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      script.id = 'google-identity-script'
+      document.body.appendChild(script)
+    }
+
+    const onReady = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          if (!response?.credential) return
+          setGoogleLoading(true)
+          setError('')
+          try {
+            const res = await api.post('/auth/google/verify', { id_token: response.credential })
+            if (res.data.mode === 'login') {
+              // Login exitoso: guardamos token y al dashboard
+              login(res.data.token, res.data.barbershop)
+              navigate('/dashboard')
+            } else if (res.data.mode === 'needs_registration') {
+              // Cuenta nueva: mostrar modal para completar los 3 datos faltantes
+              setGoogleFlow({
+                idToken: response.credential,
+                prefill: res.data.prefill,
+              })
+            }
+          } catch (err) {
+            setError(err.response?.data?.error || 'No se pudo iniciar sesión con Google')
+          } finally {
+            setGoogleLoading(false)
+          }
+        },
+      })
+      googleBtnRef.current.innerHTML = ''
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'standard',
+        theme: 'filled_black',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        logo_alignment: 'left',
+        width: googleBtnRef.current.clientWidth || 320,
+      })
+    }
+
+    if (window.google?.accounts?.id) onReady()
+    else script.addEventListener('load', onReady)
+    return () => script.removeEventListener('load', onReady)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setTouched(t => ({ ...t, name: true, email: true, phone: true, department: true, municipality: true, password: true }))
-
     if (emailErr) return
-
     if (isRegister) {
       if (Object.values(registerErrors).some(Boolean)) return
       if (!isPasswordValid(form.password, form.email)) {
@@ -110,7 +175,6 @@ export default function Login() {
         return
       }
     }
-
     setLoading(true)
     try {
       const endpoint = isRegister ? '/auth/register' : '/auth/login'
@@ -141,311 +205,361 @@ export default function Login() {
   return (
     <div className="au-wrap">
       <style>{`
-        .au-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);background:var(--dark);font-family:var(--font-body)}
-        /* ---- Panel izquierdo ---- */
-        .au-side{position:relative;padding:40px 48px;display:flex;flex-direction:column;overflow:hidden;
-          background:
-            radial-gradient(120% 80% at 20% 0%, rgba(201,168,76,0.16) 0%, transparent 55%),
-            radial-gradient(90% 60% at 85% 75%, rgba(201,168,76,0.08) 0%, transparent 60%),
-            linear-gradient(160deg,#141110 0%,#0D0D0D 55%,#100E0C 100%);
-          border-right:1px solid var(--dark-4)}
-        .au-side::after{content:'';position:absolute;inset:0;pointer-events:none;
-          background:radial-gradient(60% 40% at 10% 10%, rgba(232,201,122,0.10) 0%, transparent 70%)}
-        .au-side-in{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
-        .au-logo{display:flex;align-items:center;gap:10px;background:none;border:none;padding:0;cursor:pointer;color:var(--gold);width:fit-content}
-        .au-logo span{font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--cream);letter-spacing:-.01em}
-        .au-logo span i{color:var(--gold);font-style:normal}
-        .au-kicker{color:var(--gold);font-size:11.5px;font-weight:700;letter-spacing:.16em;margin-bottom:14px}
-        .au-h1{font-family:var(--font-display);font-size:40px;line-height:1.16;color:var(--cream);font-weight:700;letter-spacing:-.01em;margin:0 0 18px}
-        .au-h1 em{font-style:normal;color:var(--gold)}
-        .au-sub{color:var(--cream-dim);font-size:15px;line-height:1.6;max-width:400px;margin:0}
-        .au-rule{width:64px;height:1px;background:var(--gold);opacity:.55;margin:30px 0}
-        .au-benef{display:flex;gap:14px;margin-bottom:22px;max-width:420px}
-        .au-benef-ic{flex-shrink:0;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-          background:rgba(201,168,76,0.10);border:1px solid rgba(201,168,76,0.28);color:var(--gold)}
-        .au-benef h3{font-family:var(--font-display);font-size:16.5px;color:var(--cream);margin:2px 0 4px;font-weight:600}
-        .au-benef p{color:var(--cream-dim);font-size:13.5px;line-height:1.55;margin:0}
-        .au-quote{margin-top:auto;background:rgba(255,255,255,0.035);border:1px solid var(--dark-4);border-radius:14px;padding:20px 22px;max-width:400px}
-        .au-quote-mark{font-family:var(--font-display);color:var(--gold);font-size:30px;line-height:1;margin-bottom:6px}
-        .au-quote p{color:var(--cream);font-size:14px;line-height:1.6;margin:0 0 16px}
-        .au-quote-who{display:flex;align-items:center;gap:11px}
-        .au-avatar{width:36px;height:36px;border-radius:50%;background:var(--dark-3);border:1px solid var(--dark-4);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:14px;flex-shrink:0}
-        .au-quote-who b{display:block;color:var(--cream);font-size:13.5px;font-weight:600}
-        .au-quote-who small{color:var(--cream-dim);font-size:12px}
-        /* ---- Panel derecho ---- */
-        .au-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 48px 40px;overflow-y:auto}
-        .au-card{position:relative;width:100%;max-width:820px;background:var(--dark-2);border:1px solid var(--dark-4);border-radius:20px;padding:52px 56px 38px;margin-top:34px}
-        .au-badge{position:absolute;top:-34px;left:50%;transform:translateX(-50%);width:68px;height:68px;border-radius:50%;
-          background:var(--dark);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold)}
-        .au-title{font-family:var(--font-display);font-size:34px;font-weight:700;color:var(--cream);text-align:center;margin:0 0 8px;letter-spacing:-.01em}
-        .au-note{text-align:center;color:var(--gold);font-size:11.5px;font-weight:700;letter-spacing:.13em;margin:0 0 26px}
-        /* stepper */
-        .au-steps{display:flex;align-items:flex-start;justify-content:center;margin-bottom:28px}
-        .au-step{display:flex;flex-direction:column;align-items:center;gap:8px;width:118px}
-        .au-step-n{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;
-          border:1px solid var(--dark-4);color:var(--cream-dim);background:var(--dark-3)}
-        .au-step.on .au-step-n{background:var(--gold);border-color:var(--gold);color:var(--dark)}
-        .au-step small{font-size:11.5px;color:var(--cream-dim);text-align:center;line-height:1.35}
-        .au-step.on small{color:var(--cream)}
-        .au-step-line{flex:1;height:1px;background:var(--dark-4);margin-top:14px;min-width:24px}
-        .au-step-line.on{background:var(--gold)}
-        /* secciones */
-        .au-sec{display:flex;align-items:center;gap:9px;color:var(--gold);font-size:11.5px;font-weight:700;letter-spacing:.13em;margin:0 0 16px}
-        .au-sec span{color:var(--cream-dim);font-weight:500;letter-spacing:0;font-size:11px}
-        .au-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:14px 18px}
-        .au-grid-3{display:grid;grid-template-columns:repeat(3, 1fr);gap:14px 18px}
-        @media (min-width:1200px){
-          .au-grid{grid-template-columns:repeat(4, 1fr)}
-        }
-        .au-label{display:block;font-size:13px;color:var(--cream);margin-bottom:7px;font-weight:500}
-        .au-field{position:relative;display:flex;align-items:center}
-        .au-field-ic{position:absolute;left:14px;display:flex;color:var(--cream-dim);opacity:.75;pointer-events:none}
-        .au-field input,.au-field select{width:100%;background:var(--dark-3);border:1px solid var(--dark-4);border-radius:10px;
-          padding:13px 14px 13px 42px;color:var(--cream);font-size:14px;font-family:var(--font-body);outline:none;appearance:none}
-        .au-field select{cursor:pointer;padding-right:38px}
-        .au-field input:focus,.au-field select:focus{border-color:var(--gold)}
-        .au-field input::placeholder{color:var(--cream-dim);opacity:.55}
-        .au-field input:disabled,.au-field select:disabled{opacity:.45;cursor:not-allowed}
-        .au-chev{position:absolute;right:14px;color:var(--cream-dim);pointer-events:none;font-size:11px}
-        .au-eye{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:var(--cream-dim);display:flex;padding:4px}
-        .au-help{color:var(--cream-dim);font-size:11.5px;line-height:1.5;margin:7px 0 0}
-        .au-err{color:var(--gold-light);font-size:12px;margin:6px 0 0}
-        .au-div{height:1px;background:var(--dark-4);margin:26px 0}
-        .au-submit{width:100%;margin-top:6px;padding:15px 0;border:none;border-radius:11px;cursor:pointer;
-          background:linear-gradient(180deg,var(--gold-light) 0%,var(--gold) 100%);color:#1A1408;
-          font-family:var(--font-body);font-size:14.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px}
-        .au-submit:disabled{opacity:.5;cursor:not-allowed}
-        .au-terms{text-align:center;color:var(--cream-dim);font-size:11.5px;line-height:1.6;margin:16px 0 0}
-        .au-terms a{color:var(--gold);text-decoration:none}
-        .au-terms a:hover{text-decoration:underline}
-        .au-foot{margin-top:24px;color:var(--cream-dim);font-size:13.5px;text-align:center}
-        .au-foot button{background:none;border:none;color:var(--gold);font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--font-body)}
-        .au-foot button:hover{text-decoration:underline}
-        .au-alert{background:rgba(232,201,122,0.10);border:1px solid rgba(232,201,122,0.32);color:var(--gold-light);
-          border-radius:10px;padding:12px 15px;margin-bottom:20px;font-size:13px}
-        .au-forgot{background:none;border:none;color:var(--cream-dim);font-size:12.5px;cursor:pointer;display:block;margin:14px auto 0;font-family:var(--font-body)}
-        .au-forgot:hover{color:var(--cream)}
-        .au-consent{display:flex;align-items:flex-start;gap:10px;margin-top:18px;cursor:pointer}
-        .au-consent input{margin-top:2px;width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
-        .au-consent span{color:var(--cream-dim);font-size:11.5px;line-height:1.6}
-        .au-consent a{color:var(--gold);text-decoration:none}
-        .au-consent a:hover{text-decoration:underline}
-        @media (max-width:960px){
+        .au-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);background:var(--dark);font-family:var(--font-body,sans-serif);color:var(--cream)}
+        /* Panel izquierdo — presentación */
+        .au-left{position:relative;padding:clamp(28px,4vw,56px);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(180deg,#0A0A0A 0%,#0E0E0E 100%)}
+        .au-left::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,rgba(201,168,76,0.09),transparent 60%);pointer-events:none}
+        .au-brand{display:flex;align-items:center;gap:10px;color:var(--cream);text-decoration:none;font-family:var(--font-display,Georgia,serif);font-weight:800;font-size:22px;position:relative;z-index:1}
+        .au-brand-ic{color:var(--gold)}
+        .au-brand em{color:var(--gold);font-style:normal}
+        .au-kicker{color:var(--gold);font-size:11px;font-weight:800;letter-spacing:0.18em;margin-bottom:14px;display:inline-flex;align-items:center;gap:8px}
+        .au-kicker::before{content:"";width:14px;height:2px;background:var(--gold)}
+        .au-headline{font-family:var(--font-display,Georgia,serif);font-size:clamp(34px,4vw,52px);font-weight:800;line-height:1.06;margin-bottom:18px}
+        .au-headline em{color:var(--gold);font-style:normal;display:block}
+        .au-lead{color:var(--cream-dim);font-size:15px;line-height:1.6;max-width:440px;margin-bottom:26px}
+        .au-sep{height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.35),transparent);margin-bottom:26px;width:80px}
+        .au-benefits{display:flex;flex-direction:column;gap:16px;margin-bottom:28px;position:relative;z-index:1}
+        .au-benefit{display:flex;gap:14px;align-items:flex-start;animation:fadeUp 0.6s ease both;opacity:0}
+        .au-benefit.d0{animation-delay:0.05s} .au-benefit.d1{animation-delay:0.15s} .au-benefit.d2{animation-delay:0.25s}
+        .au-benefit-ic{width:44px;height:44px;border-radius:11px;background:rgba(201,168,76,0.10);border:1px solid rgba(201,168,76,0.35);color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .au-benefit h4{font-family:var(--font-display,Georgia,serif);font-weight:800;color:var(--cream);font-size:16px;margin-bottom:2px}
+        .au-benefit p{color:var(--cream-dim);font-size:13px;line-height:1.5}
+        .au-testi{background:var(--dark-2);border:1px solid var(--dark-4);border-radius:16px;padding:20px 22px;position:relative;z-index:1;animation:fadeUp 0.7s ease 0.4s both;opacity:0}
+        .au-testi-mark{color:var(--gold);font-size:26px;font-family:Georgia,serif;line-height:1;margin-bottom:4px}
+        .au-testi p{color:var(--cream);font-size:14px;line-height:1.55;margin-bottom:12px;font-style:italic}
+        .au-testi-who{display:flex;align-items:center;gap:10px}
+        .au-testi-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dim),var(--gold));display:flex;align-items:center;justify-content:center;color:var(--dark);font-weight:900;font-size:14px;flex-shrink:0}
+        .au-testi-who div{line-height:1.3}
+        .au-testi-name{color:var(--cream);font-size:13px;font-weight:700}
+        .au-testi-role{color:var(--cream-dim);font-size:11.5px}
+
+        /* Panel derecho — formulario */
+        .au-right{position:relative;padding:clamp(28px,4vw,56px);display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at top,rgba(201,168,76,0.05),transparent 70%),var(--dark)}
+        .au-help{position:absolute;top:24px;right:clamp(24px,4vw,48px);display:flex;align-items:center;gap:10px;color:var(--cream-dim);font-size:12.5px;text-decoration:none;background:transparent;border:none;cursor:pointer;font-family:inherit}
+        .au-help:hover{color:var(--gold)}
+        .au-help-ic{width:28px;height:28px;border-radius:50%;border:1px solid var(--dark-4);display:flex;align-items:center;justify-content:center;color:var(--cream-dim)}
+        .au-help strong{color:var(--cream);font-weight:600}
+        .au-help em{color:var(--gold);font-style:normal;font-weight:700}
+        .au-card{width:100%;max-width:460px;background:var(--dark-2);border:1px solid var(--dark-4);border-radius:20px;padding:44px 40px 34px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+        .au-crown{position:absolute;top:-32px;left:50%;transform:translateX(-50%);width:64px;height:64px;border-radius:50%;background:var(--dark-2);border:1px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center;color:var(--gold);box-shadow:0 0 40px rgba(201,168,76,0.2)}
+        .au-title{font-family:var(--font-display,Georgia,serif);font-size:30px;font-weight:800;text-align:center;color:var(--cream);margin:14px 0 6px}
+        .au-sub{text-align:center;color:var(--gold);font-size:11.5px;letter-spacing:0.16em;font-weight:800;margin-bottom:6px}
+        .au-hr{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4),transparent);margin:14px 0 24px}
+        .au-label{display:block;font-size:12.5px;color:var(--cream);font-weight:600;margin-bottom:7px}
+        .au-field{position:relative;display:flex;align-items:center;background:var(--dark-3);border:1px solid var(--dark-4);border-radius:11px;transition:border-color 0.2s}
+        .au-field:focus-within{border-color:var(--gold)}
+        .au-field-ic{color:var(--gold);opacity:0.7;padding:0 12px;display:flex;align-items:center;flex-shrink:0}
+        .au-field input,.au-field select{flex:1;background:transparent;border:none;outline:none;color:var(--cream);font-size:14px;padding:13px 12px 13px 4px;width:100%;font-family:inherit}
+        .au-field select{appearance:none;padding-right:36px;cursor:pointer}
+        .au-field select option{background:var(--dark-2);color:var(--cream)}
+        .au-field-toggle{background:transparent;border:none;color:var(--gold);opacity:0.7;padding:0 12px;cursor:pointer;display:flex;align-items:center}
+        .au-err{color:#E05252;font-size:11.5px;margin-top:5px}
+        .au-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+        .au-remember{display:inline-flex;align-items:center;gap:8px;color:var(--cream);font-size:13px;cursor:pointer}
+        .au-remember input{display:none}
+        .au-remember-box{width:18px;height:18px;border:1px solid var(--gold);border-radius:5px;display:flex;align-items:center;justify-content:center;background:transparent;flex-shrink:0}
+        .au-remember input:checked ~ .au-remember-box{background:var(--gold)}
+        .au-remember input:checked ~ .au-remember-box::after{content:"✓";color:var(--dark);font-size:12px;font-weight:900}
+        .au-link{color:var(--gold);font-size:13px;font-weight:700;background:transparent;border:none;cursor:pointer;padding:0;text-decoration:none}
+        .au-link:hover{text-decoration:underline}
+        .au-submit{width:100%;padding:16px 0;border-radius:12px;border:none;background:var(--gold);color:var(--dark);font-weight:800;letter-spacing:0.06em;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;font-family:inherit}
+        .au-submit:hover:not(:disabled){background:#E8C97A;transform:translateY(-1px);box-shadow:0 12px 32px rgba(201,168,76,0.28)}
+        .au-submit:disabled{background:rgba(201,168,76,0.4);cursor:not-allowed;color:rgba(10,10,10,0.6)}
+        .au-or{display:flex;align-items:center;gap:12px;color:var(--cream-dim);font-size:12px;margin:22px 0 16px;text-align:center;justify-content:center}
+        .au-or::before,.au-or::after{content:"";flex:1;height:1px;background:var(--dark-4)}
+        .au-google-wrap{display:flex;justify-content:center;min-height:48px}
+        .au-google-fake{width:100%;padding:12px;border-radius:11px;background:var(--dark-3);border:1px solid var(--dark-4);color:var(--cream-dim);font-size:13px;text-align:center;font-weight:600}
+        .au-bottom{margin-top:26px;text-align:center;color:var(--cream-dim);font-size:13px}
+        .au-alert{background:rgba(224,82,82,0.09);border:1px solid rgba(224,82,82,0.35);color:#EAA;font-size:13px;padding:11px 14px;border-radius:10px;margin-bottom:16px;text-align:center}
+        .au-trust{position:absolute;bottom:26px;left:0;right:0;display:flex;justify-content:center;gap:clamp(20px,4vw,50px);color:var(--cream-dim);font-size:12.5px;flex-wrap:wrap;padding:0 24px}
+        .au-trust span{display:inline-flex;align-items:center;gap:6px;color:var(--cream-dim)}
+        .au-trust span svg{color:var(--gold)}
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+        @media (max-width: 960px) {
           .au-wrap{grid-template-columns:1fr}
-          .au-side{display:none}
-          .au-main{padding:40px 18px 32px}
-          .au-card{padding:48px 22px 30px}
-          .au-grid{grid-template-columns:1fr}
-          .au-grid-3{grid-template-columns:1fr}
-          .au-title{font-size:28px}
-          .au-step{width:96px}
-          .au-step small{font-size:10.5px}
+          .au-left{padding:28px 20px 30px;order:2}
+          .au-right{padding:60px 16px 90px;order:1}
+          .au-testi{display:none}
+          .au-trust{position:static;margin-top:26px}
+          .au-help{top:16px;right:16px}
         }
       `}</style>
 
-      {/* ══════════ Panel izquierdo: marca y beneficios ══════════ */}
-      <aside className="au-side">
-        <div className="au-side-in">
-          <button className="au-logo" onClick={() => navigate('/')} title="Ir al sitio de Barbersoft">
-            {Ic.scissors(26)}
-            <span>Barber<i>soft</i></span>
-          </button>
+      {/* ═══ Panel izquierdo — presentación ═══ */}
+      <aside className="au-left">
+        <div>
+          <a href="/" className="au-brand">
+            <span className="au-brand-ic">{Ic.scissors(24)}</span>
+            Barber<em>soft</em>
+          </a>
+        </div>
 
-          <div style={{ marginTop: 'clamp(36px,7vh,72px)' }}>
-            <p className="au-kicker">{isRegister ? 'ÚNETE A BARBERSOFT' : 'BIENVENIDO DE NUEVO'}</p>
-            <h1 className="au-h1">
-              {isRegister ? <>Gestiona tu barbería<br /><em>como un profesional</em></> : <>Tu barbería,<br /><em>siempre organizada</em></>}
-            </h1>
-            <p className="au-sub">
-              Agenda citas, administra servicios, controla tu equipo y haz crecer tu negocio desde un solo lugar.
-            </p>
-            <div className="au-rule" />
+        <div style={{ position:'relative', zIndex:1 }}>
+          <p className="au-kicker"><span style={{ color:'var(--gold)' }}>◆</span> {isRegister ? 'ÚNETE A BARBERSOFT' : 'BIENVENIDO DE NUEVO'}</p>
+          <h1 className="au-headline">
+            {isRegister ? <>Empieza a organizar<br/><em>tu barbería hoy</em></> : <>Tu barbería,<br/><em>siempre organizada</em></>}
+          </h1>
+          <p className="au-lead">
+            {isRegister
+              ? 'Crea tu cuenta gratis y ten tu propia página de reservas online. Sin tarjeta, configuración en minutos.'
+              : 'Entra a tu panel y continúa gestionando tus citas, servicios, barberos y clientes desde un solo lugar.'}
+          </p>
+          <div className="au-sep" />
 
-            {BENEFICIOS.map(b => (
-              <div className="au-benef" key={b.title}>
-                <div className="au-benef-ic">{b.icon()}</div>
+          <div className="au-benefits">
+            {BENEFICIOS.map((b, i) => (
+              <div key={b.title} className={`au-benefit d${i}`}>
+                <span className="au-benefit-ic">{b.icon()}</span>
                 <div>
-                  <h3>{b.title}</h3>
+                  <h4>{b.title}</h4>
                   <p>{b.text}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="au-quote">
-            <div className="au-quote-mark">”</div>
+          <div className="au-testi">
+            <div className="au-testi-mark">"</div>
             <p>Desde que uso Barbersoft, mi barbería es más organizada y mis clientes están más felices.</p>
-            <div className="au-quote-who">
-              <div className="au-avatar">J</div>
+            <div className="au-testi-who">
+              <div className="au-testi-avatar">J</div>
               <div>
-                <b>Juan C. — Barranquilla</b>
-                <small>Barbería JC</small>
+                <div className="au-testi-name">Juan C. — Barranquilla</div>
+                <div className="au-testi-role">Barbería JC</div>
               </div>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* ══════════ Panel derecho: formulario ══════════ */}
-      <main className="au-main">
+      {/* ═══ Panel derecho — formulario ═══ */}
+      <section className="au-right">
+        <a
+          href="https://wa.me/573116735081?text=Hola,%20necesito%20ayuda%20con%20Barbersoft"
+          target="_blank" rel="noopener noreferrer"
+          className="au-help"
+        >
+          <span className="au-help-ic">{Ic.help()}</span>
+          <span style={{ display:'flex', flexDirection:'column', lineHeight:1.2 }}>
+            <strong>¿Necesitas ayuda?</strong>
+            <span>Escríbenos por <em>WhatsApp</em></span>
+          </span>
+        </a>
+
         <div className="au-card">
-          <div className="au-badge">{Ic.scissors(30)}</div>
+          <div className="au-crown">{Ic.scissors(28)}</div>
 
           <h2 className="au-title">{isRegister ? 'Crear cuenta' : 'Iniciar sesión'}</h2>
-          <p className="au-note">
-            {isRegister ? '14 DÍAS GRATIS • SIN TARJETA DE CRÉDITO' : 'ENTRA A TU PANEL DE BARBERSOFT'}
-          </p>
-
-          {isRegister && (
-            <div className="au-steps">
-              <div className="au-step on">
-                <div className="au-step-n">1</div>
-                <small>Datos de tu barbería</small>
-              </div>
-              <div className="au-step-line on" />
-              <div className="au-step">
-                <div className="au-step-n">2</div>
-                <small>Cuenta de acceso</small>
-              </div>
-              <div className="au-step-line" />
-              <div className="au-step">
-                <div className="au-step-n">3</div>
-                <small>¡Listo!</small>
-              </div>
-            </div>
-          )}
+          <p className="au-sub">{isRegister ? '14 DÍAS GRATIS • SIN TARJETA' : 'ENTRA A TU PANEL DE BARBERSOFT'}</p>
+          <div className="au-hr" />
 
           {error && <div className="au-alert">{error}</div>}
 
           <form onSubmit={handleSubmit}>
             {isRegister && (
               <>
-                <p className="au-sec">{Ic.store(15)} DATOS DE TU BARBERÍA</p>
-                <div className="au-grid">
-                  <Campo label="Nombre de la barbería" icon={Ic.store()} error={touched.name && registerErrors.name}>
-                    <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')}
-                      placeholder="Ej: Barbería El Paisa" required />
+                <Campo label="Nombre de la barbería" icon={Ic.store()} err={touched.name && registerErrors.name}>
+                  <input name="name" value={form.name} onChange={handleChange} onBlur={() => markTouched('name')} placeholder="Ej: Barbería El Paisa" required />
+                </Campo>
+                <Campo label="Teléfono" icon={Ic.phone()} err={touched.phone && registerErrors.phone}>
+                  <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')} placeholder="Ej: 300 123 4567" />
+                </Campo>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                  <Campo label="Departamento" icon={Ic.tag()} err={touched.department && registerErrors.department}>
+                    <select name="department" value={form.department} onChange={handleChange} onBlur={() => markTouched('department')} required>
+                      <option value="">Selecciona</option>
+                      {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
                   </Campo>
-
-                  <Campo label="Teléfono" icon={Ic.phone()} error={touched.phone && registerErrors.phone}>
-                    <input name="phone" value={form.phone} onChange={handleChange} onBlur={() => markTouched('phone')}
-                      placeholder="Ej: 300 123 4567" />
+                  <Campo label="Municipio" icon={Ic.tag()} err={touched.municipality && registerErrors.municipality}>
+                    <select name="municipality" value={form.municipality} onChange={handleChange} onBlur={() => markTouched('municipality')} disabled={!form.department} required>
+                      <option value="">{form.department ? 'Selecciona' : 'Elige depto'}</option>
+                      {getMunicipalities(form.department).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
                   </Campo>
-
-                  <div>
-                    <label className="au-label">Departamento</label>
-                    <div className="au-field">
-                      <span className="au-field-ic">{Ic.tag()}</span>
-                      <select name="department" value={form.department} onChange={handleChange}
-                        onBlur={() => markTouched('department')} required>
-                        <option value="">Selecciona un departamento</option>
-                        {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                      <span className="au-chev">▼</span>
-                    </div>
-                    {touched.department && registerErrors.department && <p className="au-err">⚠ {registerErrors.department}</p>}
-                  </div>
-
-                  <div>
-                    <label className="au-label">Municipio</label>
-                    <div className="au-field">
-                      <span className="au-field-ic">{Ic.tag()}</span>
-                      <select name="municipality" value={form.municipality} onChange={handleChange}
-                        onBlur={() => markTouched('municipality')} disabled={!form.department} required>
-                        <option value="">{form.department ? 'Selecciona un municipio' : 'Elige un departamento'}</option>
-                        {getMunicipalities(form.department).map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <span className="au-chev">▼</span>
-                    </div>
-                    {touched.municipality && registerErrors.municipality && <p className="au-err">⚠ {registerErrors.municipality}</p>}
-                  </div>
                 </div>
-
-                <div className="au-div" />
-
-                <p className="au-sec">{Ic.gift(15)} CÓDIGO DE REFERIDO <span>(OPCIONAL)</span></p>
-                <div className="au-field">
-                  <span className="au-field-ic">{Ic.gift()}</span>
-                  <input
-                    name="referral_code_usado"
-                    value={form.referral_code_usado}
-                    onChange={(e) => setForm(f => ({ ...f, referral_code_usado: e.target.value.toUpperCase() }))}
-                    placeholder="Ej: KEVI-A7X9"
-                    autoComplete="off"
-                    style={{ letterSpacing: '0.05em' }}
-                  />
-                </div>
-                <p className="au-help">¿Te recomendaron? Ingresa su código y ambos ganan 15 días gratis al activar tu plan.</p>
-
-                <div className="au-div" />
+                <Campo label="Código de referido (opcional)" icon={Ic.gift()}>
+                  <input name="referral_code_usado" value={form.referral_code_usado} onChange={handleChange} placeholder="Ej: KEVI-A7X9" />
+                </Campo>
               </>
             )}
 
-            <p className="au-sec">{Ic.user(15)} CUENTA DE ACCESO</p>
+            <Campo label="Correo electrónico" icon={Ic.mail()} err={touched.email && emailErr}>
+              <input name="email" type="email" value={form.email} onChange={handleChange} onBlur={() => markTouched('email')} placeholder="ejemplo@correo.com" required />
+            </Campo>
 
-            <div style={isRegister ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' } : {}}>
-            <div style={{ marginBottom: isRegister ? 0 : 14 }}>
-              <label className="au-label">Correo electrónico</label>
-              <div className="au-field">
-                <span className="au-field-ic">{Ic.mail()}</span>
-                <input name="email" type="email" value={form.email} onChange={handleChange}
-                  onBlur={() => markTouched('email')} placeholder="ejemplo@correo.com" required />
-              </div>
-              {touched.email && emailErr && <p className="au-err">⚠ {emailErr}</p>}
-            </div>
+            <Campo label="Contraseña" icon={Ic.lock()}>
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handleChange}
+                onBlur={() => markTouched('password')}
+                placeholder="••••••••••"
+                required
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+              />
+              <button type="button" className="au-field-toggle" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
+                {showPassword ? Ic.eyeOff() : Ic.eye()}
+              </button>
+            </Campo>
 
-            <div>
-              <label className="au-label">Contraseña</label>
-              <div className="au-field">
-                <span className="au-field-ic">{Ic.lock()}</span>
-                <input
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder={isRegister ? 'Crea una contraseña segura' : '••••••••'}
-                  required
-                  style={{ paddingRight: 46 }}
-                />
-                <button type="button" className="au-eye" onClick={() => setShowPassword(p => !p)}
-                  title={showPassword ? 'Ocultar' : 'Mostrar'}>
-                  {showPassword ? Ic.eyeOff() : Ic.eye()}
-                </button>
+            {isRegister && <PasswordStrength password={form.password} email={form.email} />}
+
+            {!isRegister && (
+              <div className="au-row">
+                <label className="au-remember">
+                  <input type="checkbox" />
+                  <span className="au-remember-box"></span>
+                  Recordarme en este dispositivo
+                </label>
+                <button type="button" className="au-link" onClick={() => navigate('/forgot-password')}>¿Olvidaste tu contraseña?</button>
               </div>
-              {isRegister && !form.password && <p className="au-help">Mínimo 8 caracteres, con letras y números.</p>}
-              {isRegister && form.password && <PasswordStrength password={form.password} email={form.email} />}
-            </div>
-            </div>
+            )}
 
             {isRegister && (
-              <label className="au-consent">
-                <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} />
-                <span>
-                  He leído y acepto los{' '}
-                  <a href="/terminos" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y la{' '}
-                  <a href="/privacidad" target="_blank" rel="noopener noreferrer">Política de privacidad</a>,
-                  incluyendo el tratamiento de mis datos personales.
-                </span>
+              <label style={{ display:'flex', alignItems:'flex-start', gap:8, color:'var(--cream-dim)', fontSize:12.5, marginBottom:16, lineHeight:1.5, cursor:'pointer' }}>
+                <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} style={{ marginTop:3 }} />
+                <span>Acepto los términos, condiciones y la política de privacidad.</span>
               </label>
             )}
 
-            <button type="submit" disabled={isSubmitDisabled} className="au-submit" style={{ marginTop: isRegister ? 20 : 22 }}>
-              {loading ? 'Cargando...' : isRegister ? <>Crear cuenta {Ic.arrow()}</> : <>Entrar {Ic.arrow()}</>}
+            <button type="submit" className="au-submit" disabled={isSubmitDisabled}>
+              {loading ? 'Procesando...' : <>{isRegister ? 'Crear cuenta gratis' : 'Entrar'} {Ic.arrow()}</>}
             </button>
           </form>
 
-          {!isRegister && (
-            <button className="au-forgot" onClick={() => navigate('/forgot-password')}>
-              ¿Olvidaste tu contraseña?
+          <div className="au-or">O continúa con</div>
+          <div className="au-google-wrap">
+            {GOOGLE_CLIENT_ID
+              ? <div ref={googleBtnRef} style={{ width:'100%' }} />
+              : <div className="au-google-fake">Google Sign-In no está configurado</div>}
+          </div>
+          {googleLoading && <p style={{ textAlign:'center', color:'var(--cream-dim)', fontSize:12, marginTop:10 }}>Validando con Google...</p>}
+
+          <p className="au-bottom">
+            {isRegister ? '¿Ya tienes cuenta? ' : '¿No tienes cuenta? '}
+            <button type="button" className="au-link" onClick={cambiarModo}>
+              {isRegister ? 'Iniciar sesión' : 'Regístrate gratis'}
             </button>
-          )}
+          </p>
         </div>
 
-        <p className="au-foot">
-          {isRegister ? '¿Ya tienes cuenta?  ' : '¿No tienes cuenta?  '}
-          <button onClick={cambiarModo}>{isRegister ? 'Iniciar sesión' : 'Regístrate gratis'}</button>
-        </p>
-      </main>
+        <div className="au-trust">
+          <span>{Ic.shield()} Conexión segura</span>
+          <span>{Ic.bolt()} Acceso rápido</span>
+          <span>{Ic.cloud()} Respaldo automático</span>
+        </div>
+      </section>
+
+      {/* ═══ Modal: completar datos tras login con Google ═══ */}
+      {googleFlow && (
+        <GoogleCompleteModal
+          idToken={googleFlow.idToken}
+          prefill={googleFlow.prefill}
+          onClose={() => setGoogleFlow(null)}
+          onDone={(token, barbershop) => {
+            login(token, barbershop)
+            navigate('/dashboard')
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ═══ Modal para completar datos de registro cuando el usuario entra con Google ═══ */
+function GoogleCompleteModal({ idToken, prefill, onClose, onDone }) {
+  const [form, setForm] = useState({
+    name: prefill.name || '',
+    phone: '',
+    department: '',
+    municipality: '',
+    referral_code_usado: '',
+  })
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const isValid =
+    form.name.trim().length >= 2 &&
+    form.phone.trim().length >= 7 &&
+    form.department &&
+    form.municipality
+
+  const submit = async () => {
+    if (!isValid) return
+    setBusy(true)
+    setErr('')
+    try {
+      const res = await api.post('/auth/google/register', {
+        id_token: idToken,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        department: form.department,
+        municipality: form.municipality,
+        referral_code_usado: form.referral_code_usado.trim().toUpperCase() || undefined,
+      })
+      onDone(res.data.token, res.data.barbershop)
+    } catch (e) {
+      setErr(e.response?.data?.error || 'No se pudo completar el registro.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.82)', display:'flex', alignItems:'center', justifyContent:'center', padding:16, zIndex:1000 }}>
+      <div style={{ background:'var(--dark-2)', border:'1px solid var(--dark-4)', borderRadius:16, padding:28, maxWidth:460, width:'100%' }}>
+        <p style={{ color:'var(--gold)', fontSize:11, letterSpacing:'0.14em', fontWeight:800, textAlign:'center', marginBottom:6 }}>UN ÚLTIMO PASO</p>
+        <h3 style={{ fontFamily:'var(--font-display, Georgia, serif)', color:'var(--cream)', fontSize:22, textAlign:'center', marginBottom:6 }}>Completa tu registro</h3>
+        <p style={{ color:'var(--cream-dim)', fontSize:13, textAlign:'center', marginBottom:20 }}>Entrando como <strong style={{ color:'var(--cream)' }}>{prefill.email}</strong>. Solo faltan tres datos para crear tu barbería.</p>
+
+        {err && <div style={{ background:'rgba(224,82,82,0.1)', border:'1px solid rgba(224,82,82,0.3)', color:'#EAA', padding:'9px 12px', borderRadius:9, fontSize:12.5, marginBottom:14, textAlign:'center' }}>{err}</div>}
+
+        <label style={{ display:'block', fontSize:12, color:'var(--cream)', fontWeight:600, marginBottom:6 }}>Nombre de la barbería</label>
+        <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Barbería El Paisa"
+          style={{ width:'100%', background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'11px 14px', color:'var(--cream)', fontSize:14, marginBottom:12 }} />
+
+        <label style={{ display:'block', fontSize:12, color:'var(--cream)', fontWeight:600, marginBottom:6 }}>Teléfono</label>
+        <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="300 123 4567"
+          style={{ width:'100%', background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'11px 14px', color:'var(--cream)', fontSize:14, marginBottom:12 }} />
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+          <div>
+            <label style={{ display:'block', fontSize:12, color:'var(--cream)', fontWeight:600, marginBottom:6 }}>Departamento</label>
+            <select value={form.department} onChange={e => setForm({ ...form, department: e.target.value, municipality: '' })}
+              style={{ width:'100%', background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'11px 14px', color:'var(--cream)', fontSize:14 }}>
+              <option value="">Selecciona</option>
+              {getDepartments().map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ display:'block', fontSize:12, color:'var(--cream)', fontWeight:600, marginBottom:6 }}>Municipio</label>
+            <select value={form.municipality} onChange={e => setForm({ ...form, municipality: e.target.value })} disabled={!form.department}
+              style={{ width:'100%', background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'11px 14px', color:'var(--cream)', fontSize:14 }}>
+              <option value="">{form.department ? 'Selecciona' : 'Elige depto'}</option>
+              {getMunicipalities(form.department).map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <label style={{ display:'block', fontSize:12, color:'var(--cream)', fontWeight:600, marginBottom:6 }}>Código de referido (opcional)</label>
+        <input value={form.referral_code_usado} onChange={e => setForm({ ...form, referral_code_usado: e.target.value })} placeholder="Ej: KEVI-A7X9"
+          style={{ width:'100%', background:'var(--dark-3)', border:'1px solid var(--dark-4)', borderRadius:10, padding:'11px 14px', color:'var(--cream)', fontSize:14, marginBottom:20 }} />
+
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onClose} disabled={busy}
+            style={{ flex:1, padding:12, borderRadius:10, border:'1px solid var(--dark-4)', background:'transparent', color:'var(--cream-dim)', fontWeight:600, cursor:'pointer' }}>
+            Cancelar
+          </button>
+          <button onClick={submit} disabled={!isValid || busy}
+            style={{ flex:1.5, padding:12, borderRadius:10, border:'none', background:(!isValid||busy)?'rgba(201,168,76,0.4)':'var(--gold)', color:'var(--dark)', fontWeight:800, cursor:(!isValid||busy)?'not-allowed':'pointer' }}>
+            {busy ? 'Creando...' : 'Crear mi barbería'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
