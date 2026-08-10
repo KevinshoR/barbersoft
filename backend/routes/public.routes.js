@@ -4,6 +4,7 @@ const pool             = require('../config/db')
 const AppointmentModel = require('../models/appointment.model')
 const { enviarConfirmacionCliente, enviarAvisoBarbero } = require('../utils/mailer')
 const { getColombiaDayOfWeek, toColombiaDate } = require('../utils/timezone')
+const { pushToBarber } = require('../utils/pushSender')
 
 // Validación básica de entrada para los endpoints públicos: no confiamos
 // solo en el frontend. Los límites de longitud coinciden con las columnas
@@ -269,6 +270,17 @@ if (!hoursCheck.open) {
             servicioNombre:  info.service_name,
             fechaHora:       scheduled_at,
           })
+          if (barber_id) {
+          const hora = new Date(scheduled_at).toLocaleTimeString('es-CO', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota',
+          })
+          pushToBarber(barber_id, {
+            title: '📅 Nueva reserva',
+            body:  `${hora} · ${client_name} · ${info.service_name}`,
+            url:   '/appointments',
+            tag:   'nueva-cita',
+          }).catch(err => console.error('[push] falló:', err.message))
+        }
         }
       } catch (mailErr) {
         console.error('[Correos] Error enviando notificaciones de cita:', mailErr.message)

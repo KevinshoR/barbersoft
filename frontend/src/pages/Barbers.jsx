@@ -1,3 +1,4 @@
+import PushNotifications from '../components/PushNotifications'
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
@@ -290,6 +291,9 @@ export default function Barbers() {
                     return <span key={d.n} style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 8, background: on ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', color: on ? 'var(--gold)' : 'var(--dark-4)', border: '1px solid ' + (on ? 'rgba(201,168,76,0.3)' : 'transparent') }}>{d.corto}</span>
                   })}
                 </div>
+              </div>
+              <div style={{ marginTop: 20 }}>
+                <PushNotifications barberId={detail.id} barberName={detail.name} />
               </div>
               <button onClick={() => { setDetail(null); openEdit(detail) }} style={{ width: '100%', marginTop: 24, padding: 13, borderRadius: 12, border: '1px solid var(--gold)', background: 'transparent', color: 'var(--gold)', fontWeight: 700, cursor: 'pointer' }}>Editar barbero</button>
             </div>
