@@ -1,4 +1,3 @@
-import PushNotifications from '../components/PushNotifications'
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
@@ -81,6 +80,7 @@ export default function Barbers() {
   const [filterDay, setFilterDay] = useState('')
   const [page, setPage] = useState(1)
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [photoUrl, setPhotoUrl] = useState('')
   const [specialty, setSpecialty] = useState('')
   const [workDays, setWorkDays] = useState([1, 2, 3, 4, 5, 6])
@@ -93,15 +93,15 @@ export default function Barbers() {
       .catch(err => toast.error(err.response?.data?.error || 'No se pudieron cargar los barberos.'))
       .finally(() => setLoading(false))
   }
-  const openCreate = () => { setEditing(null); setName(''); setPhotoUrl(''); setSpecialty(''); setWorkDays([1,2,3,4,5,6]); setNameError(''); setView('form') }
-  const openEdit = (b) => { setEditing(b); setName(b.name || ''); setPhotoUrl(b.photo_url || ''); setSpecialty(b.specialty || ''); setWorkDays(b.work_days ? parseDays(b.work_days) : [1,2,3,4,5,6]); setNameError(''); setView('form') }
+  const openCreate = () => { setEditing(null); setName(''); setPhone(''); setPhotoUrl(''); setSpecialty(''); setWorkDays([1,2,3,4,5,6]); setNameError(''); setView('form') }
+  const openEdit = (b) => { setEditing(b); setName(b.name || ''); setPhone(b.phone || ''); setPhotoUrl(b.photo_url || ''); setSpecialty(b.specialty || ''); setWorkDays(b.work_days ? parseDays(b.work_days) : [1,2,3,4,5,6]); setNameError(''); setView('form') }
   const toggleDay = (n) => setWorkDays(prev => prev.includes(n) ? prev.filter(d => d !== n) : [...prev, n])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!name.trim() || name.trim().length < 2) { setNameError('El nombre debe tener al menos 2 caracteres'); return }
     setSaving(true)
-    const payload = { name: name.trim(), photo_url: photoUrl.trim() || null, specialty: specialty.trim() || null, work_days: workDays.sort((a,b)=>a-b).join(',') }
+    const payload = { name: name.trim(), phone: phone.trim() || null, photo_url: photoUrl.trim() || null, specialty: specialty.trim() || null, work_days: workDays.sort((a,b)=>a-b).join(',') }
     try {
       if (editing) { await api.put('/barbers/' + editing.id, payload); toast.success('Barbero actualizado') }
       else { await api.post('/barbers', payload); toast.success('Barbero agregado correctamente') }
@@ -154,6 +154,11 @@ export default function Barbers() {
                   {nameError && <p style={{ color: '#C97A7A', fontSize: 12, marginTop: 5 }}>{nameError}</p>}
                 </div>
               </div>
+              <div style={{ marginBottom: 16 }}>
+            <label style={lbl}>TELÉFONO (WhatsApp) <span style={optLbl}>(opcional)</span></label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ej: 300 123 4567" style={input} />
+            <p style={{ color: 'var(--cream-dim)', fontSize: 11, marginTop: 5, opacity: 0.7 }}>Se usa para avisarle por WhatsApp cuando le agenden una cita.</p>
+          </div>
               <div>
                 <label style={lbl}>ESPECIALIDAD <span style={optLbl}>(opcional)</span></label>
                 <input value={specialty} maxLength={120} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ej: Fades y diseño de barba · 8 años de experiencia" style={input} />
@@ -291,9 +296,6 @@ export default function Barbers() {
                     return <span key={d.n} style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 8, background: on ? 'rgba(201,168,76,0.15)' : 'var(--dark-3)', color: on ? 'var(--gold)' : 'var(--dark-4)', border: '1px solid ' + (on ? 'rgba(201,168,76,0.3)' : 'transparent') }}>{d.corto}</span>
                   })}
                 </div>
-              </div>
-              <div style={{ marginTop: 20 }}>
-                <PushNotifications barberId={detail.id} barberName={detail.name} />
               </div>
               <button onClick={() => { setDetail(null); openEdit(detail) }} style={{ width: '100%', marginTop: 24, padding: 13, borderRadius: 12, border: '1px solid var(--gold)', background: 'transparent', color: 'var(--gold)', fontWeight: 700, cursor: 'pointer' }}>Editar barbero</button>
             </div>

@@ -5,7 +5,7 @@ const AppointmentModel = {
     const result = await pool.query(
       `SELECT a.id, a.client_name, a.client_phone, a.client_email,
               a.scheduled_at, a.status, a.notes,
-              b.name AS barber_name,
+              b.name AS barber_name, b.phone AS barber_phone,
               s.name AS service_name, s.duration_min, s.price
        FROM appointments a
        LEFT JOIN barbers  b ON a.barber_id  = b.id
@@ -18,21 +18,21 @@ const AppointmentModel = {
   },
 
   async findByDate(barbershop_id, date) {
-  const result = await pool.query(
-    `SELECT a.id, a.client_name, a.client_phone, a.client_email,
-            a.scheduled_at, a.status, a.notes,
-            b.name AS barber_name,
-            s.name AS service_name, s.duration_min, s.price
-     FROM appointments a
-     LEFT JOIN barbers  b ON a.barber_id  = b.id
-     LEFT JOIN services s ON a.service_id = s.id
-     WHERE a.barbershop_id = $1
-       AND DATE(a.scheduled_at) = $2
-     ORDER BY a.scheduled_at ASC`,
-    [barbershop_id, date]
-  )
-  return result.rows
-},
+    const result = await pool.query(
+      `SELECT a.id, a.client_name, a.client_phone, a.client_email,
+              a.scheduled_at, a.status, a.notes,
+              b.name AS barber_name, b.phone AS barber_phone,
+              s.name AS service_name, s.duration_min, s.price
+       FROM appointments a
+       LEFT JOIN barbers  b ON a.barber_id  = b.id
+       LEFT JOIN services s ON a.service_id = s.id
+       WHERE a.barbershop_id = $1
+         AND DATE(a.scheduled_at) = $2
+       ORDER BY a.scheduled_at ASC`,
+      [barbershop_id, date]
+    )
+    return result.rows
+  },
 
   async create({ barbershop_id, barber_id, service_id, client_name, client_phone, client_email, scheduled_at, notes }) {
     const result = await pool.query(

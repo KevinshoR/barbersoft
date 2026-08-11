@@ -1,6 +1,13 @@
 const pool        = require('../config/db')
 const BarberModel = require('../models/barber.model')
 
+// Limpia el teléfono: solo dígitos, máx 20 caracteres. Devuelve null si queda vacío.
+function normalizePhone(raw) {
+  if (raw === null || raw === undefined) return null
+  const cleaned = String(raw).replace(/\D/g, '').slice(0, 20)
+  return cleaned || null
+}
+
 const BarbersController = {
 
   async getAll(req, res) {
@@ -15,7 +22,7 @@ const BarbersController = {
 
   async create(req, res) {
     try {
-      const { name, photo_url, specialty, work_days } = req.body
+      const { name, phone, photo_url, specialty, work_days } = req.body
       if (!name) return res.status(400).json({ error: 'El nombre es obligatorio' })
 
       const existing = await pool.query(
@@ -29,6 +36,7 @@ const BarbersController = {
       const barber = await BarberModel.create({
         barbershop_id: req.barbershop.id,
         name: name.trim(),
+        phone: normalizePhone(phone),
         photo_url: photo_url?.trim() || null,
         specialty: specialty?.trim() || null,
         work_days: work_days?.trim() || null,
@@ -42,10 +50,14 @@ const BarbersController = {
 
   async update(req, res) {
     try {
+      // Normaliza phone si viene en el body (si no viene, no lo tocamos)
+      const body = { ...req.body }
+      if ('phone' in body) body.phone = normalizePhone(body.phone)
+
       const barber = await BarberModel.update(
         req.params.id,
         req.barbershop.id,
-        req.body
+        body
       )
       if (!barber) return res.status(404).json({ error: 'Barbero no encontrado' })
       res.json({ barber })

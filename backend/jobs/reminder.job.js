@@ -1,8 +1,7 @@
 const cron              = require('node-cron')
 const pool              = require('../config/db')
 const AppointmentModel  = require('../models/appointment.model')
-const { enviarRecordatorioCita } = require('../utils/mailer')
-const { pushToBarber }  = require('../utils/pushSender')
+const { enviarRecordatorioCita } = require('../utils/mailer') 
 
 async function findPendingRemindersWithDetails() {
   const result = await pool.query(
@@ -41,19 +40,6 @@ async function sendReminders() {
           servicioNombre: appt.service_name,
           fechaHora:      appt.scheduled_at,
         })
-
-        // 2) NUEVO: Web push al barbero (si tiene suscripciones)
-        if (appt.barber_id) {
-          const hora = new Date(appt.scheduled_at).toLocaleTimeString('es-CO', {
-            hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota',
-          })
-          pushToBarber(appt.barber_id, {
-            title: '⏰ Cita en 1 hora',
-            body:  `${hora} · ${appt.client_name} · ${appt.service_name}`,
-            url:   '/appointments',
-            tag:   `appt-${appt.id}`,
-          }).catch(err => console.error('[Recordatorios] push falló:', err.message))
-        }
 
         await AppointmentModel.markReminderSent(appt.id)
         console.log('[Recordatorios] Enviado a:', appt.client_name, appt.client_email)

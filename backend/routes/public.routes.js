@@ -4,8 +4,6 @@ const pool             = require('../config/db')
 const AppointmentModel = require('../models/appointment.model')
 const { enviarConfirmacionCliente, enviarAvisoBarbero } = require('../utils/mailer')
 const { getColombiaDayOfWeek, toColombiaDate } = require('../utils/timezone')
-const { pushToBarber } = require('../utils/pushSender')
-
 // Validación básica de entrada para los endpoints públicos: no confiamos
 // solo en el frontend. Los límites de longitud coinciden con las columnas
 // de la tabla `appointments` (client_name VARCHAR(100), client_phone VARCHAR(20),
