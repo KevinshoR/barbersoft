@@ -643,8 +643,19 @@ const navigate = useNavigate()
                           <button
                             key={ci}
                             type="button"
-                            disabled={!available}
-                            onClick={() => available && choosePickedDay(cell)}
+                            onClick={() => {
+                              if (available) {
+                                choosePickedDay(cell)
+                              } else {
+                                const dh = hours.find(h => h.day_of_week === cell.getDay())
+                                const nombreDia = cell.toLocaleDateString('es-CO', { weekday: 'long' })
+                                if (!dh || !dh.is_open) {
+                                  toast.error(`Los ${nombreDia}s la barbería está cerrada. Elige otro día.`)
+                                } else {
+                                  toast.error('Ese día no está disponible para reservas.')
+                                }
+                              }
+                            }}
                             title={!inRange ? 'Fuera del rango de reserva' : !openThatDay ? 'No disponible este día' : ''}
                             style={{
                               aspectRatio: '1', borderRadius: 10, border: '1px solid ' + (active ? 'var(--gold)' : 'transparent'),

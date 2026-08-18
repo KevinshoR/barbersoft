@@ -670,8 +670,21 @@ export default function Appointments() {
                                     const isToday = sameDay(today0, cell)
                                     return (
                                       <button key={ci} type="button" disabled={isPast}
-                                        onClick={() => !isPast && choosePickedDay(cell)}
-                                        title={isPast ? 'Fecha pasada' : recommended ? '' : 'Fuera del horario habitual'}
+                                        onClick={() => {
+                                          if (isPast) return
+                                          if (!opens) {
+                                            const nombreDia = cell.toLocaleDateString('es-CO', { weekday: 'long' })
+                                            toast.error(`Los ${nombreDia}s la barbería está cerrada. Elige otro día.`)
+                                            return
+                                          }
+                                          if (!barberWorks) {
+                                            const nombreDia = cell.toLocaleDateString('es-CO', { weekday: 'long' })
+                                            toast.error(`Este barbero no trabaja los ${nombreDia}s.`)
+                                            return
+                                          }
+                                          choosePickedDay(cell)
+                                        }}
+                                        title={isPast ? 'Fecha pasada' : opens ? (barberWorks ? '' : 'Barbero no trabaja este día') : 'Barbería cerrada este día'}
                                         style={{
                                           aspectRatio:'1', borderRadius:8, border:'1px solid ' + (active ? 'var(--gold)' : 'transparent'),
                                           background: active ? 'var(--gold)' : isPast ? 'transparent' : recommended ? 'rgba(201,168,76,0.10)' : 'transparent',
