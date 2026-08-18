@@ -266,7 +266,7 @@ export function SharedStyles() {
   return (
     <style>{`
       .au-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);background:var(--dark);font-family:var(--font-body,sans-serif);color:var(--cream)}
-      .au-left{position:relative;padding:clamp(28px,4vw,52px);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:linear-gradient(180deg,#0A0A0A 0%,#0E0E0E 100%)}
+      .au-left{position:relative;padding:clamp(28px,4vw,52px);display:flex;flex-direction:column;gap:32px;overflow:hidden;background:linear-gradient(180deg,#0A0A0A 0%,#0E0E0E 100%)}
       .au-left::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,rgba(201,168,76,0.09),transparent 60%);pointer-events:none}
       .au-brand{display:flex;align-items:center;gap:10px;color:var(--cream);text-decoration:none;font-family:var(--font-display,Georgia,serif);font-weight:800;font-size:22px;position:relative;z-index:1}
       .au-brand-ic{color:var(--gold)}
