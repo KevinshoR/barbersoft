@@ -15,6 +15,22 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Rutas que MANEJAN su propio error de credenciales (login, registro, Google).
+// Cuando el 401 viene de aquí NO redirigimos: es "credenciales inválidas", no
+// "sesión expirada". Dejamos que la página muestre su toast/alerta sin recargar.
+const AUTH_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/google/verify',
+  '/auth/google/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]
+
+function isAuthEndpoint(url = '') {
+  return AUTH_PATHS.some(p => url.includes(p))
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -26,7 +42,11 @@ api.interceptors.response.use(
       await new Promise(r => setTimeout(r, 2000))
       return api(config)
     }
-    if (error.response?.status === 401 || error.response?.status === 403) {
+
+    // Solo redirigimos por sesión expirada cuando la petición NO viene de un
+    // formulario de autenticación. Login/registro fallidos se muestran inline.
+    const url = config?.url || ''
+    if ((error.response?.status === 401 || error.response?.status === 403) && !isAuthEndpoint(url)) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
