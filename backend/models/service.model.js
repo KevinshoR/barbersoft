@@ -1,29 +1,53 @@
 const pool = require('../config/db')
 
-// Catálogo con el que arranca toda barbería nueva (recién registrada). Son
-// filas reales en `services`: el dueño las puede editar o eliminar desde
-// Services.jsx como cualquier otra.
+// Catálogo con el que arranca toda barbería nueva (recién registrada).
+// Elegidos con base en los 3 servicios más solicitados de las barberías
+// colombianas (según data de Fresha, Barbería Lords, La Barbería Bogotá):
+//
+//   1. Corte de cabello — el pan de todos los días
+//   2. Corte + barba — el combo estrella, el más rentable
+//   3. Arreglo de barba — segundo más pedido después del corte
+//
+// Precios: promedio de barbería de barrio con buen nivel en Colombia (2026).
+// El dueño puede editarlos, eliminarlos o agregar más desde el panel Services.
+// Las imágenes son fotos libres (Unsplash) — el dueño las reemplaza con las suyas.
 const DEFAULT_SERVICES = [
-  { name: 'Corte clásico',     duration_min: 30, price: 25000 },
-  { name: 'Corte + barba',     duration_min: 45, price: 35000 },
-  { name: 'Arreglo de barba',  duration_min: 20, price: 15000 },
-  { name: 'Tinte',             duration_min: 60, price: 50000 },
-  { name: 'Cejas',             duration_min: 15, price: 10000 },
+  {
+    name: 'Corte de cabello',
+    duration_min: 30,
+    price: 25000,
+    description: 'Corte tradicional a máquina y tijera, degradado (fade) o clásico. Incluye lavado y peinado.',
+    image_url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&h=800&fit=crop',
+  },
+  {
+    name: 'Corte + Barba',
+    duration_min: 45,
+    price: 35000,
+    description: 'Combo completo: corte de cabello, perfilado de barba con navaja y toalla caliente. El favorito.',
+    image_url: 'https://images.unsplash.com/photo-1521490878406-4b1b8f38dfe4?w=800&h=800&fit=crop',
+  },
+  {
+    name: 'Arreglo de barba',
+    duration_min: 20,
+    price: 15000,
+    description: 'Perfilado de barba con navaja, toalla caliente y acabado con productos de cuidado.',
+    image_url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&h=800&fit=crop',
+  },
 ]
 
 const ServiceModel = {
   async createDefaults(barbershop_id, db = pool) {
     const values = []
     const rows = DEFAULT_SERVICES.map((s, i) => {
-      const base = i * 4
-      values.push(barbershop_id, s.name, s.duration_min, s.price)
-      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`
+      const base = i * 6
+      values.push(barbershop_id, s.name, s.duration_min, s.price, s.description, s.image_url)
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
     }).join(', ')
 
     const result = await db.query(
-      `INSERT INTO services (barbershop_id, name, duration_min, price)
+      `INSERT INTO services (barbershop_id, name, duration_min, price, description, image_url)
        VALUES ${rows}
-       RETURNING id, name, duration_min, price, active`,
+       RETURNING id, name, duration_min, price, description, image_url, active`,
       values
     )
     return result.rows

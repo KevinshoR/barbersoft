@@ -228,12 +228,13 @@ export default function Hours() {
                   disabled={saving === hour.day_of_week || !!getRowError(hour) || !isDirty(hour)}
                   style={{
                     padding: '10px 18px', borderRadius: 10, border: 'none',
-                    background: isDirty(hour) ? 'var(--gold)' : 'var(--dark-3)',
+                    background: isDirty(hour) ? 'linear-gradient(135deg, #F0CD68 0%, #D9AF4A 100%)' : 'var(--dark-3)',
                     color: isDirty(hour) ? 'var(--dark)' : 'var(--cream-dim)',
                     fontWeight: 800, fontSize: 12.5, letterSpacing: '0.04em',
                     cursor: (saving === hour.day_of_week || !isDirty(hour)) ? 'not-allowed' : 'pointer',
                     opacity: saving === hour.day_of_week ? 0.6 : 1,
                     transition: 'all 0.18s',
+                    boxShadow: isDirty(hour) ? '0 4px 14px rgba(240,205,104,0.35)' : 'none',
                   }}
                   title={isDirty(hour) ? 'Guardar cambios' : 'No hay cambios que guardar'}
                 >
