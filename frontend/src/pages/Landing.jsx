@@ -143,6 +143,11 @@ export default function Landing() {
         .btn-nav.ghost{background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,0.16)}
         .btn-nav.ghost:hover{border-color:var(--gold);color:var(--gold);background:transparent}
         @media(max-width:820px){ .nav-links{display:none} }
+@media(max-width:480px){
+  .logo{font-size:18px}
+  .btn-nav.ghost{display:none}
+  .btn-nav{padding:9px 14px;font-size:11px}
+}
 
         /* ── Hero dos columnas ── */
         .hero{min-height:100vh;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;align-items:center;max-width:1280px;margin:0 auto;padding:130px clamp(16px,4vw,48px) 70px;position:relative}
